@@ -10,7 +10,19 @@ library MonadexV1Utils {
         pure
         returns (address, address)
     {
-        if (_tokenA >= _tokenB) return (_tokenA, _tokenB);
+        if (_tokenA <= _tokenB) return (_tokenA, _tokenB);
         else return (_tokenB, _tokenA);
+    }
+
+    function getProtocolFeeForAmount(
+        uint256 _amount,
+        uint256 _feeNumerator,
+        uint256 _feeDenominator
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return (_amount * _feeNumerator) / _feeDenominator;
     }
 }
