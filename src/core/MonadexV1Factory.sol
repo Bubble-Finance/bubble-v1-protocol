@@ -14,19 +14,23 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
     MonadexV1Types.Fee[5] private s_feeTiers;
 
     mapping(address token => bool isSupported) private s_supportedTokens;
-    mapping(address tokenA => mapping(address tokenB => MonadexV1Types.Fee fee)) private
-        s_tokenPairToFee;
+    mapping(address tokenA => mapping(address tokenB => uint256 feeTier)) private s_tokenPairToFee;
     mapping(address tokenA => mapping(address tokenB => address pool)) private s_tokenPairToPool;
 
-    event PoolCreated(address indexed pool, address indexed tokenA, address indexed tokenB);
+    event PoolCreated(address indexed pool, address tokenA, address tokenB);
+    event ProtocolTeamMultisigChanged(address indexed protocolTeamMultisig);
+    event ProtocolFeeChanged(MonadexV1Types.Fee indexed protocolFee);
+    event TokenSupportChanged(address indexed token, bool indexed isSupported);
+    event FeeTierForTokenPairUpdated(
+        address indexed tokenA, address indexed tokenB, uint256 indexed feeTier
+    );
 
+    error MonadexV1Factory__NotProtocolTeamMultisig(address sender);
     error MonadexV1Factory__TokenAddressZero();
     error MonadexV1Factory__CannotCreatePoolForSameTokens(address token);
     error MonadexV1Factory__TokenNotSupported(address token);
     error MonadexV1Factory__PoolAlreadyExists(address pool);
-    error MonadexV1Factory__NotProtocolTeamMultisig(address sender);
-    error MonadexV1Factory__InvalidFeeForTokenPair();
-    error MonadexV1Factory__PoolFeeAlreadySet(address pool);
+    error MonadexV1Factory__InvalidFeeTier(uint256 feeTier);
 
     modifier onlyProtocolTeamMultisig() {
         if (msg.sender != s_protocolTeamMultisig) {
@@ -58,19 +62,12 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
         address pool = getTokenPairToPool(_tokenA, _tokenB);
         if (pool != address(0)) revert MonadexV1Factory__PoolAlreadyExists(pool);
-
         (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
-        MonadexV1Types.Fee memory poolFee = s_tokenPairToFee[_tokenA][_tokenB];
-        if (poolFee.feeNumerator == 0 || poolFee.feeDenominator == 0) {
-            revert MonadexV1Factory__InvalidFeeForTokenPair();
-        }
-        MonadexV1Pool newPool =
-            new MonadexV1Pool(_tokenA, _tokenB, s_protocolFee, poolFee, s_protocolTeamMultisig);
+        MonadexV1Pool newPool = new MonadexV1Pool(_tokenA, _tokenB);
         address newPoolAddress = address(newPool);
         s_tokenPairToPool[_tokenA][_tokenB] = newPoolAddress;
 
         emit PoolCreated(newPoolAddress, _tokenA, _tokenB);
-
         return newPoolAddress;
     }
 
@@ -79,10 +76,7 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         onlyProtocolTeamMultisig
     {
         s_protocolTeamMultisig = _protocolTeamMultisig;
-    }
-
-    function syncPoolsProtocolTeamMultisig(address _pool) external onlyProtocolTeamMultisig {
-        IMonadexV1Pool(_pool).setProtocolTeamMultisig(s_protocolTeamMultisig);
+        emit ProtocolTeamMultisigChanged(_protocolTeamMultisig);
     }
 
     function setProtocolFee(MonadexV1Types.Fee memory _protocolFee)
@@ -90,14 +84,12 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         onlyProtocolTeamMultisig
     {
         s_protocolFee = _protocolFee;
-    }
-
-    function syncPoolsProtocolFee(address _pool) external onlyProtocolTeamMultisig {
-        IMonadexV1Pool(_pool).setProtocolFee(s_protocolFee);
+        emit ProtocolFeeChanged(_protocolFee);
     }
 
     function setToken(address _token, bool _isSupported) external onlyOwner {
         s_supportedTokens[_token] = _isSupported;
+        emit TokenSupportChanged(_token, _isSupported);
     }
 
     function setTokenPairFee(
@@ -108,17 +100,40 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         external
         onlyOwner
     {
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
         (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
-        address pool = getTokenPairToPool(_tokenA, _tokenB);
-        if (pool != address(0)) revert MonadexV1Factory__PoolFeeAlreadySet(pool);
-        s_tokenPairToFee[_tokenA][_tokenB] = s_feeTiers[_feeTier];
+        s_tokenPairToFee[_tokenA][_tokenB] = _feeTier;
+        emit FeeTierForTokenPairUpdated(_tokenA, _tokenB, _feeTier);
     }
 
     function getProtocolTeamMultisig() external view returns (address) {
         return s_protocolTeamMultisig;
     }
 
-    function getAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
+    function getProtocolFee() external view returns (MonadexV1Types.Fee memory) {
+        return s_protocolFee;
+    }
+
+    function getTokenPairToFee(
+        address _tokenA,
+        address _tokenB
+    )
+        external
+        view
+        returns (MonadexV1Types.Fee memory)
+    {
+        (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
+        uint256 feeTier = s_tokenPairToFee[_tokenA][_tokenB];
+        if (feeTier == 0) return s_feeTiers[2];
+        else return s_feeTiers[feeTier - 1];
+    }
+
+    function getFeeForTier(uint256 _feeTier) public view returns (MonadexV1Types.Fee memory) {
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
+        return s_feeTiers[_feeTier - 1];
+    }
+
+    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
         return s_feeTiers;
     }
 
@@ -129,9 +144,5 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
     function getTokenPairToPool(address _tokenA, address _tokenB) public view returns (address) {
         (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
         return s_tokenPairToPool[_tokenA][_tokenB];
-    }
-
-    function getFeeTier(uint256 _tier) public view returns (MonadexV1Types.Fee memory) {
-        return s_feeTiers[_tier];
     }
 }

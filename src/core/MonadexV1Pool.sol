@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import { IMonadexV1Callee } from "./interfaces/IMonadexV1Calle.sol";
+import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
 import { MonadexV1Types } from "./library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
 import { Ownable, Ownable2Step } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
@@ -16,15 +18,13 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
-    address private s_tokenA;
-    address private s_tokenB;
+    address private immutable i_factory;
+    address private immutable i_tokenA;
+    address private immutable i_tokenB;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
-    address private s_protocolTeamMultisig;
-    MonadexV1Types.Fee private s_protocolFee;
-    MonadexV1Types.Fee private s_poolFee;
     uint256 constant MINIMUM_LIQUIDITY = 1_000;
-
+    uint256 private s_lastK;
     bool private s_isLocked;
 
     event LiquidityAdded(
@@ -41,19 +41,24 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         uint256 amountB,
         uint256 indexed lpTokensBurnt
     );
-    event ReservesUpdated(uint256 reserveA, uint256 reserveB);
-    event ProtocolTeamMultisigSet(address protocolTeamMultisig);
-    event ProtocolFeeSet(MonadexV1Types.Fee protocolFee);
+    event AmountSwapped(
+        address caller,
+        uint256 amountAIn,
+        uint256 amountBIn,
+        uint256 amountAOut,
+        uint256 amountBOut,
+        address _receiver
+    );
+    event ReservesUpdated(uint256 indexed reserveA, uint256 indexed reserveB);
 
-    error MonadexV1Pool__EntryNotAllowedWhenFlashSwappingOrLoaning();
-    error MonadexV1Pool__DeadlinePassed(uint256 deadline);
-    error MonadexV1Pool__NotAPoolToken(address token);
-    error MonadexV1Pool__InsufficientReserves(address token, uint256 reserve);
-    error MonadexV1Pool__FlashLoanNotPaid(uint256 amountPaid, uint256 paybackAmount);
-    error MonadexV1Pool__InvalidReceiver(address receiver);
+    error MonadexV1Pool__Locked();
     error MonadexV1Pool__ZeroLpTokensToMint();
     error MonadexV1Pool__CannotWithdrawZeroTokenAmount();
-    error MonadexV1Pool__Locked();
+    error MonadexV1Pool__InsufficientOutputAmount();
+    error MonadexV1Pool__OutputAmountGreaterThanReserves();
+    error MonadexV1Pool__InvalidReceiver(address receiver);
+    error MonadexV1Pool__InsufficientInputAmount();
+    error MonadexV1Pool__InvalidK();
 
     modifier globalLock() {
         if (s_isLocked) revert MonadexV1Pool__Locked();
@@ -62,56 +67,37 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         s_isLocked = false;
     }
 
-    modifier beforeDeadline(uint256 _deadline) {
-        if (_deadline <= block.timestamp) revert MonadexV1Pool__DeadlinePassed(_deadline);
-        _;
-    }
-
     constructor(
         address _tokenA,
-        address _tokenB,
-        MonadexV1Types.Fee memory _protocolFee,
-        MonadexV1Types.Fee memory _poolFee,
-        address _protocolTeamMultisig
+        address _tokenB
     )
         ERC20(
-            string.concat("Monadex", IERC20Metadata(_tokenA).name(), IERC20Metadata(_tokenB).name()),
+            string.concat(
+                "Monadex", IERC20Metadata(_tokenA).name(), IERC20Metadata(_tokenB).name(), "Pool"
+            ),
             string.concat("MDX", IERC20Metadata(_tokenA).symbol(), IERC20Metadata(_tokenB).symbol())
         )
         Ownable(msg.sender)
     {
-        s_tokenA = _tokenA;
-        s_tokenB = _tokenB;
-        s_protocolFee = _protocolFee;
-        s_poolFee = _poolFee;
+        i_factory = msg.sender;
+        i_tokenA = _tokenA;
+        i_tokenB = _tokenB;
         s_isLocked = false;
-        s_protocolTeamMultisig = _protocolTeamMultisig;
+        s_lastK = 0;
     }
 
     function addLiquidity(address _receiver) external globalLock returns (uint256) {
         (uint256 reserveA, uint256 reserveB) = getReserves();
-        (address tokenA, address tokenB) = getPoolTokens();
-        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
+        uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
+        uint256 balanceB = IERC20(i_tokenB).balanceOf(address(this));
         uint256 amountAIn = balanceA - reserveA;
         uint256 amountBIn = balanceB - reserveB;
-        uint256 totalLpTokenSupply = totalSupply();
         uint256 lpTokensToMint;
-        MonadexV1Types.Fee memory protocolFee = s_protocolFee;
 
-        uint256 protocolFeeOnAmountAIn = MonadexV1Utils.getProtocolFeeForAmount(
-            amountAIn, protocolFee.feeNumerator, protocolFee.feeDenominator
-        );
-        uint256 protocolFeeOnAmountBIn = MonadexV1Utils.getProtocolFeeForAmount(
-            amountBIn, protocolFee.feeNumerator, protocolFee.feeDenominator
-        );
-        _sendFeeToProtocolTeamMultisig(tokenA, protocolFeeOnAmountAIn);
-        _sendFeeToProtocolTeamMultisig(tokenB, protocolFeeOnAmountBIn);
-        amountAIn -= protocolFeeOnAmountAIn;
-        amountBIn -= protocolFeeOnAmountBIn;
-
+        _mintProtocolFee(reserveA, reserveB);
+        uint256 totalLpTokenSupply = totalSupply();
         if (totalLpTokenSupply == 0) {
-            lpTokensToMint = (amountAIn * amountBIn).sqrt();
+            lpTokensToMint = (amountAIn * amountBIn).sqrt() - MINIMUM_LIQUIDITY;
             _mint(address(0), MINIMUM_LIQUIDITY);
         } else {
             lpTokensToMint = ((amountAIn * totalLpTokenSupply) / reserveA).min(
@@ -119,79 +105,134 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
             );
         }
         if (lpTokensToMint == 0) revert MonadexV1Pool__ZeroLpTokensToMint();
-
         _mint(_receiver, lpTokensToMint);
         _updateReserves(balanceA, balanceB);
-        emit LiquidityAdded(msg.sender, _receiver, amountAIn, amountBIn, lpTokensToMint);
+        s_lastK = s_reserveA * s_reserveB;
 
+        emit LiquidityAdded(msg.sender, _receiver, amountAIn, amountBIn, lpTokensToMint);
         return lpTokensToMint;
     }
 
     function removeLiquidity(address _receiver) external globalLock returns (uint256, uint256) {
-        (address tokenA, address tokenB) = getPoolTokens();
-        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
+        (uint256 reserveA, uint256 reserveB) = getReserves();
+        uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
+        uint256 balanceB = IERC20(i_tokenB).balanceOf(address(this));
         uint256 lpTokensReceived = balanceOf(address(this));
-        uint256 totalLpTokenSupply = totalSupply();
 
+        _mintProtocolFee(reserveA, reserveB);
+        uint256 totalLpTokenSupply = totalSupply();
         uint256 amountAOut = (lpTokensReceived * balanceA) / totalLpTokenSupply;
         uint256 amountBOut = (lpTokensReceived * balanceB) / totalLpTokenSupply;
         if (amountAOut == 0 || amountBOut == 0) {
             revert MonadexV1Pool__CannotWithdrawZeroTokenAmount();
         }
         _burn(address(this), lpTokensReceived);
-        IERC20(tokenA).safeTransfer(_receiver, amountAOut);
-        IERC20(tokenB).safeTransfer(_receiver, amountBOut);
-        balanceA = IERC20(tokenA).balanceOf(address(this));
-        balanceB = IERC20(tokenB).balanceOf(address(this));
+        IERC20(i_tokenA).safeTransfer(_receiver, amountAOut);
+        IERC20(i_tokenB).safeTransfer(_receiver, amountBOut);
+        balanceA = IERC20(i_tokenA).balanceOf(address(this));
+        balanceB = IERC20(i_tokenB).balanceOf(address(this));
         _updateReserves(balanceA, balanceB);
-        emit LiquidityRemoved(msg.sender, _receiver, amountAOut, amountBOut, lpTokensReceived);
+        s_lastK = s_reserveA * s_reserveB;
 
+        emit LiquidityRemoved(msg.sender, _receiver, amountAOut, amountBOut, lpTokensReceived);
         return (amountAOut, amountBOut);
     }
 
+    function swap(
+        uint256 _amountAOut,
+        uint256 _amountBOut,
+        address _receiver,
+        MonadexV1Types.HookConfig memory _hookConfig,
+        bytes calldata _data
+    )
+        external
+        globalLock
+    {
+        if (_amountAOut == 0 && _amountBOut == 0) {
+            revert MonadexV1Pool__InsufficientOutputAmount();
+        }
+        (uint256 reserveA, uint256 reserveB) = getReserves();
+        if (_amountAOut >= reserveA || _amountBOut >= reserveB) {
+            revert MonadexV1Pool__OutputAmountGreaterThanReserves();
+        }
+
+        uint256 balanceA;
+        uint256 balanceB;
+        {
+            if (_receiver == i_tokenA || _receiver == i_tokenB) {
+                revert MonadexV1Pool__InvalidReceiver(_receiver);
+            }
+            if (_hookConfig.hookBeforeCall) {
+                IMonadexV1Callee(_receiver).hookBeforeCall(
+                    msg.sender, _amountAOut, _amountBOut, _data
+                );
+            }
+            if (_amountAOut > 0) IERC20(i_tokenA).safeTransfer(_receiver, _amountAOut); // optimistically transfer tokens
+            if (_amountBOut > 0) IERC20(i_tokenB).safeTransfer(_receiver, _amountBOut); // optimistically transfer tokens
+            if (_data.length > 0) {
+                IMonadexV1Callee(_receiver).onCall(msg.sender, _amountAOut, _amountBOut, _data);
+            }
+            balanceA = IERC20(i_tokenA).balanceOf(address(this));
+            balanceB = IERC20(i_tokenB).balanceOf(address(this));
+        }
+        uint256 amountAIn =
+            balanceA > reserveA - _amountAOut ? balanceA - (reserveA - _amountAOut) : 0;
+        uint256 amountBIn =
+            balanceB > reserveB - _amountBOut ? balanceB - (reserveB - _amountBOut) : 0;
+        if (amountAIn == 0 && amountBIn == 0) revert MonadexV1Pool__InsufficientInputAmount();
+        {
+            MonadexV1Types.Fee memory poolFee = getPoolFee();
+            uint256 balanceAAdjusted =
+                (balanceA * poolFee.denominator) - (amountAIn * poolFee.numerator);
+            uint256 balanceBAdjusted =
+                (balanceB * poolFee.denominator) - (amountBIn * poolFee.numerator);
+            if (
+                balanceAAdjusted * balanceBAdjusted
+                    < reserveA * reserveB * (poolFee.denominator ** 2)
+            ) {
+                revert MonadexV1Pool__InvalidK();
+            }
+        }
+        _updateReserves(balanceA, balanceB);
+
+        emit AmountSwapped(msg.sender, amountAIn, amountBIn, _amountAOut, _amountBOut, _receiver);
+
+        if (_hookConfig.hookAfterCall) {
+            IMonadexV1Callee(_receiver).hookAfterCall(msg.sender, _amountAOut, _amountBOut, _data);
+        }
+    }
+
     function syncBalancesBasedOnReserves(address _receiver) external globalLock {
-        address tokenA = s_tokenA;
-        address tokenB = s_tokenB;
+        (address tokenA, address tokenB) = getPoolTokens();
         IERC20(tokenA).safeTransfer(_receiver, IERC20(tokenA).balanceOf(address(this)) - s_reserveA);
         IERC20(tokenB).safeTransfer(_receiver, IERC20(tokenB).balanceOf(address(this)) - s_reserveB);
     }
 
     function syncReservesBasedOnBalances() external globalLock {
         _updateReserves(
-            IERC20(s_tokenA).balanceOf(address(this)), IERC20(s_tokenB).balanceOf(address(this))
+            IERC20(i_tokenA).balanceOf(address(this)), IERC20(i_tokenB).balanceOf(address(this))
         );
     }
 
-    function setProtocolTeamMultisig(address _protocolTeamMultisig) external onlyOwner {
-        s_protocolTeamMultisig = _protocolTeamMultisig;
-        emit ProtocolTeamMultisigSet(_protocolTeamMultisig);
+    function getProtocolTeamMultisig() public view returns (address) {
+        return IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
     }
 
-    function setProtocolFee(MonadexV1Types.Fee memory _protocolFee) external onlyOwner {
-        s_protocolFee = _protocolFee;
-        emit ProtocolFeeSet(_protocolFee);
+    function getProtocolFee() public view returns (MonadexV1Types.Fee memory) {
+        return IMonadexV1Factory(i_factory).getProtocolFee();
     }
 
-    function getProtocolTeamMultisig() external view returns (address) {
-        return s_protocolTeamMultisig;
-    }
-
-    function getProtocolFee() external view returns (MonadexV1Types.Fee memory) {
-        return s_protocolFee;
-    }
-
-    function getPoolFee() external view returns (MonadexV1Types.Fee memory) {
-        return s_poolFee;
+    function getPoolFee() public view returns (MonadexV1Types.Fee memory) {
+        return IMonadexV1Factory(i_factory).getTokenPairToFee(i_tokenA, i_tokenB);
     }
 
     function isPoolToken(address _token) public view returns (bool) {
-        if (_token != s_tokenA || _token != s_tokenB) return false;
+        if (_token != i_tokenA && _token != i_tokenB) return false;
         return true;
     }
 
     function getPoolTokens() public view returns (address, address) {
-        return (s_tokenA, s_tokenB);
+        return (i_tokenA, i_tokenB);
     }
 
     function getReserves() public view returns (uint256, uint256) {
@@ -205,7 +246,23 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         emit ReservesUpdated(_reserveA, _reserveB);
     }
 
-    function _sendFeeToProtocolTeamMultisig(address _token, uint256 _amount) internal {
-        IERC20(_token).safeTransfer(s_protocolTeamMultisig, _amount);
+    function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) internal {
+        address protocolTeamMultisig = IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
+        MonadexV1Types.Fee memory protocolFee = getProtocolFee();
+        uint256 lastK = s_lastK;
+        uint256 totalLpTokenSupply = totalSupply();
+
+        if (lastK != 0) {
+            uint256 rootK = (_reserveA * _reserveB).sqrt();
+            uint256 rootKLast = lastK.sqrt();
+            if (rootK > rootKLast) {
+                uint256 numerator =
+                    (totalLpTokenSupply * (rootK - rootKLast) * protocolFee.numerator);
+                uint256 denominator = (rootK * protocolFee.denominator)
+                    - (rootK * protocolFee.numerator) + (rootKLast * protocolFee.numerator);
+                uint256 lpTokensToMint = numerator / denominator;
+                if (lpTokensToMint > 0) _mint(protocolTeamMultisig, lpTokensToMint);
+            }
+        }
     }
 }

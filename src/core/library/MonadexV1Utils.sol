@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import { MonadexV1Types } from "./MonadexV1Types.sol";
+
 library MonadexV1Utils {
     function sortTokens(
         address _tokenA,
@@ -16,13 +18,14 @@ library MonadexV1Utils {
 
     function getProtocolFeeForAmount(
         uint256 _amount,
-        uint256 _feeNumerator,
-        uint256 _feeDenominator
+        uint256 _reserve,
+        MonadexV1Types.Fee memory _fee,
+        uint256 _totalLpTokenSupply
     )
         internal
         pure
         returns (uint256)
     {
-        return (_amount * _feeNumerator) / _feeDenominator;
+        return (_amount * _fee.numerator * _totalLpTokenSupply) / (_fee.denominator * _reserve);
     }
 }
