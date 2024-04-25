@@ -26,14 +26,16 @@ pragma solidity ^0.8.20;
 /// @notice ....
 /// @notice
 
-import { Ownable } from "../../../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { IERC20 } from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from
-    "../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "../../../lib/openzeppelin-contracts/contracts/utils/Address.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+//NOTE: Limitation add non reentrancy
 
-contract MonadexV1AirdropManager is Ownable {
+contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     using Address for address;
+    using SafeERC20 for IERC20;
     /////////////////////
     ///state variables///
     /////////////////////
@@ -42,7 +44,7 @@ contract MonadexV1AirdropManager is Ownable {
     address[] private s_Tokens;
     mapping(address => bool isSupported) public m_supportedToken;
     mapping(address => bool eligible) public m_eligibleUser;
-
+    mapping (address => bool ) public m_hasClaimed;
     uint256 public maxAddressLimit;
     uint256 public claimAmount;
 
@@ -54,6 +56,7 @@ contract MonadexV1AirdropManager is Ownable {
     error Monadex_maxAddressLimit(uint256 maxAddressLimit, uint256 receiverLength);
     error Monadex_IneligibleAddressError();
     error Monadex_newAddressAlreadyExisted();
+    error Monadex_HasClaimedError();
 
     ///////////
     ///Event///
@@ -64,11 +67,12 @@ contract MonadexV1AirdropManager is Ownable {
     event E_addAirdropfund(address token, uint256 amountToAdd);
     event E_addToken(address token);
 
-    constructor(uint256 _claimAmountPerWallet) Ownable(msg.sender) {
+    constructor(uint256 _claimAmountPerWallet, uint256 _maxAddressLimit) Ownable(msg.sender) {
         claimAmount = _claimAmountPerWallet;
+        maxAddressLimit = _maxAddressLimit;
     }
 
-    function addToken(address newToken) public onlyOwner {
+    function addToken(address newToken) external onlyOwner {
         if (newToken == address(0)) {
             revert Monadex_ZeroAddressError();
         }
@@ -84,17 +88,18 @@ contract MonadexV1AirdropManager is Ownable {
     )
         external
         onlyOwner
+        nonReentrant
     {
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
         }
 
         IERC20 token = IERC20(supportedToken);
-        token.transferFrom(msg.sender, address(this), totalAmountToAirdrop);
+        token.safeTransferFrom(msg.sender, address(this), totalAmountToAirdrop);
 
         emit E_addAirdropfund(supportedToken, totalAmountToAirdrop);
     }
-
+    //limitations gas efficiency from .transfer function
     function directAirdrop(
         address supportedToken,
         address[] memory receiver,
@@ -102,6 +107,7 @@ contract MonadexV1AirdropManager is Ownable {
     )
         external
         onlyOwner
+        nonReentrant
     {
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
@@ -110,29 +116,34 @@ contract MonadexV1AirdropManager is Ownable {
             revert Monadex_maxAddressLimit(maxAddressLimit, receiver.length);
         }
         IERC20 token = IERC20(supportedToken);
+
         for (uint256 i = 0; i < receiver.length; i++) {
             require(receiver[i] != address(0));
-            token.transfer(receiver[i], amount);
+            token.safeTransfer(receiver[i], amount);
         }
 
         emit E_directTokenToclaim(supportedToken, amount);
     }
-
-    function claimAirdrop(address supportedToken) public {
+    //limitation users can claim more than once 
+    function claimAirdrop(address supportedToken) external nonReentrant {
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
         }
         if (m_eligibleUser[msg.sender] != true) {
             revert Monadex_IneligibleAddressError();
         }
+        if (m_hasClaimed[msg.sender] == true) {
+            revert Monadex_HasClaimedError();
+        }
+        m_hasClaimed[msg.sender]= true;
         IERC20 token = IERC20(supportedToken);
-        token.transfer(msg.sender, claimAmount);
+        token.safeTransfer(msg.sender, claimAmount);
 
         emit E_TokenToClaim(supportedToken, msg.sender);
     }
 
     function addEligibleAddress(address newAddress) public onlyOwner {
-        if (!m_eligibleUser[newAddress]) {
+        if (m_eligibleUser[newAddress]) {
             revert Monadex_newAddressAlreadyExisted();
         }
         if (newAddress == address(0)) {
