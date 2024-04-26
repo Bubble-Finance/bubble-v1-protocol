@@ -11,4 +11,12 @@ contract MonadexV1Types {
         bool hookBeforeCall;
         bool hookAfterCall;
     }
+
+    struct SwapParams {
+        uint256 amountAOut;
+        uint256 amountBOut;
+        address receiver;
+        HookConfig hookConfig;
+        bytes data;
+    }
 }
