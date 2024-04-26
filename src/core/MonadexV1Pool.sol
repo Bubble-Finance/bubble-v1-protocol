@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { IMonadexV1Callee } from "./interfaces/IMonadexV1Calle.sol";
+import { IMonadexV1Callee } from "./interfaces/IMonadexV1Callee.sol";
 import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
 import { MonadexV1Types } from "./library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
 import { Ownable, Ownable2Step } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from
     "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-contract MonadexV1Pool is ERC20, Ownable2Step {
+contract MonadexV1Pool is ERC20, Ownable2Step, IMonadexV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -23,9 +23,9 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
     address private immutable i_tokenB;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
-    uint256 constant MINIMUM_LIQUIDITY = 1_000;
     uint256 private s_lastK;
     bool private s_isLocked;
+    uint256 constant MINIMUM_LIQUIDITY = 1_000;
 
     event LiquidityAdded(
         address indexed by,
@@ -42,12 +42,12 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         uint256 indexed lpTokensBurnt
     );
     event AmountSwapped(
-        address caller,
+        address indexed caller,
         uint256 amountAIn,
         uint256 amountBIn,
         uint256 amountAOut,
         uint256 amountBOut,
-        address _receiver
+        address indexed _receiver
     );
     event ReservesUpdated(uint256 indexed reserveA, uint256 indexed reserveB);
 
@@ -138,47 +138,46 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         return (amountAOut, amountBOut);
     }
 
-    function swap(
-        uint256 _amountAOut,
-        uint256 _amountBOut,
-        address _receiver,
-        MonadexV1Types.HookConfig memory _hookConfig,
-        bytes calldata _data
-    )
-        external
-        globalLock
-    {
-        if (_amountAOut == 0 && _amountBOut == 0) {
+    function swap(MonadexV1Types.SwapParams memory _swapParams) external globalLock {
+        if (_swapParams.amountAOut == 0 && _swapParams.amountBOut == 0) {
             revert MonadexV1Pool__InsufficientOutputAmount();
         }
         (uint256 reserveA, uint256 reserveB) = getReserves();
-        if (_amountAOut >= reserveA || _amountBOut >= reserveB) {
+        if (_swapParams.amountAOut >= reserveA || _swapParams.amountBOut >= reserveB) {
             revert MonadexV1Pool__OutputAmountGreaterThanReserves();
         }
 
         uint256 balanceA;
         uint256 balanceB;
         {
-            if (_receiver == i_tokenA || _receiver == i_tokenB) {
-                revert MonadexV1Pool__InvalidReceiver(_receiver);
+            if (_swapParams.receiver == i_tokenA || _swapParams.receiver == i_tokenB) {
+                revert MonadexV1Pool__InvalidReceiver(_swapParams.receiver);
             }
-            if (_hookConfig.hookBeforeCall) {
-                IMonadexV1Callee(_receiver).hookBeforeCall(
-                    msg.sender, _amountAOut, _amountBOut, _data
+            if (_swapParams.hookConfig.hookBeforeCall) {
+                IMonadexV1Callee(_swapParams.receiver).hookBeforeCall(
+                    msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
                 );
             }
-            if (_amountAOut > 0) IERC20(i_tokenA).safeTransfer(_receiver, _amountAOut); // optimistically transfer tokens
-            if (_amountBOut > 0) IERC20(i_tokenB).safeTransfer(_receiver, _amountBOut); // optimistically transfer tokens
-            if (_data.length > 0) {
-                IMonadexV1Callee(_receiver).onCall(msg.sender, _amountAOut, _amountBOut, _data);
+            if (_swapParams.amountAOut > 0) {
+                IERC20(i_tokenA).safeTransfer(_swapParams.receiver, _swapParams.amountAOut);
+            } // optimistically transfer tokens
+            if (_swapParams.amountBOut > 0) {
+                IERC20(i_tokenB).safeTransfer(_swapParams.receiver, _swapParams.amountBOut);
+            } // optimistically transfer tokens
+            if (_swapParams.data.length > 0) {
+                IMonadexV1Callee(_swapParams.receiver).onCall(
+                    msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
+                );
             }
             balanceA = IERC20(i_tokenA).balanceOf(address(this));
             balanceB = IERC20(i_tokenB).balanceOf(address(this));
         }
-        uint256 amountAIn =
-            balanceA > reserveA - _amountAOut ? balanceA - (reserveA - _amountAOut) : 0;
-        uint256 amountBIn =
-            balanceB > reserveB - _amountBOut ? balanceB - (reserveB - _amountBOut) : 0;
+        uint256 amountAIn = balanceA > reserveA - _swapParams.amountAOut
+            ? balanceA - (reserveA - _swapParams.amountAOut)
+            : 0;
+        uint256 amountBIn = balanceB > reserveB - _swapParams.amountBOut
+            ? balanceB - (reserveB - _swapParams.amountBOut)
+            : 0;
         if (amountAIn == 0 && amountBIn == 0) revert MonadexV1Pool__InsufficientInputAmount();
         {
             MonadexV1Types.Fee memory poolFee = getPoolFee();
@@ -195,10 +194,19 @@ contract MonadexV1Pool is ERC20, Ownable2Step {
         }
         _updateReserves(balanceA, balanceB);
 
-        emit AmountSwapped(msg.sender, amountAIn, amountBIn, _amountAOut, _amountBOut, _receiver);
+        emit AmountSwapped(
+            msg.sender,
+            amountAIn,
+            amountBIn,
+            _swapParams.amountAOut,
+            _swapParams.amountBOut,
+            _swapParams.receiver
+        );
 
-        if (_hookConfig.hookAfterCall) {
-            IMonadexV1Callee(_receiver).hookAfterCall(msg.sender, _amountAOut, _amountBOut, _data);
+        if (_swapParams.hookConfig.hookAfterCall) {
+            IMonadexV1Callee(_swapParams.receiver).hookAfterCall(
+                msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
+            );
         }
     }
 

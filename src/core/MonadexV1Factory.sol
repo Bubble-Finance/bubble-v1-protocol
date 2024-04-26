@@ -128,13 +128,13 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         else return s_feeTiers[feeTier - 1];
     }
 
+    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
+        return s_feeTiers;
+    }
+
     function getFeeForTier(uint256 _feeTier) public view returns (MonadexV1Types.Fee memory) {
         if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
         return s_feeTiers[_feeTier - 1];
-    }
-
-    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
-        return s_feeTiers;
     }
 
     function isSupportedToken(address _token) public view returns (bool) {
