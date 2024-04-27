@@ -30,7 +30,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 //NOTE: Limitation add non reentrancy
 
 contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
@@ -44,7 +44,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     address[] private s_Tokens;
     mapping(address => bool isSupported) public m_supportedToken;
     mapping(address => bool eligible) public m_eligibleUser;
-    mapping (address => bool ) public m_hasClaimed;
+    mapping(address => bool) public m_hasClaimed;
     uint256 public maxAddressLimit;
     uint256 public claimAmount;
 
@@ -100,6 +100,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         emit E_addAirdropfund(supportedToken, totalAmountToAirdrop);
     }
     //limitations gas efficiency from .transfer function
+
     function directAirdrop(
         address supportedToken,
         address[] memory receiver,
@@ -124,7 +125,8 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
 
         emit E_directTokenToclaim(supportedToken, amount);
     }
-    //limitation users can claim more than once 
+    //limitation users can claim more than once
+
     function claimAirdrop(address supportedToken) external nonReentrant {
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
@@ -135,7 +137,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         if (m_hasClaimed[msg.sender] == true) {
             revert Monadex_HasClaimedError();
         }
-        m_hasClaimed[msg.sender]= true;
+        m_hasClaimed[msg.sender] = true;
         IERC20 token = IERC20(supportedToken);
         token.safeTransfer(msg.sender, claimAmount);
 
