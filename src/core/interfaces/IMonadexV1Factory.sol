@@ -18,8 +18,8 @@ interface IMonadexV1Factory {
         external
         view
         returns (MonadexV1Types.Fee memory);
-    function getFeeForTier(uint256 _feeTier) external view returns (MonadexV1Types.Fee memory);
     function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory);
+    function getFeeForTier(uint256 _feeTier) external view returns (MonadexV1Types.Fee memory);
     function isSupportedToken(address _token) external view returns (bool);
     function getTokenPairToPool(address _tokenA, address _tokenB) external view returns (address);
 }

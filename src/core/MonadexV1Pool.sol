@@ -6,7 +6,7 @@ import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
 import { MonadexV1Types } from "./library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
-import { Ownable, Ownable2Step } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from
@@ -14,7 +14,7 @@ import { IERC20Metadata } from
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-contract MonadexV1Pool is ERC20, Ownable2Step, IMonadexV1Pool {
+contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
