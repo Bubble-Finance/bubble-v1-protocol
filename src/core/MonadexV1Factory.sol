@@ -6,9 +6,9 @@ import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
 import { MonadexV1Types } from "./library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
-import { Ownable, Ownable2Step } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
+contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     address private s_protocolTeamMultisig;
     MonadexV1Types.Fee private s_protocolFee;
     MonadexV1Types.Fee[5] private s_feeTiers;
