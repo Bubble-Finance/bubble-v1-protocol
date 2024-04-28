@@ -9,6 +9,18 @@ library MonadexV1AuxiliaryLibrary {
     error MonadexV1AuxiliaryLibrary__ZeroReserves();
     error MonadexV1AuxiliaryLibrary__ZeroAmountIn();
 
+    function getPool(
+        address _factory,
+        address _tokenA,
+        address _tokenB
+    )
+        internal
+        view
+        returns (address)
+    {
+        return IMonadexV1Factory(_factory).getTokenPairToPool(_tokenA, _tokenB);
+    }
+
     function getReserves(
         address _factory,
         address _tokenA,
@@ -35,27 +47,5 @@ library MonadexV1AuxiliaryLibrary {
         if (_reserveA == 0 || _reserveB == 0) revert MonadexV1AuxiliaryLibrary__ZeroReserves();
 
         return (_amountA * _reserveB) / _reserveA;
-    }
-
-    function getTicketAmountBasedOnMultiplier(
-        uint256 _amountA,
-        uint256 _amountB,
-        MonadexV1AuxiliaryTypes.Multipliers _multiplier
-    )
-        internal
-        pure
-        returns (uint256, uint256)
-    {
-        uint256 amountAToSend;
-        uint256 amountBToSend;
-        if (_multiplier == MonadexV1AuxiliaryTypes.Multipliers.Multiplier1) {
-            // implementation pending
-        } else if (_multiplier == MonadexV1AuxiliaryTypes.Multipliers.Multiplier2) {
-            // implementation pending
-        } else if (_multiplier == MonadexV1AuxiliaryTypes.Multipliers.Multiplier3) {
-            // implementation pending
-        }
-
-        return (amountAToSend, amountBToSend);
     }
 }
