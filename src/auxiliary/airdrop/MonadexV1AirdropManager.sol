@@ -30,12 +30,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-<<<<<<< HEAD
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {MerkleProof} from "../../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
-=======
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
->>>>>>> 73bb27c15c2717862ae976ffa8426ae64e5576b9
 //NOTE: Limitation add non reentrancy
 
 contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
@@ -49,13 +45,8 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     address[] public eligibleAddresses;
     address[] private s_Tokens;
     mapping(address => bool isSupported) public m_supportedToken;
-<<<<<<< HEAD
     // mapping(address => bool eligible) public m_eligibleUser;
     mapping (address => bool ) public m_hasClaimed;
-=======
-    mapping(address => bool eligible) public m_eligibleUser;
-    mapping(address => bool) public m_hasClaimed;
->>>>>>> 73bb27c15c2717862ae976ffa8426ae64e5576b9
     uint256 public maxAddressLimit;
     uint256 public claimAmount;
 
@@ -113,7 +104,6 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         emit E_addAirdropfund(supportedToken, totalAmountToAirdrop);
     }
     //limitations gas efficiency from .transfer function
-
     function directAirdrop(
         address supportedToken,
         address[] memory receiver,
@@ -138,7 +128,6 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
 
         emit E_directTokenToclaim(supportedToken, amount);
     }
-<<<<<<< HEAD
     //limitation users can claim more than once 
     function claimAirdrop(address supportedToken, bytes32[] memory proof) external nonReentrant {
 
@@ -146,11 +135,6 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         if (!MerkleProof.verify(proof, merkleRoot, leaf)) {
             revert Monadex_InvalidMekleproofError();
         }
-=======
-    //limitation users can claim more than once
-
-    function claimAirdrop(address supportedToken) external nonReentrant {
->>>>>>> 73bb27c15c2717862ae976ffa8426ae64e5576b9
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
         }
@@ -160,7 +144,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         if (m_hasClaimed[msg.sender] == true) {
             revert Monadex_HasClaimedError();
         }
-        m_hasClaimed[msg.sender] = true;
+        m_hasClaimed[msg.sender]= true;
         IERC20 token = IERC20(supportedToken);
         token.safeTransfer(msg.sender, claimAmount);
 
