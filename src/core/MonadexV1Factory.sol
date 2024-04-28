@@ -6,9 +6,9 @@ import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
 import { MonadexV1Types } from "./library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
-import { Ownable, Ownable2Step } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
+contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     address private s_protocolTeamMultisig;
     MonadexV1Types.Fee private s_protocolFee;
     MonadexV1Types.Fee[5] private s_feeTiers;
@@ -128,13 +128,13 @@ contract MonadexV1Factory is Ownable2Step, IMonadexV1Factory {
         else return s_feeTiers[feeTier - 1];
     }
 
+    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
+        return s_feeTiers;
+    }
+
     function getFeeForTier(uint256 _feeTier) public view returns (MonadexV1Types.Fee memory) {
         if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
         return s_feeTiers[_feeTier - 1];
-    }
-
-    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
-        return s_feeTiers;
     }
 
     function isSupportedToken(address _token) public view returns (bool) {
