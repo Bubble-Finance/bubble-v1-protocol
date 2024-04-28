@@ -107,7 +107,8 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     function directAirdrop(
         address supportedToken,
         address[] memory receiver,
-        uint256 amount
+        uint256 amount,
+        bytes32[] calldata proof
     )
         external
         onlyOwner
@@ -122,14 +123,22 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         IERC20 token = IERC20(supportedToken);
 
         for (uint256 i = 0; i < receiver.length; i++) {
-            require(receiver[i] != address(0));
+            // require(receiver[i] != address(0));
+            if (receiver[i] == address(0)) {
+                revert Monadex_ZeroAddressError();
+            }
+            bytes32 leaf = keccak256(abi.encode(msg.sender));
+            if (!MerkleProof.verify(proof, merkleRoot, leaf)) {
+                revert Monadex_InvalidMekleproofError();
+        }
+
             token.safeTransfer(receiver[i], amount);
         }
 
         emit E_directTokenToclaim(supportedToken, amount);
     }
     //limitation users can claim more than once 
-    function claimAirdrop(address supportedToken, bytes32[] memory proof) external nonReentrant {
+    function claimAirdrop(address supportedToken, bytes32[] calldata proof) external nonReentrant {
 
         bytes32 leaf = keccak256(abi.encode(msg.sender));
         if (!MerkleProof.verify(proof, merkleRoot, leaf)) {
