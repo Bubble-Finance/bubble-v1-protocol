@@ -26,12 +26,13 @@ pragma solidity ^0.8.20;
 /// @notice ....
 /// @notice
 
+import { MerkleProof } from
+    "../../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {MerkleProof} from "../../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 //NOTE: Limitation add non reentrancy
 
 contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
@@ -45,8 +46,13 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     address[] public eligibleAddresses;
     address[] private s_Tokens;
     mapping(address => bool isSupported) public m_supportedToken;
+<<<<<<< HEAD
     mapping (address => bytes32) public m_claimProof;
     mapping (address => bool ) public m_hasClaimed;
+=======
+    // mapping(address => bool eligible) public m_eligibleUser;
+    mapping(address => bool) public m_hasClaimed;
+>>>>>>> 385a015e35694a722936ef4af5864c86f4368116
     uint256 public maxAddressLimit;
     uint256 public claimAmount;
 
@@ -70,7 +76,13 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     event E_addAirdropfund(address token, uint256 amountToAdd);
     event E_addToken(address token);
 
-    constructor(uint256 _claimAmountPerWallet, uint256 _maxAddressLimit, bytes32 _merkleRoot) Ownable(msg.sender) {
+    constructor(
+        uint256 _claimAmountPerWallet,
+        uint256 _maxAddressLimit,
+        bytes32 _merkleRoot
+    )
+        Ownable(msg.sender)
+    {
         claimAmount = _claimAmountPerWallet;
         maxAddressLimit = _maxAddressLimit;
         merkleRoot = _merkleRoot;
@@ -104,6 +116,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         emit E_addAirdropfund(supportedToken, totalAmountToAirdrop);
     }
     //limitations gas efficiency from .transfer function
+
     function directAirdrop(
         address supportedToken,
         address[] memory receiver,
@@ -131,16 +144,16 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
             bytes32 leaf = keccak256(abi.encode(msg.sender));
             if (!MerkleProof.verify(proof, merkleRoot, leaf)) {
                 revert Monadex_InvalidMekleproofError();
-        }
+            }
 
             token.safeTransfer(receiver[i], amount);
         }
 
         emit E_directTokenToclaim(supportedToken, amount);
     }
-    //limitation users can claim more than once 
-    function claimAirdrop(address supportedToken, bytes32[] calldata proof) external nonReentrant {
+    //limitation users can claim more than once
 
+    function claimAirdrop(address supportedToken, bytes32[] calldata proof) external nonReentrant {
         bytes32 leaf = keccak256(abi.encode(msg.sender));
         //adding address tp proof...m_claimproof mapping
          
@@ -158,7 +171,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         if (m_hasClaimed[msg.sender] == true) {
             revert Monadex_HasClaimedError();
         }
-        m_hasClaimed[msg.sender]= true;
+        m_hasClaimed[msg.sender] = true;
         IERC20 token = IERC20(supportedToken);
         token.safeTransfer(msg.sender, claimAmount);
 
@@ -184,5 +197,4 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     function getNewToken(uint256 TokenID) public view returns (address) {
         return s_Tokens[TokenID];
     }
-
 }
