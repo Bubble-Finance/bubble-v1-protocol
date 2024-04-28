@@ -45,7 +45,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     address[] public eligibleAddresses;
     address[] private s_Tokens;
     mapping(address => bool isSupported) public m_supportedToken;
-    // mapping(address => bool eligible) public m_eligibleUser;
+    mapping (address => bytes32) public m_claimProof;
     mapping (address => bool ) public m_hasClaimed;
     uint256 public maxAddressLimit;
     uint256 public claimAmount;
@@ -123,6 +123,7 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         IERC20 token = IERC20(supportedToken);
 
         for (uint256 i = 0; i < receiver.length; i++) {
+            m_claimProof[receiver[i]] = keccak256(abi.encodePacked(proof));
             // require(receiver[i] != address(0));
             if (receiver[i] == address(0)) {
                 revert Monadex_ZeroAddressError();
@@ -141,15 +142,19 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
     function claimAirdrop(address supportedToken, bytes32[] calldata proof) external nonReentrant {
 
         bytes32 leaf = keccak256(abi.encode(msg.sender));
+        //adding address tp proof...m_claimproof mapping
+         
         if (!MerkleProof.verify(proof, merkleRoot, leaf)) {
             revert Monadex_InvalidMekleproofError();
+        }
+        m_claimProof[msg.sender] = keccak256(abi.encodePacked(proof));
+        if (m_claimProof[msg.sender] == keccak256(abi.encodePacked(proof))) {
+            revert Monadex_HasClaimedError();
         }
         if (m_supportedToken[supportedToken] != true) {
             revert Monadex_UnsupportedAirdropToken(supportedToken);
         }
-        // if (m_eligibleUser[msg.sender] != true) {
-        //     revert Monadex_IneligibleAddressError();
-        // }
+
         if (m_hasClaimed[msg.sender] == true) {
             revert Monadex_HasClaimedError();
         }
