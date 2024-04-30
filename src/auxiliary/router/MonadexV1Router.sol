@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import { IMonadexV1Factory } from "../../core/interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "../../core/interfaces/IMonadexV1Pool.sol";
+import { MonadexV1Types } from "../../core/library/MonadexV1Types.sol";
 import { MonadexV1Utils } from "../../core/library/MonadexV1Utils.sol";
 import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 import { MonadexV1AuxiliaryLibrary } from "../library/MonadexV1AuxiliaryLibrary.sol";
@@ -19,6 +20,8 @@ contract MonadexV1Router {
     error MonadexV1Router__DeadlinePasssed(uint256 deadline);
     error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
+    error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
+    error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
 
     modifier beforeDeadline(uint256 _deadline) {
         if (_deadline <= block.timestamp) revert MonadexV1Router__DeadlinePasssed(_deadline);
@@ -81,6 +84,56 @@ contract MonadexV1Router {
         return (amountA, amountB);
     }
 
+    function swapExactTokensForTokens(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        uint256[] memory amounts =
+            MonadexV1AuxiliaryLibrary.getAmountsOut(i_factory, _amountIn, _path);
+        if (amounts[amounts.length - 1] < _amountOutMin) {
+            revert MonadexV1Router__InsufficientOutputAmount(
+                amounts[amounts.length - 1], _amountOutMin
+            );
+        }
+        IERC20(_path[0]).safeTransferFrom(
+            msg.sender, MonadexV1AuxiliaryLibrary.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, _receiver);
+
+        return amounts;
+    }
+
+    function swapTokensForExactTokens(
+        uint256 _amountOut,
+        uint256 _amountInMax,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        uint256[] memory amounts =
+            MonadexV1AuxiliaryLibrary.getAmountsIn(i_factory, _amountOut, _path);
+        if (amounts[0] > _amountInMax) {
+            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
+        }
+        IERC20(_path[0]).safeTransferFrom(
+            msg.sender, MonadexV1AuxiliaryLibrary.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, _receiver);
+
+        return amounts;
+    }
+
     function _addLiquidityHelper(
         address _tokenA,
         address _tokenB,
@@ -118,6 +171,28 @@ contract MonadexV1Router {
                     return (amountAOptimal, _amountBDesired);
                 }
             }
+        }
+    }
+
+    function _swap(uint256[] memory _amounts, address[] memory _path, address _receiver) private {
+        for (uint256 count = 0; count < _path.length - 1; ++count) {
+            (address inputToken, address outputToken) = (_path[count], _path[count + 1]);
+            (address tokenA,) = MonadexV1Utils.sortTokens(inputToken, outputToken);
+            uint256 amountOut = _amounts[count + 1];
+            (uint256 amount0Out, uint256 amount1Out) =
+                inputToken == tokenA ? (uint256(0), amountOut) : (amountOut, uint256(0));
+            address to = count < _path.length - 2
+                ? MonadexV1AuxiliaryLibrary.getPool(i_factory, outputToken, _path[count + 2])
+                : _receiver;
+            MonadexV1Types.SwapParams memory swapParams = MonadexV1Types.SwapParams({
+                amountAOut: amount0Out,
+                amountBOut: amount1Out,
+                receiver: to,
+                hookConfig: MonadexV1Types.HookConfig({ hookBeforeCall: false, hookAfterCall: false }),
+                data: new bytes(0)
+            });
+            IMonadexV1Pool(MonadexV1AuxiliaryLibrary.getPool(i_factory, inputToken, outputToken))
+                .swap(swapParams);
         }
     }
 }
