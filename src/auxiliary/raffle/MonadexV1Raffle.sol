@@ -34,10 +34,11 @@ import { SafeERC20 } from
     "../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "../../../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
-import { MonadexTicket } from "../raffle/MonadexTicket.sol";
+// import { MonadexTicket } from "../raffle/MonadexTicket.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-contract MonadexV1Raffle is Ownable {
+contract MonadexV1Raffle is Ownable, ERC20 {
     using SafeERC20 for IERC20;
     using Address for address;
     /////////////////////
@@ -46,8 +47,8 @@ contract MonadexV1Raffle is Ownable {
 
     // IERC20 internal s_monad; //eth sapolia will be representing monad for now
     MonadexRandomGenerator internal numberGenerator; // for genersating numbers
-    MonadexTicket internal Ticket;
-    uint256 internal s_requestID; //reqest ID for random number generator
+
+    // uint256 internal s_requestID; //reqest ID for random number generator
 
     uint256 public ticketID;
     uint256 public startingTimestamp;
@@ -67,6 +68,7 @@ contract MonadexV1Raffle is Ownable {
     error Monadex_zeroAddress();
     error Monad_InsufficientFund();
     error Monadex_InvalidRaffleState();
+    error MTicket_untransferable();
 
     ///////////
     ///ENUM///
@@ -108,7 +110,7 @@ contract MonadexV1Raffle is Ownable {
     /////////////////
     ///constructor///
     ////////////////
-    constructor( address _IRandomGenerator, uint256 _costPer) Ownable(msg.sender) {
+    constructor( address _IRandomGenerator, uint256 _costPer) Ownable(msg.sender) ERC20("MonadexTicket","MDXT" ) {
         if ( _IRandomGenerator == address(0)) {
             revert Monadex_zeroAddress();
         }
@@ -119,6 +121,27 @@ contract MonadexV1Raffle is Ownable {
     ///////////////////
     ///set Functions///
     ///////////////////
+
+    function mint(address to, uint amount) public {
+        _mint(to, amount);
+    }
+
+    function burn(address from, uint amount) public {
+        _burn(from, amount);
+    }
+    /**
+     * @dev non transferable ticket tokens to not allow users send transfer out tickets
+     
+     */
+    function transferFrom(address /*from*/, address /*to*/, uint256 /*value*/) public pure override returns (bool) {
+        revert MTicket_untransferable();
+    }
+
+    function transfer(address /*recipient*/, uint256 /*amount*/) public pure override returns (bool) {
+        revert MTicket_untransferable();
+    }
+
+
     function addBuyTokens(address[] memory tokenAddr) public onlyOwner{
         for (uint tokenIndex = 0; tokenIndex < tokenAddr.length; ++tokenIndex){
             BuyTokens.push(tokenAddr[tokenIndex]);
@@ -134,7 +157,7 @@ contract MonadexV1Raffle is Ownable {
         }
     }
 
-    function buyTicket(address _tokenAddr,multiplier Multiplier, uint256 /*noOfTicket*/) public payable {
+    function buyTicket(address _tokenAddr,multiplier Multiplier, uint256 /*noOfTicket*/, address _receiver ) public payable {
         uint256 totalCost = calculateTotalCostInTicket(Multiplier);
         //check for lesser value in the user wallet, this could be removed if it contradict the payable keyword
         if (msg.value >= totalCost) {
@@ -146,11 +169,11 @@ contract MonadexV1Raffle is Ownable {
         if (s_status != status.open) {
             revert Monadex_InvalidRaffleState();
         }
-        IERC20(_tokenAddr).safeTransferFrom(msg.sender, address(this), totalCost);
-        Ticket.mint(msg.sender, totalCost);
-        m_multiplierBuyerStorage[totalCost][Multiplier] = msg.sender;
+        IERC20(_tokenAddr).safeTransferFrom(_receiver, address(this), totalCost);
+        mint(_receiver, totalCost);
+        m_multiplierBuyerStorage[totalCost][Multiplier] = _receiver;
 
-        holders.push(msg.sender);
+        holders.push(_receiver);
     }
 
     function calculateTotalCostInTicket(
@@ -185,7 +208,7 @@ contract MonadexV1Raffle is Ownable {
         for (uint256 holderIndex = 0; holderIndex < holders.length; holderIndex++) {
             address holder = holders[holderIndex];
             uint256 balance = balanceOf(holder);
-            Ticket.burn(holder, balance);
+            burn(holder, balance);
         }
         s_status = status.closed;
         // distributeTotalAmount();
@@ -206,36 +229,25 @@ contract MonadexV1Raffle is Ownable {
         }
     }
 
-    function request6randomNumbers() public onlyOwner {
-        s_requestID = numberGenerator.requestRandomWords();
+    // function request6randomNumbers() public onlyOwner {
+    //     s_requestID = numberGenerator.requestRandomWords();
+    // }
+
+    function getrandomNumber() public onlyOwner returns (uint256 ) {
+        uint256 randomWords = numberGenerator. requestRandomWords();
+        return randomWords;      
     }
-
-    function get6randomNumbers() public onlyOwner returns (TicketInfo[] memory) {
-        // (bool fulfilled, uint256[] memory randomWords) =
-        //     numberGenerator.getRequestStatus(s_requestID);
-        // require(fulfilled, "Random numbers have not been gotten yet.");
-
-        // TicketInfo[] memory winners = new TicketInfo[](randomWords.length);
-        // for (uint256 i = 0; i < randomWords.length; i++) {
-        //     for (uint256 j = 0; j < 3; /*multiplierLength*/ j++) {
-        //         address buyerReward1 = m_multiplierBuyerStorage[randomWords[i]][multiplier(j)];
-
-        //         winners[i] = TicketInfo({ ticketID: randomWords[i], buyer: buyerReward1 });
-
-        //         m_winners[ticketID][i] = winners[i];
-        //     }
-        // }
-
-        // return winners;
+    function getVicinityNumbers() public onlyOwner returns (TicketInfo[] memory){
+        
     }
 
     function distributeWinnerBalance(address _tokenAddr) public onlyOwner {
         //oya get the 6 random ticket IDs
-        uint256 totalAmount = Ticket.balanceOf(address(this));
+        uint256 totalAmount = balanceOf(address(this));
         if (totalAmount == 0) {
             revert Monadex_needMoreThanZero();
         }
-        TicketInfo[] memory winners = get6randomNumbers();
+        TicketInfo[] memory winners = getVicinityNumbers();
         uint256 firstWinnerPrice = (totalAmount * 50) / 100; //50% reward
         uint256 secondWinnerPrice = (totalAmount * 15) / 100; //15% reward
         uint256 thirdWinnerPrice = (totalAmount * 5) / 100; //5% reward
@@ -249,13 +261,17 @@ contract MonadexV1Raffle is Ownable {
         IERC20(_tokenAddr).transfer(winners[5].buyer, thirdWinnerPrice);
     }
 
+    ////////////////////
+    ////get function////
+    ///////////////////
+
     function getWinnersByRaffleID(uint256 _RaffleID) public view returns (TicketInfo[] memory) {
         _RaffleID = raffleID;
         // Directly access the array of TicketInfo structs associated with the ticket ID
         return m_winners[_RaffleID];
     }
 
-    function balanceOf(address holder) public view returns (uint256) {
-        return Ticket.balanceOf(holder);
+    function _balanceOf(address holder) public view returns (uint256) {
+        return balanceOf(holder);
     }
 }

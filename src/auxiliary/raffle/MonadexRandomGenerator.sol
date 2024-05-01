@@ -68,7 +68,7 @@ contract MonadexRandomGenerator is VRFConsumerBaseV2 {
 
     // For this example, retrieve 2 random values in one request.
     // Cannot exceed VRFCoordinatorV2.MAX_NUM_WORDS.
-    uint32 numWords = 6;
+    uint32 numWords = 1;
 
     address network_coordinator = 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625;
 
