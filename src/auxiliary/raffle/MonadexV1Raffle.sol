@@ -58,7 +58,6 @@ contract MonadexV1Raffle is Ownable {
     address[] public holders;
     address[] public BuyTokens;
 
-
     ///////////
     ///ERROR///
     //////////
@@ -98,8 +97,6 @@ contract MonadexV1Raffle is Ownable {
         uint256 ticketID;
         address buyer;
     }
- 
-
 
     // mapping(address => raffleInformation) internal m_raffleInfoStorage;
     mapping(uint256 => mapping(multiplier => address)) internal m_multiplierBuyerStorage;
@@ -108,8 +105,8 @@ contract MonadexV1Raffle is Ownable {
     /////////////////
     ///constructor///
     ////////////////
-    constructor( address _IRandomGenerator, uint256 _costPer) Ownable(msg.sender) {
-        if ( _IRandomGenerator == address(0)) {
+    constructor(address _IRandomGenerator, uint256 _costPer) Ownable(msg.sender) {
+        if (_IRandomGenerator == address(0)) {
             revert Monadex_zeroAddress();
         }
         numberGenerator = MonadexRandomGenerator(_IRandomGenerator);
@@ -119,8 +116,8 @@ contract MonadexV1Raffle is Ownable {
     ///////////////////
     ///set Functions///
     ///////////////////
-    function addBuyTokens(address[] memory tokenAddr) public onlyOwner{
-        for (uint tokenIndex = 0; tokenIndex < tokenAddr.length; ++tokenIndex){
+    function addBuyTokens(address[] memory tokenAddr) public onlyOwner {
+        for (uint256 tokenIndex = 0; tokenIndex < tokenAddr.length; ++tokenIndex) {
             BuyTokens.push(tokenAddr[tokenIndex]);
         }
     }
@@ -134,7 +131,14 @@ contract MonadexV1Raffle is Ownable {
         }
     }
 
-    function buyTicket(address _tokenAddr,multiplier Multiplier, uint256 /*noOfTicket*/) public payable {
+    function buyTicket(
+        address _tokenAddr,
+        multiplier Multiplier,
+        uint256 /*noOfTicket*/
+    )
+        public
+        payable
+    {
         uint256 totalCost = calculateTotalCostInTicket(Multiplier);
         //check for lesser value in the user wallet, this could be removed if it contradict the payable keyword
         if (msg.value >= totalCost) {
@@ -154,11 +158,11 @@ contract MonadexV1Raffle is Ownable {
     }
 
     function calculateTotalCostInTicket(
-        multiplier Multiplier/*,
+        multiplier Multiplier /*,
         uint256 noOfTicket*/
     )
-        view
         internal
+        view
         returns (uint256)
     {
         uint256 multiplierValue;
@@ -173,7 +177,13 @@ contract MonadexV1Raffle is Ownable {
 
         //calculate the total cost
         //  uint costPer = 1000 gwei;
-        uint256 totalCost = (costPer /** noOfTicket*/ * multiplierValue);
+        uint256 totalCost = (
+            costPer
+            /**
+                 * noOfTicket
+                 */
+                * multiplierValue
+        );
 
         return totalCost;
     }

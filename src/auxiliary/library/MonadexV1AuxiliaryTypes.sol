@@ -13,6 +13,11 @@ contract MonadexV1AuxiliaryTypes {
         uint256 deadline;
     }
 
+    struct PurchaseTickets {
+        bool purchaseTickets;
+        Multipliers multiplier;
+    }
+
     enum Multipliers {
         Multiplier1,
         Multiplier2,

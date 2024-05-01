@@ -89,7 +89,8 @@ contract MonadexV1Router {
         uint256 _amountOutMin,
         address[] calldata _path,
         address _receiver,
-        uint256 _deadline
+        uint256 _deadline,
+        MonadexV1AuxiliaryTypes.PurchaseTickets memory _purchaseTickets
     )
         external
         beforeDeadline(_deadline)
@@ -107,6 +108,12 @@ contract MonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
+        if (_purchaseTickets.purchaseTickets) {
+            IMonadexV1Raffle(i_raffle).purchaseTickets(
+                _path[0], _amountIn, _purchaseTickets.multiplier, _receiver
+            );
+        }
+
         return amounts;
     }
 
@@ -115,7 +122,8 @@ contract MonadexV1Router {
         uint256 _amountInMax,
         address[] calldata _path,
         address _receiver,
-        uint256 _deadline
+        uint256 _deadline,
+        MonadexV1AuxiliaryTypes.PurchaseTickets memory _purchaseTickets
     )
         external
         beforeDeadline(_deadline)
@@ -130,6 +138,12 @@ contract MonadexV1Router {
             msg.sender, MonadexV1AuxiliaryLibrary.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, _receiver);
+
+        if (_purchaseTickets.purchaseTickets) {
+            IMonadexV1Raffle(i_raffle).purchaseTickets(
+                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
+            );
+        }
 
         return amounts;
     }
