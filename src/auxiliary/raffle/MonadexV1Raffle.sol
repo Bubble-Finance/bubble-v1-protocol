@@ -49,8 +49,6 @@ contract MonadexV1Raffle is Ownable, ERC20 {
     MonadexRandomGenerator internal numberGenerator; // for genersating numbers
 
     // uint256 internal s_requestID; //reqest ID for random number generator
-
-    uint256 public ticketID;
     uint256 public startingTimestamp;
     uint256 public closingTimestamp;
     status public s_status;
@@ -76,9 +74,7 @@ contract MonadexV1Raffle is Ownable, ERC20 {
     enum status {
         unstated, //notstated, the lottery has not stated yet
         open, //open, the lottery is open
-        closed, //the raffle is closed for any more ticket
-        completed //the lottery is closed and completed
-
+        closed //the raffle is closed for any more ticket
     }
     enum multiplier {
         Multiplier1, // 1
@@ -213,7 +209,7 @@ contract MonadexV1Raffle is Ownable, ERC20 {
         s_status = status.closed;
         // distributeTotalAmount();
     }
-
+    //remove completed state
     function setState(uint256 stateStatus) public {
         if (stateStatus == 0) {
             s_status = status.open;
@@ -222,9 +218,6 @@ contract MonadexV1Raffle is Ownable, ERC20 {
             s_status = status.closed;
         }
         if (stateStatus == 2) {
-            s_status = status.completed;
-        }
-        if (stateStatus == 3) {
             s_status = status.unstated;
         }
     }
