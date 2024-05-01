@@ -57,7 +57,6 @@ contract MonadexV1Raffle is Ownable, ERC20 {
     address[] public holders;
     address[] public BuyTokens;
 
-
     ///////////
     ///ERROR///
     //////////
@@ -96,8 +95,6 @@ contract MonadexV1Raffle is Ownable, ERC20 {
         uint256 ticketID;
         address buyer;
     }
- 
-
 
     // mapping(address => raffleInformation) internal m_raffleInfoStorage;
     mapping(uint256 => mapping(multiplier => address)) internal m_multiplierBuyerStorage;
@@ -173,11 +170,11 @@ contract MonadexV1Raffle is Ownable, ERC20 {
     }
 
     function calculateTotalCostInTicket(
-        multiplier Multiplier/*,
+        multiplier Multiplier /*,
         uint256 noOfTicket*/
     )
-        view
         internal
+        view
         returns (uint256)
     {
         uint256 multiplierValue;
@@ -192,7 +189,13 @@ contract MonadexV1Raffle is Ownable, ERC20 {
 
         //calculate the total cost
         //  uint costPer = 1000 gwei;
-        uint256 totalCost = (costPer /** noOfTicket*/ * multiplierValue);
+        uint256 totalCost = (
+            costPer
+            /**
+                 * noOfTicket
+                 */
+                * multiplierValue
+        );
 
         return totalCost;
     }
