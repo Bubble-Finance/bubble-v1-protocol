@@ -91,14 +91,14 @@ contract MonadexV1Raffle is Ownable, ERC20 {
     //     uint256 AmountForTotalWinners;
     //     uint256 costPerTicket;
     // }
-    struct TicketInfo {
-        uint256 ticketID;
-        address buyer;
-    }
+    // struct TicketInfo {
+    //     uint256 ticketID;
+    //     address buyer;
+    // }
 
     // mapping(address => raffleInformation) internal m_raffleInfoStorage;
     mapping(uint256 => mapping(multiplier => address)) internal m_multiplierBuyerStorage;
-    mapping(uint256 => TicketInfo[]) public m_winners;
+    mapping(uint256 => address) public m_Rafflers;
 
     /////////////////
     ///constructor///
@@ -165,7 +165,7 @@ contract MonadexV1Raffle is Ownable, ERC20 {
         IERC20(_tokenAddr).safeTransferFrom(_receiver, address(this), totalCost);
         mint(_receiver, totalCost);
         m_multiplierBuyerStorage[totalCost][Multiplier] = _receiver;
-
+        m_Rafflers[holders.length] = _receiver;
         holders.push(_receiver);
     }
 
@@ -233,8 +233,50 @@ contract MonadexV1Raffle is Ownable, ERC20 {
         uint256 randomWords = numberGenerator. requestRandomWords();
         return randomWords;      
     }
-    function getVicinityNumbers() public onlyOwner returns (TicketInfo[] memory){
-        
+    function getVicinityNumbers() public onlyOwner returns (address[] memory){
+        uint rafflers = holders.length;
+        uint randomWord = getrandomNumber();
+        //note that the logic below is to make sure that the randomword is always greater than 3 and less raffler - 3
+        if (randomWord <= 3 ) {
+            randomWord += 3;
+        }
+        if (randomWord >= (rafflers - 3)) {
+            randomWord -= 3;
+        }
+
+        uint vicinityWinners = 6; //No of winners to be sellected
+        address[] memory winners = new address[](vicinityWinners);
+        // revert check to ensure that the random number is between  the bound of the loop
+        if (randomWord >= rafflers) {
+            revert ("random word is more that the numbers of ticket holders");
+        }
+
+        //select winner using vicinity of the random number generator
+        for (uint i = 0; i < vicinityWinners; ++i) {
+            //note on my aim of how the index works, if we have randomWord to be 40 and raffler(total no of people in the raffle draw) from i 0 to i6 hence mathematical it is 40 + i0 -(6/2) = 37, for i1 = 38, for i2 = 39, for i3 = 40, for i4 = 41 and for i5 = 42
+            uint index = randomWord + i - (vicinityWinners / 2);
+            winners[i] = m_Rafflers[index];
+        }
+        return winners;
+
+        //layout ideo of calculating the vicinity per random word gotten from vrf
+        // if (randomWord < (raffler / 2)) {
+        //     uint zeroWinner = randomWord;
+        //     uint firstWinner = randomWord + 2;
+        //     uint secondWinner = randomWord + 4;
+        //     uint thirdWinner = randomWord + 6;
+        //     uint fourthWinner = randomWord + 8;
+        //     uint fifthWinner = randomWord + 10;
+
+        // } else if (randomWord > (raffler / 2)) {
+        //     uint zeroWinner = randomWord;
+        //     uint firstWinner = randomWord - 2;
+        //     uint secondWinner = randomWord - 4;
+        //     uint thirdWinner = randomWord - 6;
+        //     uint fourthWinner = randomWord - 8;
+        //     uint fifthWinner = randomWord - 10;
+        // }
+         
     }
 
     function distributeWinnerBalance(address _tokenAddr) public onlyOwner {
@@ -243,29 +285,25 @@ contract MonadexV1Raffle is Ownable, ERC20 {
         if (totalAmount == 0) {
             revert Monadex_needMoreThanZero();
         }
-        TicketInfo[] memory winners = getVicinityNumbers();
+        address[] memory winners = getVicinityNumbers();
         uint256 firstWinnerPrice = (totalAmount * 50) / 100; //50% reward
         uint256 secondWinnerPrice = (totalAmount * 15) / 100; //15% reward
         uint256 thirdWinnerPrice = (totalAmount * 5) / 100; //5% reward
 
         //distribute the funds
-        IERC20(_tokenAddr).transfer(winners[0].buyer, firstWinnerPrice);
-        IERC20(_tokenAddr).transfer(winners[1].buyer, secondWinnerPrice);
-        IERC20(_tokenAddr).transfer(winners[2].buyer, secondWinnerPrice);
-        IERC20(_tokenAddr).transfer(winners[3].buyer, thirdWinnerPrice);
-        IERC20(_tokenAddr).transfer(winners[4].buyer, thirdWinnerPrice);
-        IERC20(_tokenAddr).transfer(winners[5].buyer, thirdWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[0], firstWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[1], secondWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[2], secondWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[3], thirdWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[4], thirdWinnerPrice);
+        IERC20(_tokenAddr).transfer(winners[5], thirdWinnerPrice);
     }
 
     ////////////////////
     ////get function////
     ///////////////////
 
-    function getWinnersByRaffleID(uint256 _RaffleID) public view returns (TicketInfo[] memory) {
-        _RaffleID = raffleID;
-        // Directly access the array of TicketInfo structs associated with the ticket ID
-        return m_winners[_RaffleID];
-    }
+
 
     function _balanceOf(address holder) public view returns (uint256) {
         return balanceOf(holder);

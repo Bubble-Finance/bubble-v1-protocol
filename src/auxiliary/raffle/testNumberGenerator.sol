@@ -29,4 +29,10 @@ contract tester {
     }
 
     function distributegottenNumbers() public { }
+
+        // function getWinnersByRaffleID(uint256 _RaffleID) public view returns (TicketInfo[] memory) {
+    //     _RaffleID = raffleID;
+    //     // Directly access the array of TicketInfo structs associated with the ticket ID
+    //     return m_winners[_RaffleID];
+    // }
 }
