@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 // LAYOUT OVERVIEW
 // version
 // imports
@@ -23,8 +23,8 @@ pragma solidity ^0.8.20;
 
 /// @title MonadexV1AirdropManager
 /// @author Ola Hamid
-/// @notice ....
-/// @notice
+/// @notice This contract manages the airdrop process for the Monadex protocol, utilizing a Merkle tree for efficient eligibility verification.
+/// @notice Participants submit their proof of eligibility, which is verified against the Merkle root. Upon successful verification, participants can claim their airdrop tokens.
 
 import { MerkleProof } from
     "../../../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
@@ -179,9 +179,11 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
         // set index to true in the bitMap contract
         BitMaps.setTo(_airdropLists, index, true);
         IERC20 token = IERC20(supportedToken);
-        token.safeTransfer(msg.sender, claimAmount);
 
         emit E_TokenToClaim(supportedToken, msg.sender);
+        token.safeTransfer(msg.sender, claimAmount);
+
+
     }
 
     function verifyProof(
