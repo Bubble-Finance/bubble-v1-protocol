@@ -1,11 +1,25 @@
+// Layout:
+//     - pragma
+//     - imports
+//     - interfaces, libraries, contracts
+//     - type declarations
+//     - state variables
+//     - events
+//     - errors
+//     - modifiers
+//     - functions
+//         - constructor
+//         - receive function (if exists)
+//         - fallback function (if exists)
+//         - external
+//         - public
+//         - internal
+//         - private
+//         - view and pure functions
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { IMonadexV1Callee } from "./interfaces/IMonadexV1Callee.sol";
-import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
-import { MonadexV1Types } from "./library/MonadexV1Types.sol";
-import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -14,9 +28,26 @@ import { IERC20Metadata } from
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
+import { IMonadexV1Callee } from "./interfaces/IMonadexV1Callee.sol";
+import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
+
+import { MonadexV1Types } from "./library/MonadexV1Types.sol";
+import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
+
+/**
+ * @title MonadexV1Pool
+ * @author Monadex Labs -- mgnfy-view
+ * @notice Monadex pools store reserves of a token pair, and allow adding, removing liquidity,
+ * and swapping in either directions
+ */
 contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
+
+    ///////////////////////
+    /// State Variables ///
+    ///////////////////////
 
     address private immutable i_factory;
     address private immutable i_tokenA;
@@ -26,6 +57,10 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
     uint256 private s_lastK;
     bool private s_isLocked;
     uint256 constant MINIMUM_LIQUIDITY = 1_000;
+
+    //////////////
+    /// Events ///
+    //////////////
 
     event LiquidityAdded(
         address indexed by,
@@ -51,6 +86,10 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
     );
     event ReservesUpdated(uint256 indexed reserveA, uint256 indexed reserveB);
 
+    //////////////
+    /// Errors ///
+    //////////////
+
     error MonadexV1Pool__Locked();
     error MonadexV1Pool__ZeroLpTokensToMint();
     error MonadexV1Pool__CannotWithdrawZeroTokenAmount();
@@ -60,12 +99,20 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
     error MonadexV1Pool__InsufficientInputAmount();
     error MonadexV1Pool__InvalidK();
 
+    /////////////////
+    /// Modifiers ///
+    /////////////////
+
     modifier globalLock() {
         if (s_isLocked) revert MonadexV1Pool__Locked();
         s_isLocked = true;
         _;
         s_isLocked = false;
     }
+
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
 
     constructor(
         address _tokenA,
@@ -86,6 +133,18 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         s_lastK = 0;
     }
 
+    //////////////////////////
+    /// External Functions ///
+    //////////////////////////
+
+    /**
+     * @notice Allows liquidity providers to add liquidity to the pool, and get LP tokens which
+     * represent their share of the pool. The protocol team is minted their share of the fee
+     * accumulated in the pool before proceeding to add liquidity. It is recommended to use the
+     * Monadex router, which performs additional safety checks, to add liquidity.
+     * @param _receiver The address to send the LP tokens to.
+     * @return The amount of LP tokens minted.
+     */
     function addLiquidity(address _receiver) external globalLock returns (uint256) {
         (uint256 reserveA, uint256 reserveB) = getReserves();
         uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
@@ -108,11 +167,20 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         _mint(_receiver, lpTokensToMint);
         _updateReserves(balanceA, balanceB);
         s_lastK = s_reserveA * s_reserveB;
-
         emit LiquidityAdded(msg.sender, _receiver, amountAIn, amountBIn, lpTokensToMint);
+
         return lpTokensToMint;
     }
 
+    /**
+     * @notice Allows liquidity providers to exit their positions by withdrawing their liquidity
+     * based on their share of the pool. The protocol team is minted their share of the fee
+     * accumulated in the pool before proceeding to remove liquidity. It is recommended to use the
+     * Monadex router, which performs additional safety checks, for this action.
+     * @param _receiver The address to direct the withdrawn liquidity to.
+     * @return Amount of token A withdrawn.
+     * @return Amount of token B withdrawn.
+     */
     function removeLiquidity(address _receiver) external globalLock returns (uint256, uint256) {
         (uint256 reserveA, uint256 reserveB) = getReserves();
         uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
@@ -138,6 +206,21 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         return (amountAOut, amountBOut);
     }
 
+    /**
+     * @notice Allows swapping of tokens in either direction. Also allows flash swaps and
+     * flash loans, all packed in the same function. Additionally, users leveraging flash
+     * swaps and flash loans can invoke hooks before and after a swap.
+     * @param _swapParams The parameters for swap include:
+     *                    - amountAOut: The amount of token A to send to the receiver
+     *                    - amountBOut: The amount of token B to send to the receiver
+     *                    - receiver: The address to which the token amounts are directed
+     *                    - hookConfig: A struct with the following fields:
+     *                          - hookBeforeCall: If true, invoke the before hook on the
+     *                                            receiving contract
+     *                          - hookAfterCall: If true, invoke the after hook on the
+     *                                           receiving contract
+     *                    - data: bytes data to pass to the flash swap or flash loan receiver
+     */
     function swap(MonadexV1Types.SwapParams memory _swapParams) external globalLock {
         if (_swapParams.amountAOut == 0 && _swapParams.amountBOut == 0) {
             revert MonadexV1Pool__InsufficientOutputAmount();
@@ -160,10 +243,10 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
             }
             if (_swapParams.amountAOut > 0) {
                 IERC20(i_tokenA).safeTransfer(_swapParams.receiver, _swapParams.amountAOut);
-            } // optimistically transfer tokens
+            }
             if (_swapParams.amountBOut > 0) {
                 IERC20(i_tokenB).safeTransfer(_swapParams.receiver, _swapParams.amountBOut);
-            } // optimistically transfer tokens
+            }
             if (_swapParams.data.length > 0) {
                 IMonadexV1Callee(_swapParams.receiver).onCall(
                     msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
@@ -210,51 +293,107 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         }
     }
 
+    /**
+     * @notice Allows anyone to sync the currently tracked token reserves with the actual token
+     * balances held by the contract by removing the excess amounts.
+     * @param _receiver The address to direct the excess amounts to.
+     */
     function syncBalancesBasedOnReserves(address _receiver) external globalLock {
         (address tokenA, address tokenB) = getPoolTokens();
         IERC20(tokenA).safeTransfer(_receiver, IERC20(tokenA).balanceOf(address(this)) - s_reserveA);
         IERC20(tokenB).safeTransfer(_receiver, IERC20(tokenB).balanceOf(address(this)) - s_reserveB);
     }
 
+    /**
+     * @notice Allows anyone to sync the currently tracked token reserves with the actual token
+     * balances held by the contract by setting the reserve values to the actual token balances
+     * held by the pool.
+     */
     function syncReservesBasedOnBalances() external globalLock {
         _updateReserves(
             IERC20(i_tokenA).balanceOf(address(this)), IERC20(i_tokenB).balanceOf(address(this))
         );
     }
 
+    ////////////////////////
+    /// Public Functions ///
+    ////////////////////////
+
+    /**
+     * @notice Gets the protocol team's multi-sig address from the factory. Used to direct
+     * part of the pool fee to the protocol team.
+     * @return The protocol team's multi-sig address.
+     */
     function getProtocolTeamMultisig() public view returns (address) {
         return IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
     }
 
+    /**
+     * @notice Gets the protocol fee from the factory.
+     * @return The protocol fee, a struct with numerator and denominator fields.
+     */
     function getProtocolFee() public view returns (MonadexV1Types.Fee memory) {
         return IMonadexV1Factory(i_factory).getProtocolFee();
     }
 
+    /**
+     * @notice Gets the pool fee from the factory.
+     * @return The pool fee, a struct with numerator and denominator fields.
+     */
     function getPoolFee() public view returns (MonadexV1Types.Fee memory) {
         return IMonadexV1Factory(i_factory).getTokenPairToFee(i_tokenA, i_tokenB);
     }
 
+    /**
+     * @notice Checks if the specified token is one of the tokens in the pool.
+     * @param _token The token address.
+     * @return True if the token is a pool token, otherwise false.
+     */
     function isPoolToken(address _token) public view returns (bool) {
         if (_token != i_tokenA && _token != i_tokenB) return false;
         return true;
     }
 
+    /**
+     * @notice Gets the addresses of the tokens in this pool.
+     * @return The first token's address.
+     * @return The second token's address.
+     */
     function getPoolTokens() public view returns (address, address) {
         return (i_tokenA, i_tokenB);
     }
 
+    /**
+     * @notice Gets the reserves of both tokens in the pool.
+     * @return Token A's reserve.
+     * @return Token B's reserve.
+     */
     function getReserves() public view returns (uint256, uint256) {
         return (s_reserveA, s_reserveB);
     }
 
-    function _updateReserves(uint256 _reserveA, uint256 _reserveB) internal {
+    /////////////////////////
+    /// Private Functions ///
+    /////////////////////////
+
+    /**
+     * @notice Updates the reserves after each swap, liquidity addition or removal.
+     * @param _reserveA Token A's reserve.
+     * @param _reserveB Token B's reserve.
+     */
+    function _updateReserves(uint256 _reserveA, uint256 _reserveB) private {
         s_reserveA = _reserveA;
         s_reserveB = _reserveB;
 
         emit ReservesUpdated(_reserveA, _reserveB);
     }
 
-    function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) internal {
+    /**
+     * @notice Mint's the protocol fee to the protocol team's multi-sig address.
+     * @param _reserveA Token A's reserve.
+     * @param _reserveB Token B's reserve.
+     */
+    function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) private {
         address protocolTeamMultisig = IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
         MonadexV1Types.Fee memory protocolFee = getProtocolFee();
         uint256 lastK = s_lastK;

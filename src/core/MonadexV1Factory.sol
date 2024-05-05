@@ -1,14 +1,45 @@
+// Layout:
+//     - pragma
+//     - imports
+//     - interfaces, libraries, contracts
+//     - type declarations
+//     - state variables
+//     - events
+//     - errors
+//     - modifiers
+//     - functions
+//         - constructor
+//         - receive function (if exists)
+//         - fallback function (if exists)
+//         - external
+//         - public
+//         - internal
+//         - private
+//         - view and pure functions
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { MonadexV1Pool } from "./MonadexV1Pool.sol";
-import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
-import { MonadexV1Types } from "./library/MonadexV1Types.sol";
-import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
+import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
+
+import { MonadexV1Pool } from "./MonadexV1Pool.sol";
+import { MonadexV1Types } from "./library/MonadexV1Types.sol";
+import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
+
+/**
+ * @title MonadexV1Factory
+ * @author Monadex Labs -- mgnfy-view
+ * @notice The factory allows deployment of Monadex pools of different token combinations
+ * The factory alsp stores the fee for each pool, and the protocol fee and multisig
+ */
 contract MonadexV1Factory is Ownable, IMonadexV1Factory {
+    ///////////////////////
+    /// State Variables ///
+    ///////////////////////
+
     address private s_protocolTeamMultisig;
     MonadexV1Types.Fee private s_protocolFee;
     MonadexV1Types.Fee[5] private s_feeTiers;
@@ -16,6 +47,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     mapping(address token => bool isSupported) private s_supportedTokens;
     mapping(address tokenA => mapping(address tokenB => uint256 feeTier)) private s_tokenPairToFee;
     mapping(address tokenA => mapping(address tokenB => address pool)) private s_tokenPairToPool;
+
+    //////////////
+    /// Events ///
+    //////////////
 
     event PoolCreated(address indexed pool, address tokenA, address tokenB);
     event ProtocolTeamMultisigChanged(address indexed protocolTeamMultisig);
@@ -25,6 +60,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         address indexed tokenA, address indexed tokenB, uint256 indexed feeTier
     );
 
+    //////////////
+    /// Errors ///
+    //////////////
+
     error MonadexV1Factory__NotProtocolTeamMultisig(address sender);
     error MonadexV1Factory__TokenAddressZero();
     error MonadexV1Factory__CannotCreatePoolForSameTokens(address token);
@@ -32,12 +71,20 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     error MonadexV1Factory__PoolAlreadyExists(address pool);
     error MonadexV1Factory__InvalidFeeTier(uint256 feeTier);
 
+    /////////////////
+    /// Modifiers ///
+    /////////////////
+
     modifier onlyProtocolTeamMultisig() {
         if (msg.sender != s_protocolTeamMultisig) {
             revert MonadexV1Factory__NotProtocolTeamMultisig(msg.sender);
         }
         _;
     }
+
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
 
     constructor(
         address _protocolTeamMultisig,
@@ -53,6 +100,21 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         }
     }
 
+    //////////////////////////
+    /// External Functions ///
+    //////////////////////////
+
+    /**
+     * @notice Allows anyone to deploy Monadex pools for supported token combinations in a
+     * permissionless manner. Each token combination can have one pool only. The fee for the
+     * pool is set in the factory itself by either the protocol team (in the initial stages),
+     * or governance. The protocol fee is set by the protocol team in the factory contract as
+     * well. Each Monadex pool queries the factory to retrieve information about it's fee and
+     * the protocol fee.
+     * @param _tokenA The first token in the combination.
+     * @param _tokenB The second token in the combination.
+     * @return The address of the deployed pool.
+     */
     function deployPool(address _tokenA, address _tokenB) external returns (address) {
         if (_tokenA == address(0) || _tokenB == address(0)) {
             revert MonadexV1Factory__TokenAddressZero();
@@ -71,6 +133,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         return newPoolAddress;
     }
 
+    /**
+     * @notice Allows the protocol team to change the address where all the fee is directed to.
+     * @param _protocolTeamMultisig The new address to direct the fee to.
+     */
     function setProtocolTeamMultisig(address _protocolTeamMultisig)
         external
         onlyProtocolTeamMultisig
@@ -79,6 +145,11 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         emit ProtocolTeamMultisigChanged(_protocolTeamMultisig);
     }
 
+    /**
+     * @notice Allows the protocol team to set the new protocol fee. The protocol fee is always
+     * a fraction that is deducted from the pool fee.
+     * @param _protocolFee The new protocol fee.
+     */
     function setProtocolFee(MonadexV1Types.Fee memory _protocolFee)
         external
         onlyProtocolTeamMultisig
@@ -87,11 +158,25 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         emit ProtocolFeeChanged(_protocolFee);
     }
 
+    /**
+     * @notice Allows the owner (protocol team in the initial stages, governance later on) to support
+     * new tokens for trading or revoke support from existing tokens. It should be ensured that the token
+     * does not support fee on transfer, rebasing features, etc (should not be a weird ERC20).
+     * @param _token The token to support/revoke support from.
+     * @param _isSupported true if supported, false if not.
+     */
     function setToken(address _token, bool _isSupported) external onlyOwner {
         s_supportedTokens[_token] = _isSupported;
         emit TokenSupportChanged(_token, _isSupported);
     }
 
+    /**
+     * @notice Allows the owner (protocol team in the initial stages, governance later on) to set the
+     * pool fee for any token combination. The fee tiers range from 1 to 5.
+     * @param _tokenA The first token in the combination.
+     * @param _tokenB The second token in the combination.
+     * @param _feeTier The fee tier to set for the token combination.
+     */
     function setTokenPairFee(
         address _tokenA,
         address _tokenB,
@@ -106,14 +191,29 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         emit FeeTierForTokenPairUpdated(_tokenA, _tokenB, _feeTier);
     }
 
+    /**
+     * @notice Gets the protocol team's multi-sig address where all the fee is directed to.
+     * @return The protocol team's multi-sig address.
+     */
     function getProtocolTeamMultisig() external view returns (address) {
         return s_protocolTeamMultisig;
     }
 
+    /**
+     * @notice Gets the protocol fee. Same for all pools.
+     * @return The protocol fee, a struct with numerator and denominator fields.
+     */
     function getProtocolFee() external view returns (MonadexV1Types.Fee memory) {
         return s_protocolFee;
     }
 
+    /**
+     * @notice Gets the pool fee for any token pair combination. if the fee tier isn't set
+     * for that pool, it returns the fee for the default fee tier 3.
+     * @param _tokenA The first token in the combination.
+     * @param _tokenB The second token in the combination.
+     * @return The pool fee, a struct with numerator and denominator fields.
+     */
     function getTokenPairToFee(
         address _tokenA,
         address _tokenB
@@ -128,19 +228,44 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         else return s_feeTiers[feeTier - 1];
     }
 
+    /**
+     * @notice Gets fee structs for all fee tiers packed into an array.
+     * @return An array of fee structs for fee tiers 1 to 5.
+     */
     function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory) {
         return s_feeTiers;
     }
 
+    ////////////////////////
+    /// Public Functions ///
+    ////////////////////////
+
+    /**
+     * @notice Gets the fee struct for the specified tier.
+     * @param _feeTier The fee tier to get the fee for. Allowed values are 1 to 5.
+     * @return The pool fee struct with numerator and denominator fields.
+     */
     function getFeeForTier(uint256 _feeTier) public view returns (MonadexV1Types.Fee memory) {
         if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
         return s_feeTiers[_feeTier - 1];
     }
 
+    /**
+     * @notice Checks if the specified token is supported or not.
+     * @param _token The token to check.
+     * @return True if the token is supported, otherwise false.
+     */
     function isSupportedToken(address _token) public view returns (bool) {
         return s_supportedTokens[_token];
     }
 
+    /**
+     * @notice Gets the Monadex pool address from the specified token combination. Returns
+     * address 0 if no pool exists.
+     * @param _tokenA The first token in the combination.
+     * @param _tokenB The second token in the combination.
+     * @return The pool address.
+     */
     function getTokenPairToPool(address _tokenA, address _tokenB) public view returns (address) {
         (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
         return s_tokenPairToPool[_tokenA][_tokenB];
