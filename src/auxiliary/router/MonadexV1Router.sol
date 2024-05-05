@@ -1,21 +1,57 @@
+// Layout:
+//     - pragma
+//     - imports
+//     - interfaces, libraries, contracts
+//     - type declarations
+//     - state variables
+//     - events
+//     - errors
+//     - modifiers
+//     - functions
+//         - constructor
+//         - receive function (if exists)
+//         - fallback function (if exists)
+//         - external
+//         - public
+//         - internal
+//         - private
+//         - view and pure functions
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { IMonadexV1Factory } from "../../core/interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "../../core/interfaces/IMonadexV1Pool.sol";
-import { MonadexV1Types } from "../../core/library/MonadexV1Types.sol";
-import { MonadexV1Utils } from "../../core/library/MonadexV1Utils.sol";
-import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
-import { MonadexV1AuxiliaryLibrary } from "../library/MonadexV1AuxiliaryLibrary.sol";
-import { MonadexV1AuxiliaryTypes } from "../library/MonadexV1AuxiliaryTypes.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract MonadexV1Router {
+import { IMonadexV1Factory } from "../../core/interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "../../core/interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
+import { IMonadexV1Router } from "../interfaces/IMonadexV1Router.sol";
+
+import { MonadexV1Types } from "../../core/library/MonadexV1Types.sol";
+import { MonadexV1Utils } from "../../core/library/MonadexV1Utils.sol";
+import { MonadexV1AuxiliaryLibrary } from "../library/MonadexV1AuxiliaryLibrary.sol";
+import { MonadexV1AuxiliaryTypes } from "../library/MonadexV1AuxiliaryTypes.sol";
+
+/**
+ * @title MonadexV1Router
+ * @author Monadex Labs -- mgnfy-view
+ * @notice The router contract acts as a convenient interface to interact with Monadex pools.
+ * It performs essential safety checks, and is also the only way to purchase raffle tickets.
+ */
+contract MonadexV1Router is IMonadexV1Router {
     using SafeERC20 for IERC20;
+
+    ///////////////////////
+    /// State Variables ///
+    ///////////////////////
 
     address private immutable i_factory;
     address private immutable i_raffle;
+
+    //////////////
+    /// Errors ///
+    //////////////
 
     error MonadexV1Router__DeadlinePasssed(uint256 deadline);
     error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
@@ -23,16 +59,48 @@ contract MonadexV1Router {
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
 
+    /////////////////
+    /// Modifiers ///
+    /////////////////
+
     modifier beforeDeadline(uint256 _deadline) {
         if (_deadline <= block.timestamp) revert MonadexV1Router__DeadlinePasssed(_deadline);
         _;
     }
+
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
 
     constructor(address _factory, address _raffle) {
         i_factory = _factory;
         i_raffle = _raffle;
     }
 
+    //////////////////////////
+    /// External Functions ///
+    //////////////////////////
+
+    /**
+     * @notice Allows addition of liquidity to Monadex pools with safety checks.
+     * @param _addLiquidityParams The parameters include:
+     *                            - tokenA: Address of token A
+     *                            - tokenB: Address of token B
+     *                            - amountADesired: Maximum amount of token A to add
+     *                                              as liquidity
+     *                            - amountBDesired: Maximum amount of token B to add
+     *                                              as liquidity
+     *                            - amountAMin: Minimum amount of token A to add
+     *                                          as liquidity
+     *                            - amountBMin: Minimum amount of token B to add
+     *                                          as liquidity
+     *                            - receiver: The address to direct the LP tokens to
+     *                            - deadline: UNIX timestamp before which the liquidity
+     *                                        should be added
+     * @return Amount of token A added.
+     * @return Amount of token B added.
+     * @return Amount of LP tokens received.
+     */
     function addLiquidity(MonadexV1AuxiliaryTypes.AddLiquidity memory _addLiquidityParams)
         external
         beforeDeadline(_addLiquidityParams.deadline)
@@ -56,6 +124,18 @@ contract MonadexV1Router {
         return (amountA, amountB, lpTokensMinted);
     }
 
+    /**
+     * @notice Allows removal of liquidity from Monadex pools with safety checks.
+     * @param _tokenA Address of token A.
+     * @param _tokenB Address of token B.
+     * @param _lpTokensToBurn Amount of LP tokens to burn.
+     * @param _amountAMin Minimum amount of token A to withdraw from pool.
+     * @param _amountBMin Minimum amount of token B to withdraw from pool.
+     * @param _receiver The address to direct the withdrawn tokens to
+     * @param _deadline UNIX timestamp before which the liquidity should be removed
+     * @return Amount of token A withdrawn.
+     * @return Amount of token B withdrawn.
+     */
     function removeLiquidity(
         address _tokenA,
         address _tokenB,
@@ -84,6 +164,27 @@ contract MonadexV1Router {
         return (amountA, amountB);
     }
 
+    /**
+     * @notice Swaps an exact amount of input tokens for any amount of output tokens
+     * such that the safety checks pass.
+     * @param _amountIn The amount of input tokens to swap.
+     * @param _amountOutMin The minimum amount of output tokens to receive.
+     * @param _path An array of token addresses which forms the swap path in case a direct
+     * path does not exist from token A to B.
+     * @param _receiver The address to direct the output amount to.
+     * @param _deadline UNIX timestamp before which the swap should be conducted.
+     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
+     * tickets during swaps. The purchase parameters include:
+     *                         - purchaseTickets: True, if the user wants to pruchase tickets
+     *                         - multiplier: The multiplier to apply to the ticket purchase. The
+     *                                       higher the multiplier, the higher fees is taken, and
+     *                                       more raffle tickets are obtained. The multipliers are:
+     *                                       - multiplier 1: 0.5% of swap amount as ticket price
+     *                                       - multiplier 2: 1% of swap amount as ticket price
+     *                                       - multiplier 3: 2% of swap amount as ticket price
+     * @return The amounts obtained at each checkpoint of the swap path.
+     * @return The amount of tickets obtained.
+     */
     function swapExactTokensForTokens(
         uint256 _amountIn,
         uint256 _amountOutMin,
@@ -94,7 +195,7 @@ contract MonadexV1Router {
     )
         external
         beforeDeadline(_deadline)
-        returns (uint256[] memory)
+        returns (uint256[] memory, uint256)
     {
         uint256[] memory amounts =
             MonadexV1AuxiliaryLibrary.getAmountsOut(i_factory, _amountIn, _path);
@@ -108,15 +209,37 @@ contract MonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
+        uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            IMonadexV1Raffle(i_raffle).purchaseTickets(
+            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
                 _path[0], _amountIn, _purchaseTickets.multiplier, _receiver
             );
         }
 
-        return amounts;
+        return (amounts, tickets);
     }
 
+    /**
+     * @notice Swaps any amount of input tokens for exact amount of output tokens
+     * such that the safety checks pass.
+     * @param _amountOut The amount of output tokens to receive.
+     * @param _amountInMax The maximum amount of input tokens to swap for.
+     * @param _path An array of token addresses which forms the swap path in case a direct
+     * path does not exist from token A to B.
+     * @param _receiver The address to direct the output amount to.
+     * @param _deadline UNIX timestamp before which the swap should be conducted.
+     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
+     * tickets during swaps. The purchase parameters include:
+     *                         - purchaseTickets: True, if the user wants to pruchase tickets
+     *                         - multiplier: The multiplier to apply to the ticket purchase. The
+     *                                       higher the multiplier, the higher fees is taken, and
+     *                                       more raffle tickets are obtained. The multipliers are:
+     *                                       - multiplier 1: 0.5% of swap amount as ticket price
+     *                                       - multiplier 2: 1% of swap amount as ticket price
+     *                                       - multiplier 3: 2% of swap amount as ticket price
+     * @return The amounts obtained at each checkpoint of the swap path.
+     * @return The amount of tickets obtained.
+     */
     function swapTokensForExactTokens(
         uint256 _amountOut,
         uint256 _amountInMax,
@@ -127,7 +250,7 @@ contract MonadexV1Router {
     )
         external
         beforeDeadline(_deadline)
-        returns (uint256[] memory)
+        returns (uint256[] memory, uint256)
     {
         uint256[] memory amounts =
             MonadexV1AuxiliaryLibrary.getAmountsIn(i_factory, _amountOut, _path);
@@ -139,15 +262,32 @@ contract MonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
+        uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            IMonadexV1Raffle(i_raffle).purchaseTickets(
+            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
                 _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
             );
         }
 
-        return amounts;
+        return (amounts, tickets);
     }
 
+    /////////////////////////
+    /// Private Functions ///
+    /////////////////////////
+
+    /**
+     * @notice A helper function to calculate safe amount A and amount B to add as
+     * liquidity. Also deploys the pool for the token combination if one doesn't exist.
+     * @param _tokenA Address of token A.
+     * @param _tokenB Address of token B.
+     * @param _amountADesired Maximum amount of token A to add as liquidity.
+     * @param _amountBDesired Maximum amount of token B to add as liquidity.
+     * @param _amountAMin Minimum amount of token A to add as liquidity.
+     * @param _amountBMin Minimum amount of token B to add as liquidity.
+     * @return Amount of token A to add.
+     * @return Amount of token B to add.
+     */
     function _addLiquidityHelper(
         address _tokenA,
         address _tokenB,
@@ -188,6 +328,14 @@ contract MonadexV1Router {
         }
     }
 
+    /**
+     * @notice A swap helper function to swap out the input amount for output amount along
+     * a specific swap path.
+     * @param _amounts The amounts to receive at each checkpoint along the swap path.
+     * @param _path An array of token addresses which forms the swap path in case a direct
+     * path does not exist from token A to B.
+     * @param _receiver The address to direct the output amount to.
+     */
     function _swap(uint256[] memory _amounts, address[] memory _path, address _receiver) private {
         for (uint256 count = 0; count < _path.length - 1; ++count) {
             (address inputToken, address outputToken) = (_path[count], _path[count + 1]);
