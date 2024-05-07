@@ -5,14 +5,24 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 interface IMonadexV1Pool {
     function addLiquidity(address _receiver) external returns (uint256);
+
     function removeLiquidity(address _receiver) external returns (uint256, uint256);
+
     function swap(MonadexV1Types.SwapParams memory _swapParams) external;
+
     function syncBalancesBasedOnReserves(address _receiver) external;
+
     function syncReservesBasedOnBalances() external;
+
     function getProtocolTeamMultisig() external view returns (address);
+
     function getProtocolFee() external view returns (MonadexV1Types.Fee memory);
+
     function getPoolFee() external view returns (MonadexV1Types.Fee memory);
+
     function isPoolToken(address _token) external view returns (bool);
+
     function getPoolTokens() external view returns (address, address);
+
     function getReserves() external view returns (uint256, uint256);
 }

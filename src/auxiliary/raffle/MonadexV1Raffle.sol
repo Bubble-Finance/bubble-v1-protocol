@@ -229,11 +229,6 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
         return winnings;
     }
 
-    function isRaffleOpen() public view returns (bool) {
-        if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION) return true;
-        else return false;
-    }
-
     function getLastTimestamp() external view returns (uint256) {
         return s_lastTimestamp;
     }
@@ -269,6 +264,11 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
         return MonadexV1AuxiliaryLibrary.calculateAmountOfTickets(
             _amount, _getMultiplierToPercentage(_multiplier)
         );
+    }
+
+    function isRaffleOpen() public view returns (bool) {
+        if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION) return true;
+        else return false;
     }
 
     //////////////////////////
