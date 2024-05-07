@@ -157,7 +157,7 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         uint256 totalLpTokenSupply = totalSupply();
         if (totalLpTokenSupply == 0) {
             lpTokensToMint = (amountAIn * amountBIn).sqrt() - MINIMUM_LIQUIDITY;
-            _mint(address(0), MINIMUM_LIQUIDITY);
+            _mint(address(1), MINIMUM_LIQUIDITY);
         } else {
             lpTokensToMint = ((amountAIn * totalLpTokenSupply) / reserveA).min(
                 (amountBIn * totalLpTokenSupply) / reserveB

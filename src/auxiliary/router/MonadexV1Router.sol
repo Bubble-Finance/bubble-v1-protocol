@@ -64,7 +64,7 @@ contract MonadexV1Router is IMonadexV1Router {
     /////////////////
 
     modifier beforeDeadline(uint256 _deadline) {
-        if (_deadline <= block.timestamp) revert MonadexV1Router__DeadlinePasssed(_deadline);
+        if (_deadline < block.timestamp) revert MonadexV1Router__DeadlinePasssed(_deadline);
         _;
     }
 
@@ -117,8 +117,8 @@ contract MonadexV1Router is IMonadexV1Router {
         address pool = MonadexV1AuxiliaryLibrary.getPool(
             i_factory, _addLiquidityParams.tokenA, _addLiquidityParams.tokenB
         );
-        IERC20(_addLiquidityParams.tokenA).safeTransfer(pool, amountA);
-        IERC20(_addLiquidityParams.tokenB).safeTransfer(pool, amountB);
+        IERC20(_addLiquidityParams.tokenA).safeTransferFrom(msg.sender, pool, amountA);
+        IERC20(_addLiquidityParams.tokenB).safeTransferFrom(msg.sender, pool, amountB);
         uint256 lpTokensMinted = IMonadexV1Pool(pool).addLiquidity(_addLiquidityParams.receiver);
 
         return (amountA, amountB, lpTokensMinted);

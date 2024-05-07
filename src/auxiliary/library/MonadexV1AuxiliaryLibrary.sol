@@ -146,4 +146,15 @@ library MonadexV1AuxiliaryLibrary {
 
         return amounts;
     }
+
+    function calculateAmountOfTickets(
+        uint256 _amount,
+        MonadexV1Types.Fee memory _percentage
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return (_amount * _percentage.numerator) / _percentage.denominator;
+    }
 }
