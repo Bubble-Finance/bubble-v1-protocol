@@ -372,16 +372,16 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
         return (s_reserveA, s_reserveB);
     }
 
-    /////////////////////////
-    /// Private Functions ///
-    /////////////////////////
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
 
     /**
      * @notice Updates the reserves after each swap, liquidity addition or removal.
      * @param _reserveA Token A's reserve.
      * @param _reserveB Token B's reserve.
      */
-    function _updateReserves(uint256 _reserveA, uint256 _reserveB) private {
+    function _updateReserves(uint256 _reserveA, uint256 _reserveB) internal {
         s_reserveA = _reserveA;
         s_reserveB = _reserveB;
 
@@ -393,7 +393,7 @@ contract MonadexV1Pool is ERC20, Ownable, IMonadexV1Pool {
      * @param _reserveA Token A's reserve.
      * @param _reserveB Token B's reserve.
      */
-    function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) private {
+    function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) internal {
         address protocolTeamMultisig = IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
         MonadexV1Types.Fee memory protocolFee = getProtocolFee();
         uint256 lastK = s_lastK;

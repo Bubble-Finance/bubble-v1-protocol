@@ -272,9 +272,9 @@ contract MonadexV1Router is IMonadexV1Router {
         return (amounts, tickets);
     }
 
-    /////////////////////////
-    /// Private Functions ///
-    /////////////////////////
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
 
     /**
      * @notice A helper function to calculate safe amount A and amount B to add as
@@ -296,7 +296,7 @@ contract MonadexV1Router is IMonadexV1Router {
         uint256 _amountAMin,
         uint256 _amountBMin
     )
-        private
+        internal
         returns (uint256, uint256)
     {
         if (MonadexV1AuxiliaryLibrary.getPool(i_factory, _tokenA, _tokenB) == address(0)) {
@@ -336,7 +336,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      */
-    function _swap(uint256[] memory _amounts, address[] memory _path, address _receiver) private {
+    function _swap(uint256[] memory _amounts, address[] memory _path, address _receiver) internal {
         for (uint256 count = 0; count < _path.length - 1; ++count) {
             (address inputToken, address outputToken) = (_path[count], _path[count + 1]);
             (address tokenA,) = MonadexV1Utils.sortTokens(inputToken, outputToken);
