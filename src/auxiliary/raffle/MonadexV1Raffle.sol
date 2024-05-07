@@ -45,19 +45,24 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
     /// State Variables ///
     ///////////////////////
 
+    uint256 private constant RAFFLE_DURATION = 1 weeks - 1 days;
+    uint256 private constant REGISTRATION_PERIOD = 1 days;
+    uint256 private constant MAX_WINNERS = 6;
+    uint256 private constant MAX_TIERS = 3;
+    uint256 private constant TIER1_WINNERS = 1;
+    uint256 private constant TIER2_WINNERS = 2;
+    uint256 private constant TIER3_WINNERS = 3;
+    uint256 private constant MAX_MULTIPLIERS = 3;
     address private immutable i_router;
     uint256 private s_lastTimestamp;
-    MonadexV1AuxiliaryTypes.Status private s_status;
-    MonadexV1Types.Fee[3] private s_percentages;
+    MonadexV1Types.Fee[MAX_MULTIPLIERS] private s_percentages;
+    MonadexV1Types.Fee[MAX_TIERS] private s_winningPortions;
     address[] private s_supportedTokens;
     mapping(address token => bool isSupported) private s_isSupportedToken;
     uint256 private i_rangeSize;
     mapping(uint256 rangeStart => address user) private s_ranges;
     uint256 private s_currentRangeEnd;
     mapping(address user => mapping(address token => uint256 amount)) private s_winnings;
-
-    uint256 private constant RAFFLE_DURATION = 1 weeks - 1 days;
-    uint256 private constant REGISTRATION_PERIOD = 1 days;
 
     //////////////
     /// Events ///
@@ -67,6 +72,9 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
     event WinningsClaimed(
         address indexed winner, address indexed token, uint256 amount, address indexed receiver
     );
+    event Registered(address indexed user, uint256 indexed ticketsBurned);
+    event WinnersPicked(address[MAX_WINNERS] indexed winners);
+    event TicketsPurchased(address receiver, uint256 amount);
 
     //////////////
     /// Errors ///
@@ -83,6 +91,8 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
     error MonadexV1Raffle__NotOpen();
     error MonadexV1Raffle__NotEnoughTickets();
     error MonadexV1Raffle__NotEnoughBalance();
+    error MonadexV1Raffle__DrawNotAllowedYet();
+    error MonadexV1Raffle__InsufficientEntries();
 
     /////////////////
     /// Modifiers ///
@@ -111,25 +121,30 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
 
     constructor(
         address _router,
-        MonadexV1Types.Fee[3] memory _percentages,
+        MonadexV1Types.Fee[MAX_MULTIPLIERS] memory _percentages,
+        MonadexV1Types.Fee[MAX_TIERS] memory _winningPortions,
         address[] memory _supportedTokens,
         uint256 _rangeSize
     )
         Ownable(msg.sender)
         ERC20("MonadexV1RaffleTicket", "MDXRT")
     {
-        s_router = _router;
+        i_router = _router;
         s_lastTimestamp = block.timestamp;
         i_rangeSize = _rangeSize;
         s_currentRangeEnd = 0;
 
-        for (uint256 count = 0; count < 3; ++count) {
+        for (uint256 count = 0; count < MAX_MULTIPLIERS; ++count) {
             s_percentages[count] = _percentages[count];
         }
 
         for (uint256 count = 0; count < _supportedTokens.length; ++count) {
             s_supportedTokens[count] = _supportedTokens[count];
             s_isSupportedToken[_supportedTokens[count]] = true;
+        }
+
+        for (uint256 count = 0; count < MAX_TIERS; ++count) {
+            s_winningPortions[count] = _winningPortions[count];
         }
     }
 
@@ -149,22 +164,24 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
         returns (uint256)
     {
         if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 tickets = MonadexV1AuxiliaryLibrary.calculateAmountOfTickets(
-            _amount, _getMultiplierToPercentage(_multiplier)
-        );
+        uint256 tickets = previewPurchase(_amount, _multiplier);
         if (tickets == 0) revert MonadexV1Raffle__ZeroTickets();
         _mint(_receiver, tickets);
+
+        emit TicketsPurchased(_receiver, tickets);
 
         return tickets;
     }
 
-    function register(uint256 _amount) external {
+    function register(uint256 _amount) external notZero(_amount) returns (uint256) {
         if (!isRaffleOpen()) revert MonadexV1Raffle__NotOpen();
-        uint256 balance = balanceOf(msg.sender);
         uint256 slotsToOccupy = _amount / i_rangeSize;
         if (slotsToOccupy == 0) revert MonadexV1Raffle__NotEnoughTickets();
+
+        uint256 balance = balanceOf(msg.sender);
         uint256 ticketsToBurn = slotsToOccupy * i_rangeSize;
         if (ticketsToBurn < balance) revert MonadexV1Raffle__NotEnoughBalance();
+        _burn(msg.sender, ticketsToBurn);
 
         uint256 currentRangeEnd = s_currentRangeEnd;
         for (uint256 count = 0; count < slotsToOccupy; ++count) {
@@ -172,26 +189,41 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
             currentRangeEnd += i_rangeSize;
         }
         s_currentRangeEnd = currentRangeEnd;
+
+        emit Registered(msg.sender, ticketsToBurn);
+
+        return ticketsToBurn;
     }
 
-    function draw() external returns (address[] memory) {
-        uint256 randomWord = requestRandomWord();
-        uint256 hitPoint = randomWord % (s_currentRangeEnd - i_rangeSize);
-        uint256 selectedRange = hitpoint - (hitpoint % i_rangeSize);
-        address winner = s_ranges[selectedRange];
+    function drawWinners() external returns (address[MAX_WINNERS] memory) {
+        if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) {
+            revert MonadexV1Raffle__DrawNotAllowedYet();
+        }
+        if (s_currentRangeEnd < MAX_WINNERS * i_rangeSize) {
+            revert MonadexV1Raffle__InsufficientEntries();
+        }
 
-        // logic for selecting more winners and giving them their prize amounts
+        uint256 randomWord = _requestRandomWord();
+        address[MAX_WINNERS] memory winners;
+        winners = _selectWinners(randomWord);
+        _allocateRewards(winners);
 
         s_currentRangeEnd = 0;
         s_ranges[0] = address(0);
         s_lastTimestamp = block.timestamp;
+
+        emit WinnersPicked(winners);
+
+        return winners;
     }
 
     function claimWinnings(address _token, address _receiver) external returns (uint256) {
         if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
         uint256 winnings = s_winnings[msg.sender][_token];
         if (winnings == 0) revert MonadexV1Raffle__ZeroWinnings();
+
         IERC20(_token).safeTransfer(_receiver, winnings);
+
         emit WinningsClaimed(msg.sender, _token, winnings, _receiver);
 
         return winnings;
@@ -202,12 +234,49 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
         else return false;
     }
 
-    /////////////////////////
-    /// Private Functions ///
-    /////////////////////////
+    function getLastTimestamp() external view returns (uint256) {
+        return s_lastTimestamp;
+    }
+
+    function getSupportedTokens() external view returns (address[] memory) {
+        return s_supportedTokens;
+    }
+
+    function isSupportedToken(address _token) external view returns (bool) {
+        return s_isSupportedToken[_token];
+    }
+
+    function getWinnings(address _user, address _token) external view returns (uint256) {
+        return s_winnings[_user][_token];
+    }
+
+    function getCurrentRange() external view returns (uint256) {
+        return s_currentRangeEnd;
+    }
+
+    ////////////////////////
+    /// Public Functions ///
+    ////////////////////////
+
+    function previewPurchase(
+        uint256 _amount,
+        MonadexV1AuxiliaryTypes.Multipliers _multiplier
+    )
+        public
+        view
+        returns (uint256)
+    {
+        return MonadexV1AuxiliaryLibrary.calculateAmountOfTickets(
+            _amount, _getMultiplierToPercentage(_multiplier)
+        );
+    }
+
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
 
     function _getMultiplierToPercentage(MonadexV1AuxiliaryTypes.Multipliers _multiplier)
-        private
+        internal
         view
         returns (MonadexV1Types.Fee memory)
     {
@@ -217,6 +286,51 @@ contract MonadexV1Raffle is MonadexV1RandomNumberGenerator, Ownable, ERC20 {
             return s_percentages[1];
         } else {
             return s_percentages[2];
+        }
+    }
+
+    function _getSelectedRange(
+        uint256 _randomWord,
+        uint256 _currentRangeEnd
+    )
+        internal
+        returns (uint256)
+    {
+        uint256 hitPoint = _randomWord % (_currentRangeEnd);
+        uint256 selectedRange = hitPoint - (hitPoint % i_rangeSize);
+
+        return selectedRange;
+    }
+
+    function _selectWinners(uint256 _randomWord) internal returns (address[6] memory) {
+        address[MAX_WINNERS] memory winners;
+        uint256 currentRangeEnd = s_currentRangeEnd - i_rangeSize;
+
+        for (uint8 count = 0; count < MAX_WINNERS; ++count) {
+            uint256 selectedRange = _getSelectedRange(_randomWord, currentRangeEnd);
+            winners[count] = s_ranges[selectedRange];
+            s_ranges[selectedRange] = s_ranges[currentRangeEnd];
+            if (count != 5) currentRangeEnd -= i_rangeSize;
+        }
+
+        return winners;
+    }
+
+    function _allocateRewards(address[MAX_WINNERS] memory _winners) internal {
+        address[] memory supportedTokens = s_supportedTokens;
+        uint256 numberOfSupportedTokens = supportedTokens.length;
+        MonadexV1Types.Fee[MAX_TIERS] memory winningPortions = s_winningPortions;
+        MonadexV1Types.Fee memory portion;
+
+        for (uint8 count = 0; count < MAX_WINNERS; ++count) {
+            if (count == TIER1_WINNERS - 1) portion = winningPortions[0];
+            else if (count < TIER1_WINNERS + TIER2_WINNERS) portion = winningPortions[1];
+            else portion = winningPortions[2];
+            for (uint8 newCount = 0; newCount < numberOfSupportedTokens; ++newCount) {
+                uint256 tokenBalance = IERC20(supportedTokens[newCount]).balanceOf(address(this));
+                s_winnings[_winners[count]][supportedTokens[newCount]] +=
+                    (tokenBalance * portion.numerator) / portion.denominator;
+            }
         }
     }
 }
