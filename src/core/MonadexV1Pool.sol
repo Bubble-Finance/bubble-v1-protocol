@@ -324,6 +324,14 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         return true;
     }
 
+    /**
+     * @notice Gets the address of the MonadexV1Factory.
+     * @return The factory address.
+     */
+    function getFactory() external view returns (address) {
+        return i_factory;
+    }
+
     ////////////////////////
     /// Public Functions ///
     ////////////////////////
