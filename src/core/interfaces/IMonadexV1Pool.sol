@@ -14,13 +14,13 @@ interface IMonadexV1Pool {
 
     function syncReservesBasedOnBalances() external;
 
+    function isPoolToken(address _token) external view returns (bool);
+
     function getProtocolTeamMultisig() external view returns (address);
 
     function getProtocolFee() external view returns (MonadexV1Types.Fee memory);
 
     function getPoolFee() external view returns (MonadexV1Types.Fee memory);
-
-    function isPoolToken(address _token) external view returns (bool);
 
     function getPoolTokens() external view returns (address, address);
 
