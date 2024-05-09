@@ -170,7 +170,7 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
 
         uint256 length = _supportedTokens.length;
         for (uint256 count = 0; count < length; ++count) {
-            s_supportedTokens[count] = _supportedTokens[count];
+            s_supportedTokens.push(_supportedTokens[count]);
             s_isSupportedToken[_supportedTokens[count]] = true;
         }
 
