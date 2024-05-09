@@ -2,6 +2,10 @@
 pragma solidity 0.8.20;
 
 contract MonadexV1AuxiliaryTypes {
+    /**
+     * @notice The parameters required for adding liquidity were packed in a struct
+     * to avoid stack too deep errors.
+     */
     struct AddLiquidity {
         address tokenA;
         address tokenB;

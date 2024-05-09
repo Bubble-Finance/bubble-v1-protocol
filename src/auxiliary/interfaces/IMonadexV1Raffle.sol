@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import { MonadexV1Types } from "../../core/library/MonadexV1Types.sol";
 import { MonadexV1AuxiliaryTypes } from "../library/MonadexV1AuxiliaryTypes.sol";
 
 interface IMonadexV1Raffle {
@@ -15,9 +16,19 @@ interface IMonadexV1Raffle {
 
     function register(uint256 _amount) external returns (uint256);
 
-    function drawWinners() external returns (address[MAX_WINNERS] memory);
+    function drawWinners() external returns (address[6] memory);
 
     function claimWinnings(address _token, address _receiver) external returns (uint256);
+
+    function getRaffleDuration() external pure returns (uint256);
+
+    function getRegistrationPeriod() external pure returns (uint256);
+
+    function getMaxWinners() external pure returns (uint256);
+
+    function getMaxTiers() external pure returns (uint256);
+
+    function getMaxMultipliers() external pure returns (uint256);
 
     function getLastTimestamp() external view returns (uint256);
 
@@ -25,9 +36,18 @@ interface IMonadexV1Raffle {
 
     function isSupportedToken(address _token) external view returns (bool);
 
-    function getWinnings(address _user, address _token) external view returns (uint256);
+    function getRangeSize() external view returns (uint256);
 
-    function getCurrentRange() external view returns (uint256);
+    function getUserAtRangeStart(uint256 _rangeStart) external view returns (address);
+
+    function getCurrentRangeEnd() external view returns (uint256);
+
+    function getMultipliersToPercentages(MonadexV1AuxiliaryTypes.Multipliers _multiplier)
+        external
+        view
+        returns (MonadexV1Types.Fee memory);
+
+    function getWinnings(address _user, address _token) external view returns (uint256);
 
     function previewPurchase(
         uint256 _amount,
@@ -37,5 +57,5 @@ interface IMonadexV1Raffle {
         view
         returns (uint256);
 
-    function isRaffleOpen() public view returns (bool);
+    function isRegistrationOpen() external view returns (bool);
 }

@@ -31,7 +31,7 @@ contract MonadexV1RandomNumberGenerator {
     /// Internal Functions ///
     //////////////////////////
 
-    function _requestRandomWord() internal returns (uint256) {
+    function _requestRandomWord() internal view returns (uint256) {
         // this is a case of weak randomness, which can be easily exploited
         // however, this is a temporary solution and won't go over to mainnet
         // once we get a VRF service on Monad, we'll change the implementation here

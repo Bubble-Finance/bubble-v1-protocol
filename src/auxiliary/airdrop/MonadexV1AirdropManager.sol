@@ -182,8 +182,6 @@ contract MonadexV1AirdropManager is Ownable, ReentrancyGuard {
 
         emit E_TokenToClaim(supportedToken, msg.sender);
         token.safeTransfer(msg.sender, claimAmount);
-
-
     }
 
     function verifyProof(

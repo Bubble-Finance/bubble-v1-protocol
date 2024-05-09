@@ -54,8 +54,8 @@ contract MonadexV1Router is IMonadexV1Router {
     //////////////
 
     error MonadexV1Router__DeadlinePasssed(uint256 deadline);
-    error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
+    error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
 
@@ -82,21 +82,22 @@ contract MonadexV1Router is IMonadexV1Router {
     //////////////////////////
 
     /**
-     * @notice Allows addition of liquidity to Monadex pools with safety checks.
-     * @param _addLiquidityParams The parameters include:
-     *                            - tokenA: Address of token A
-     *                            - tokenB: Address of token B
-     *                            - amountADesired: Maximum amount of token A to add
-     *                                              as liquidity
-     *                            - amountBDesired: Maximum amount of token B to add
-     *                                              as liquidity
-     *                            - amountAMin: Minimum amount of token A to add
+     * @notice Allows supplying liquidity to Monadex pools with safety checks.
+     * @param _addLiquidityParams We needed to wrap these parameters in a struct to avoid
+     * stack too deep errors. The parameters include:
+     *                        - tokenA: Address of token A
+     *                        - tokenB: Address of token B
+     *                        - amountADesired: Maximum amount of token A to add
      *                                          as liquidity
-     *                            - amountBMin: Minimum amount of token B to add
+     *                        - amountBDesired: Maximum amount of token B to add
      *                                          as liquidity
-     *                            - receiver: The address to direct the LP tokens to
-     *                            - deadline: UNIX timestamp before which the liquidity
-     *                                        should be added
+     *                        - amountAMin: Minimum amount of token A to add
+     *                                      as liquidity
+     *                        - amountBMin: Minimum amount of token B to add
+     *                                      as liquidity
+     *                        - receiver: The address to direct the LP tokens to
+     *                        - deadline: UNIX timestamp before which the liquidity
+     *                                    should be added
      * @return Amount of token A added.
      * @return Amount of token B added.
      * @return Amount of LP tokens received.
@@ -131,8 +132,8 @@ contract MonadexV1Router is IMonadexV1Router {
      * @param _lpTokensToBurn Amount of LP tokens to burn.
      * @param _amountAMin Minimum amount of token A to withdraw from pool.
      * @param _amountBMin Minimum amount of token B to withdraw from pool.
-     * @param _receiver The address to direct the withdrawn tokens to
-     * @param _deadline UNIX timestamp before which the liquidity should be removed
+     * @param _receiver The address to direct the withdrawn tokens to.
+     * @param _deadline The UNIX timestamp before which the liquidity should be removed.
      * @return Amount of token A withdrawn.
      * @return Amount of token B withdrawn.
      */
@@ -150,7 +151,7 @@ contract MonadexV1Router is IMonadexV1Router {
         returns (uint256, uint256)
     {
         address pool = MonadexV1AuxiliaryLibrary.getPool(i_factory, _tokenA, _tokenB);
-        IERC20(pool).safeTransferFrom(msg.sender, pool, _lpTokensToBurn); // send lp tokens to pool
+        IERC20(pool).safeTransferFrom(msg.sender, pool, _lpTokensToBurn);
         (uint256 amountA, uint256 amountB) = IMonadexV1Pool(pool).removeLiquidity(_receiver);
         (address tokenA,) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
         (amountA, amountB) = tokenA == _tokenA ? (amountA, amountB) : (amountB, amountA);
@@ -172,16 +173,17 @@ contract MonadexV1Router is IMonadexV1Router {
      * @param _path An array of token addresses which forms the swap path in case a direct
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
-     * @param _deadline UNIX timestamp before which the swap should be conducted.
+     * @param _deadline The UNIX timestamp before which the swap should be conducted.
      * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
      * tickets during swaps. The purchase parameters include:
-     *                         - purchaseTickets: True, if the user wants to pruchase tickets
-     *                         - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                       higher the multiplier, the higher fees is taken, and
-     *                                       more raffle tickets are obtained. The multipliers are:
-     *                                       - multiplier 1: 0.5% of swap amount as ticket price
-     *                                       - multiplier 2: 1% of swap amount as ticket price
-     *                                       - multiplier 3: 2% of swap amount as ticket price
+     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
+     *                                          false otherwise.
+     *                       - multiplier: The multiplier to apply to the ticket purchase. The
+     *                                     higher the multiplier, the higher fees is taken, and
+     *                                     more raffle tickets are obtained. The multipliers are:
+     *                                     - multiplier 1: 0.5% of swap amount as ticket price
+     *                                     - multiplier 2: 1% of swap amount as ticket price
+     *                                     - multiplier 3: 2% of swap amount as ticket price
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -227,16 +229,17 @@ contract MonadexV1Router is IMonadexV1Router {
      * @param _path An array of token addresses which forms the swap path in case a direct
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
-     * @param _deadline UNIX timestamp before which the swap should be conducted.
+     * @param _deadline The UNIX timestamp before which the swap should be conducted.
      * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
      * tickets during swaps. The purchase parameters include:
-     *                         - purchaseTickets: True, if the user wants to pruchase tickets
-     *                         - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                       higher the multiplier, the higher fees is taken, and
-     *                                       more raffle tickets are obtained. The multipliers are:
-     *                                       - multiplier 1: 0.5% of swap amount as ticket price
-     *                                       - multiplier 2: 1% of swap amount as ticket price
-     *                                       - multiplier 3: 2% of swap amount as ticket price
+     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
+     *                                          false otherwise.
+     *                       - multiplier: The multiplier to apply to the ticket purchase. The
+     *                                     higher the multiplier, the higher fees is taken, and
+     *                                     more raffle tickets are obtained. The multipliers are:
+     *                                     - multiplier 1: 0.5% of swap amount as ticket price
+     *                                     - multiplier 2: 1% of swap amount as ticket price
+     *                                     - multiplier 3: 2% of swap amount as ticket price
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -278,7 +281,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
     /**
      * @notice A helper function to calculate safe amount A and amount B to add as
-     * liquidity. Also deploys the pool for the token combination if one doesn't exist.
+     * liquidity. Also deploys the pool for the token combination if one doesn't exist yet.
      * @param _tokenA Address of token A.
      * @param _tokenB Address of token B.
      * @param _amountADesired Maximum amount of token A to add as liquidity.
