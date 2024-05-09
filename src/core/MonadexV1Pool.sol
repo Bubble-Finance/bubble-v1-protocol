@@ -27,12 +27,12 @@ import { IERC20Metadata } from
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import { IMonadexV1Callee } from "./interfaces/IMonadexV1Callee.sol";
-import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Callee } from "../interfaces/IMonadexV1Callee.sol";
+import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
-import { MonadexV1Types } from "./library/MonadexV1Types.sol";
-import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
+import { MonadexV1Library } from "../library/MonadexV1Library.sol";
+import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 /**
  * @title MonadexV1Pool
