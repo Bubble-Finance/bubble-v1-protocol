@@ -22,12 +22,12 @@ pragma solidity 0.8.20;
 
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-import { IMonadexV1Factory } from "./interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "./interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
+import { MonadexV1Library } from "../library/MonadexV1Library.sol";
+import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 import { MonadexV1Pool } from "./MonadexV1Pool.sol";
-import { MonadexV1Types } from "./library/MonadexV1Types.sol";
-import { MonadexV1Utils } from "./library/MonadexV1Utils.sol";
 
 /**
  * @title MonadexV1Factory
@@ -137,7 +137,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         address pool = getTokenPairToPool(_tokenA, _tokenB);
         if (pool != address(0)) revert MonadexV1Factory__PoolAlreadyExists(pool);
 
-        (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
+        (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         MonadexV1Pool newPool = new MonadexV1Pool(_tokenA, _tokenB);
         address newPoolAddress = address(newPool);
         s_tokenPairToPool[_tokenA][_tokenB] = newPoolAddress;
@@ -204,7 +204,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     {
         if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
 
-        (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
+        (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         s_tokenPairToFee[_tokenA][_tokenB] = _feeTier;
 
         emit FeeTierForTokenPairUpdated(_tokenA, _tokenB, _feeTier);
@@ -241,7 +241,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         view
         returns (MonadexV1Types.Fee memory)
     {
-        (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
+        (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         uint256 feeTier = s_tokenPairToFee[_tokenA][_tokenB];
 
         if (feeTier == 0) return s_feeTiers[2];
@@ -288,7 +288,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
      * @return The pool address.
      */
     function getTokenPairToPool(address _tokenA, address _tokenB) public view returns (address) {
-        (_tokenA, _tokenB) = MonadexV1Utils.sortTokens(_tokenA, _tokenB);
+        (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
 
         return s_tokenPairToPool[_tokenA][_tokenB];
     }
