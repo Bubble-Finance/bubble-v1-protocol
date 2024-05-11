@@ -1,66 +1,64 @@
-## Foundry
+# Name 
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+<p align="center">
+<img src="https://cdn.discordapp.com/attachments/1190058523074244711/1238809605417734234/20240511_120636.jpg?ex=6640a2d9&is=663f5159&hm=3eba9e060e2c4e28394651cd8b5468039c0f43252d9d1b08d60ab3396f684169&" width="200" alt="Monadex">
+<br/>
 
-Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- [Name](#name)
+- [Project Introduction](#project-introduction)
+- [Getting Started](#getting-started)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Quickstart](#quickstart)
+- [Usage](#usage)
+  - [Coverage](#coverage)
+- [Audit Scope Details](#audit-scope-details)
+  - [Roles](#roles)
+  - [Known Issues](#known-issues)
 
-## Documentation
 
-https://book.getfoundry.sh/
+# Project Introduction
++: Welcome to Monadex, the ultimate first community-driven and ecosystem-focused DEX built on Monad. This repository houses the governance, raffle, and core smart contracts for Monadex V1, providing a robust foundation for decentralized exchange operations. Monadex is designed to empower the community by offering a platform that is not only user-friendly but also highly secure and efficient.
 
-## Usage
+For those seeking non-technical, in-depth documentation, we have prepared a comprehensive guide available on [GitBook](https://monadex.gitbook.io/monadex). This resource is tailored to provide a thorough understanding of Monadex, its features, and how to get started, making it an invaluable asset for both newcomers and experienced users alike.
 
-### Build
+Join us in shaping the future of decentralized finance by contributing to Monadex. Whether you're a developer looking to build on our platform, a trader seeking a new exchange, or simply curious about the project, we welcome you to explore and engage with our community.
+# Getting Started
 
-```shell
-$ forge build
+## Requirements
+
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+  - You'll know you did it right if you can run `git --version` and you see a response like `git version x.x.x`
+- [foundry](https://getfoundry.sh/)
+  - You'll know you did it right if you can run `forge --version` and you see a response like `forge 0.2.0 (816e00b 2023-03-16T00:05:26.396218Z)`
+<!-- Additional requirements here -->
+
+## Installation
+
+```bash
+git clone https://github.com/Monadex-Labs/monadex-protocol-v1
+cd monadex-protocol-v1
+make init
 ```
 
-### Test
+## Quickstart 
 
-```shell
-$ forge test
+```bash
+make test
 ```
 
-### Format
+# Usage 
 
-```shell
-$ forge fmt
-```
+## Coverage
 
-### Gas Snapshots
 
-```shell
-$ forge snapshot
-```
+# Audit Scope Details
 
-### Anvil
+## Roles
 
-```shell
-$ anvil
-```
+- Role1: <!-- Description -->
 
-### Deploy
+## Known Issues
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- Issue1: <!-- Description -->
