@@ -1,11 +1,11 @@
-# Name 
+# MONADEX PROTOCOL
 
 <p align="center">
-<img src="https://cdn.discordapp.com/attachments/1190058523074244711/1238809605417734234/20240511_120636.jpg?ex=6640a2d9&is=663f5159&hm=3eba9e060e2c4e28394651cd8b5468039c0f43252d9d1b08d60ab3396f684169&" width="200" alt="Monadex">
+<img src="https://cdn.discordapp.com/attachments/1190058523074244711/1238819938144354314/image_1.png?ex=6640ac79&is=663f5af9&hm=817c73738f726e6008971cc3b2fa1c098d1945da951ad4d3f7942d792885e973&" width="200" alt="Monadex">
 <br/>
 
 
-- [Name](#name)
+- [MONADEX PROTOCOL](#monadex-protocol)
 - [Project Introduction](#project-introduction)
 - [Getting Started](#getting-started)
   - [Requirements](#requirements)
@@ -19,7 +19,8 @@
 
 
 # Project Introduction
-+: Welcome to Monadex, the ultimate first community-driven and ecosystem-focused DEX built on Monad. This repository houses the governance, raffle, and core smart contracts for Monadex V1, providing a robust foundation for decentralized exchange operations. Monadex is designed to empower the community by offering a platform that is not only user-friendly but also highly secure and efficient.
+ Welcome to Monadex, the ultimate first community-driven and ecosystem-focused DEX built on Monad. 
+ This repository houses the governance, raffle, and core smart contracts for Monadex V1, providing a robust foundation for decentralized exchange operations. Monadex is designed to empower the community by offering a platform that is not only user-friendly but also highly secure and efficient.
 
 For those seeking non-technical, in-depth documentation, we have prepared a comprehensive guide available on [GitBook](https://monadex.gitbook.io/monadex). This resource is tailored to provide a thorough understanding of Monadex, its features, and how to get started, making it an invaluable asset for both newcomers and experienced users alike.
 
