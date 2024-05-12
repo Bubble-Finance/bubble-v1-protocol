@@ -51,12 +51,16 @@ contract MonadexV1Governor is
 {
     constructor(
         IVotes _token,
-        TimelockController _timelock
+        TimelockController _timelock,
+        uint48 _initialVotingDelay,
+        uint32 _initialVotingPeriod,
+        uint256 _initialProposalThreshold,
+        uint256 _quorum
     )
         Governor("MonadexV1Governor")
-        GovernorSettings(21600, /* 3 day */ 100800, /* 2 week */ 10e18)
+        GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
         GovernorVotes(_token)
-        GovernorVotesQuorumFraction(25)
+        GovernorVotesQuorumFraction(_quorum)
         GovernorTimelockControl(_timelock)
     { }
 
