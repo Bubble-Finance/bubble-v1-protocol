@@ -20,42 +20,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-/// @title MonadexV1Governor  
-/// @author Ola hamid
-/// @notice facilitates on-chain governance with voting and timelock control.
+import { Governor } from "lib/openzeppelin-contracts/contracts/governance/Governor.sol";
+import { GovernorCountingSimple } from
+    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorCountingSimple.sol";
+import { GovernorSettings } from
+    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorSettings.sol";
+import {
+    GovernorTimelockControl,
+    TimelockController
+} from "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol";
+import {
+    GovernorVotes,
+    IVotes
+} from "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
+import { GovernorVotesQuorumFraction } from
+    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
-import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
-contract MonadexV1Governor is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction, GovernorTimelockControl {
-    constructor(IVotes _token, TimelockController _timelock)
+/**
+ * @title MonadexV1Governor.
+ * @author Monadex Labs -- Ola hamid.
+ * @notice Facilitates on-chain governance with voting and timelock control.
+ */
+contract MonadexV1Governor is
+    Governor,
+    GovernorSettings,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    constructor(
+        IVotes _token,
+        TimelockController _timelock
+    )
         Governor("MonadexV1Governor")
-        GovernorSettings(21600 /* 3 day */, 100800 /* 2 week */, 10e18)
+        GovernorSettings(21600, /* 3 day */ 100800, /* 2 week */ 10e18)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(25)
         GovernorTimelockControl(_timelock)
-    {}
+    { }
 
     // The following functions are overrides required by Solidity.
 
-    function votingDelay()
-        public
-        view
-        override(Governor, GovernorSettings)
-        returns (uint256)
-    {
+    function votingDelay() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
     }
 
-    function votingPeriod()
-        public
-        view
-        override(Governor, GovernorSettings)
-        returns (uint256)
-    {
+    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 
@@ -95,7 +106,13 @@ contract MonadexV1Governor is Governor, GovernorSettings, GovernorCountingSimple
         return super.proposalThreshold();
     }
 
-    function _queueOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         internal
         override(Governor, GovernorTimelockControl)
         returns (uint48)
@@ -103,14 +120,25 @@ contract MonadexV1Governor is Governor, GovernorSettings, GovernorCountingSimple
         return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
-    function _executeOperations(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         internal
         override(Governor, GovernorTimelockControl)
     {
         super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
-    function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
         internal
         override(Governor, GovernorTimelockControl)
         returns (uint256)

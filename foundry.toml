@@ -3,8 +3,6 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-remappings = ["@openzeppelin/=lib/openzeppelin-contracts/"]
-
 [fmt]
 sort_imports = true
 bracket_spacing = true

@@ -19,30 +19,31 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20Permit, Nonces} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
+import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {
+    ERC20Permit,
+    Nonces
+} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { ERC20Votes } from
+    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-/// @title MDX(Monadex) Token  
-/// @author Ola hamid
-/// @notice MDX is the native token of Monadex, with minting, burning, and voting capabilities.
-
+/**
+ * @title MDX (Monadex) token.
+ * @author Monadex Labs -- Ola hamid.
+ * @notice MDX is the governance and utility token of Monadex.
+ */
 contract MDX is ERC20, Ownable, ERC20Permit, ERC20Votes {
-    constructor(address initialOwner)
+    constructor(
+        address _owner,
+        uint256 _initialSupply
+    )
         ERC20("Monadex", "MDX")
-        Ownable(initialOwner)
+        Ownable(_owner)
         ERC20Permit("Monadex")
-    {}
-
-
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
-    }
-
-    function burn (address to, uint256 amount) public onlyOwner {
-        _burn(to, amount);
+    {
+        _mint(_owner, _initialSupply);
     }
 
     // The functions below are overrides required by Solidity using openZepplin.
@@ -65,7 +66,4 @@ contract MDX is ERC20, Ownable, ERC20Permit, ERC20Votes {
     {
         return super.nonces(ownerOfNonce);
     }
-
-
 }
-
