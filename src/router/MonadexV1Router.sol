@@ -305,7 +305,7 @@ contract MonadexV1Router is IMonadexV1Router {
             MonadexV1Library.getReserves(i_factory, _tokenA, _tokenB);
 
         if (reserveA == 0 && reserveB == 0) {
-            return (_amountADesired, _amountADesired);
+            return (_amountADesired, _amountBDesired);
         } else {
             uint256 amountBOptimal = MonadexV1Library.quote(_amountADesired, reserveA, reserveB);
             if (amountBOptimal <= _amountBDesired) {
