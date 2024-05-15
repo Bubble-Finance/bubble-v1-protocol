@@ -512,7 +512,7 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
     function _allocateRewards(address[MAX_WINNERS] memory _winners) internal {
         address[] memory supportedTokens = s_supportedTokens;
         uint256 numberOfSupportedTokens = supportedTokens.length;
-        uint256[] memory tokenBalances;
+        uint256[] memory tokenBalances = new uint256[](numberOfSupportedTokens);
         MonadexV1Types.Fee[MAX_TIERS] memory winningPortions = s_winningPortions;
         MonadexV1Types.Fee memory portion;
 
