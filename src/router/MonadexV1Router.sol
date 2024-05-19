@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import { IWNative } from "../interfaces/IWNative.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -46,12 +47,14 @@ contract MonadexV1Router is IMonadexV1Router {
 
     address private immutable i_factory;
     address private immutable i_raffle;
+    address private immutable i_wNative;
 
     //////////////
     /// Errors ///
     //////////////
 
     error MonadexV1Router__DeadlinePasssed(uint256 deadline);
+    error MonadexV1Router__TransferFailed();
     error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
     error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
@@ -70,9 +73,10 @@ contract MonadexV1Router is IMonadexV1Router {
     /// Constructor ///
     ///////////////////
 
-    constructor(address _factory, address _raffle) {
+    constructor(address _factory, address _raffle, address _wNative) {
         i_factory = _factory;
         i_raffle = _raffle;
+        i_wNative = _wNative;
     }
 
     //////////////////////////
@@ -123,24 +127,40 @@ contract MonadexV1Router is IMonadexV1Router {
         return (amountA, amountB, lpTokensMinted);
     }
 
-    /**
-     * @notice Allows removal of liquidity from Monadex pools with safety checks.
-     * @param _tokenA Address of token A.
-     * @param _tokenB Address of token B.
-     * @param _lpTokensToBurn Amount of LP tokens to burn.
-     * @param _amountAMin Minimum amount of token A to withdraw from pool.
-     * @param _amountBMin Minimum amount of token B to withdraw from pool.
-     * @param _receiver The address to direct the withdrawn tokens to.
-     * @param _deadline The UNIX timestamp before which the liquidity should be removed.
-     * @return Amount of token A withdrawn.
-     * @return Amount of token B withdrawn.
-     */
-    function removeLiquidity(
-        address _tokenA,
-        address _tokenB,
+    function addLiquidityNative(MonadexV1Types.AddLiquidityNative memory _addLiquidityNativeParams)
+        external
+        payable
+        beforeDeadline(_addLiquidityNativeParams.deadline)
+        returns (uint256, uint256, uint256)
+    {
+        (uint256 amountToken, uint256 amountNative) = _addLiquidityHelper(
+            _addLiquidityNativeParams.token,
+            i_wNative,
+            _addLiquidityNativeParams.amountTokenDesired,
+            msg.value,
+            _addLiquidityNativeParams.amountTokenMin,
+            _addLiquidityNativeParams.amountNativeTokenMin
+        );
+        address pool =
+            MonadexV1Library.getPool(i_factory, _addLiquidityNativeParams.token, i_wNative);
+        IERC20(_addLiquidityNativeParams.token).safeTransferFrom(msg.sender, pool, amountToken);
+        IWNative(payable(i_wNative)).deposit{ value: amountNative }();
+        IERC20(i_wNative).safeTransfer(pool, amountNative);
+        uint256 lpTokensMinted =
+            IMonadexV1Pool(pool).addLiquidity(_addLiquidityNativeParams.receiver);
+        if (msg.value > amountNative) {
+            (bool success,) = payable(msg.sender).call{ value: msg.value - amountNative }("");
+            if (!success) revert MonadexV1Router__TransferFailed();
+        }
+
+        return (amountToken, amountNative, lpTokensMinted);
+    }
+
+    function removeLiquidityNative(
+        address _token,
         uint256 _lpTokensToBurn,
-        uint256 _amountAMin,
-        uint256 _amountBMin,
+        uint256 _amountTokenMin,
+        uint256 _amountNativeMin,
         address _receiver,
         uint256 _deadline
     )
@@ -148,19 +168,21 @@ contract MonadexV1Router is IMonadexV1Router {
         beforeDeadline(_deadline)
         returns (uint256, uint256)
     {
-        address pool = MonadexV1Library.getPool(i_factory, _tokenA, _tokenB);
-        IERC20(pool).safeTransferFrom(msg.sender, pool, _lpTokensToBurn);
-        (uint256 amountA, uint256 amountB) = IMonadexV1Pool(pool).removeLiquidity(_receiver);
-        (address tokenA,) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
-        (amountA, amountB) = tokenA == _tokenA ? (amountA, amountB) : (amountB, amountA);
-        if (amountA < _amountAMin) {
-            revert MonadexV1Router__InsufficientAAmount(amountA, _amountAMin);
-        }
-        if (amountB < _amountBMin) {
-            revert MonadexV1Router__InsufficientBAmount(amountB, _amountBMin);
-        }
+        (uint256 amountToken, uint256 amountNative) = removeLiquidity(
+            _token,
+            i_wNative,
+            _lpTokensToBurn,
+            _amountTokenMin,
+            _amountNativeMin,
+            address(this),
+            _deadline
+        );
+        IERC20(_token).safeTransfer(_receiver, amountToken);
+        IWNative(payable(i_wNative)).withdraw(amountNative);
+        (bool success,) = payable(_receiver).call{ value: amountNative }("");
+        if (!success) revert MonadexV1Router__TransferFailed();
 
-        return (amountA, amountB);
+        return (amountToken, amountNative);
     }
 
     /**
@@ -269,6 +291,50 @@ contract MonadexV1Router is IMonadexV1Router {
         }
 
         return (amounts, tickets);
+    }
+
+    ////////////////////////
+    /// Public Functions ///
+    ////////////////////////
+
+    /**
+     * @notice Allows removal of liquidity from Monadex pools with safety checks.
+     * @param _tokenA Address of token A.
+     * @param _tokenB Address of token B.
+     * @param _lpTokensToBurn Amount of LP tokens to burn.
+     * @param _amountAMin Minimum amount of token A to withdraw from pool.
+     * @param _amountBMin Minimum amount of token B to withdraw from pool.
+     * @param _receiver The address to direct the withdrawn tokens to.
+     * @param _deadline The UNIX timestamp before which the liquidity should be removed.
+     * @return Amount of token A withdrawn.
+     * @return Amount of token B withdrawn.
+     */
+    function removeLiquidity(
+        address _tokenA,
+        address _tokenB,
+        uint256 _lpTokensToBurn,
+        uint256 _amountAMin,
+        uint256 _amountBMin,
+        address _receiver,
+        uint256 _deadline
+    )
+        public
+        beforeDeadline(_deadline)
+        returns (uint256, uint256)
+    {
+        address pool = MonadexV1Library.getPool(i_factory, _tokenA, _tokenB);
+        IERC20(pool).safeTransferFrom(msg.sender, pool, _lpTokensToBurn);
+        (uint256 amountA, uint256 amountB) = IMonadexV1Pool(pool).removeLiquidity(_receiver);
+        (address tokenA,) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
+        (amountA, amountB) = tokenA == _tokenA ? (amountA, amountB) : (amountB, amountA);
+        if (amountA < _amountAMin) {
+            revert MonadexV1Router__InsufficientAAmount(amountA, _amountAMin);
+        }
+        if (amountB < _amountBMin) {
+            revert MonadexV1Router__InsufficientBAmount(amountB, _amountBMin);
+        }
+
+        return (amountA, amountB);
     }
 
     //////////////////////////

@@ -46,6 +46,15 @@ contract MonadexV1Types {
         uint256 deadline;
     }
 
+    struct AddLiquidityNative {
+        address token;
+        uint256 amountTokenDesired;
+        uint256 amountTokenMin;
+        uint256 amountNativeTokenMin;
+        address receiver;
+        uint256 deadline;
+    }
+
     struct PurchaseTickets {
         bool purchaseTickets;
         Multipliers multiplier;
