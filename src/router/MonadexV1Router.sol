@@ -59,6 +59,7 @@ contract MonadexV1Router is IMonadexV1Router {
     error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
+    error MonadexV1Router__InvalidPath();
 
     /////////////////
     /// Modifiers ///
@@ -291,6 +292,178 @@ contract MonadexV1Router is IMonadexV1Router {
         }
 
         return (amounts, tickets);
+    }
+
+    function swapExactNativeForTokens(
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        payable
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        if (_path[0] != i_wNative) revert MonadexV1Router__InvalidPath();
+        uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, msg.value, _path);
+        if (amounts[amounts.length - 1] < _amountOutMin) {
+            revert MonadexV1Router__InsufficientOutputAmount(
+                amounts[amounts.length - 1], _amountOutMin
+            );
+        }
+        IWNative(payable(i_wNative)).deposit{ value: amounts[0] }();
+        IERC20(i_wNative).safeTransfer(
+            MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, _receiver);
+
+        return amounts;
+    }
+
+    function swapTokensForExactNative(
+        uint256 _amountOut,
+        uint256 _amountInMax,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        if (_path[_path.length - 1] != i_wNative) revert MonadexV1Router__InvalidPath();
+        uint256[] memory amounts = MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        if (amounts[0] > _amountInMax) {
+            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
+        }
+        IERC20(_path[0]).safeTransferFrom(
+            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, address(this));
+        IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);
+        (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
+        if (!success) revert MonadexV1Router__TransferFailed();
+
+        return amounts;
+    }
+
+    function swapExactTokensForNative(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        if (_path[_path.length - 1] != i_wNative) revert MonadexV1Router__InvalidPath();
+        uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+        if (amounts[amounts.length - 1] < _amountOutMin) {
+            revert MonadexV1Router__InsufficientOutputAmount(
+                amounts[amounts.length - 1], _amountOutMin
+            );
+        }
+        IERC20(_path[0]).safeTransferFrom(
+            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, address(this));
+        IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);
+        (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
+        if (!success) revert MonadexV1Router__TransferFailed();
+
+        return amounts;
+    }
+
+    function swapNativeForExactTokens(
+        uint256 _amountOut,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        payable
+        beforeDeadline(_deadline)
+        returns (uint256[] memory)
+    {
+        if (_path[0] != i_wNative) revert MonadexV1Router__InvalidPath();
+        uint256[] memory amounts = MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        if (amounts[0] > msg.value) {
+            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], msg.value);
+        }
+        IWNative(payable(i_wNative)).deposit{ value: amounts[0] }();
+        IERC20(i_wNative).safeTransfer(
+            MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+        );
+        _swap(amounts, _path, _receiver);
+        if (msg.value > amounts[0]) {
+            (bool success,) = payable(msg.sender).call{ value: msg.value - amounts[0] }("");
+            if (!success) revert MonadexV1Router__TransferFailed();
+        }
+
+        return amounts;
+    }
+
+    function quote(
+        uint256 _amountA,
+        uint256 _reserveA,
+        uint256 _reserveB
+    )
+        external
+        pure
+        returns (uint256 amountB)
+    {
+        return MonadexV1Library.quote(_amountA, _reserveA, _reserveB);
+    }
+
+    function getAmountOut(
+        uint256 _amountIn,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256 amountOut)
+    {
+        return MonadexV1Library.getAmountOut(_amountIn, _reserveIn, _reserveOut, _poolFee);
+    }
+
+    function getAmountIn(
+        uint256 _amountOut,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256 amountIn)
+    {
+        return MonadexV1Library.getAmountOut(_amountOut, _reserveIn, _reserveOut, _poolFee);
+    }
+
+    function getAmountsOut(
+        uint256 _amountIn,
+        address[] calldata _path
+    )
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
+        return MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+    }
+
+    function getAmountsIn(
+        uint256 _amountOut,
+        address[] calldata _path
+    )
+        public
+        view
+        returns (uint256[] memory amounts)
+    {
+        return MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
     }
 
     ////////////////////////
