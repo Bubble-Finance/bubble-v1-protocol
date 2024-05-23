@@ -255,12 +255,13 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
         if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) {
             revert MonadexV1Raffle__DrawNotAllowedYet();
         }
-        if (s_currentRangeEnd < MAX_WINNERS * i_rangeSize) {
+        if (s_currentRangeEnd - i_rangeSize < MAX_WINNERS * i_rangeSize) {
             revert MonadexV1Raffle__InsufficientEntries();
         }
 
         uint256 randomWord = _requestRandomWord();
         address[MAX_WINNERS] memory winners;
+        s_ranges[s_currentRangeEnd] = s_ranges[s_currentRangeEnd - i_rangeSize];
         winners = _selectWinners(randomWord);
         s_currentRangeEnd = 0;
         s_ranges[0] = address(0);
@@ -491,7 +492,7 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
      */
     function _selectWinners(uint256 _randomWord) internal returns (address[6] memory) {
         address[MAX_WINNERS] memory winners;
-        uint256 currentRangeEnd = s_currentRangeEnd - i_rangeSize;
+        uint256 currentRangeEnd = s_currentRangeEnd;
 
         // after a winner has been picked, we swap out the winner with the last user on the number
         // line and decrement the currentRangeEnd by rangeSize

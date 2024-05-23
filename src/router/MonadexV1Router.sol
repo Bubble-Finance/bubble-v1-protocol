@@ -60,6 +60,7 @@ contract MonadexV1Router is IMonadexV1Router {
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
     error MonadexV1Router__InvalidPath();
+    error MonadexV1Router__TokenNotSupportedByRaffle();
 
     /////////////////
     /// Modifiers ///
@@ -262,9 +263,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], _amountIn, _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -315,9 +314,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -371,9 +368,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -428,9 +423,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -487,9 +480,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -545,9 +536,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], amounts[0], _purchaseTickets.multiplier, _receiver
-            );
+            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
         }
 
         return (amounts, tickets);
@@ -655,6 +644,28 @@ contract MonadexV1Router is IMonadexV1Router {
         }
 
         return (amountA, amountB);
+    }
+
+    function purchaseRaffleTickets(
+        MonadexV1Types.Multipliers _multiplier,
+        address[] memory _path,
+        uint256[] memory _amounts,
+        address _receiver
+    )
+        public
+        returns (uint256)
+    {
+        if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
+            return IMonadexV1Raffle(i_raffle).purchaseTickets(
+                _path[0], _amounts[0], _multiplier, _receiver
+            );
+        } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
+            return IMonadexV1Raffle(i_raffle).purchaseTickets(
+                _path[_path.length - 1], _amounts[_amounts.length - 1], _multiplier, _receiver
+            );
+        } else {
+            revert MonadexV1Router__TokenNotSupportedByRaffle();
+        }
     }
 
     //////////////////////////
