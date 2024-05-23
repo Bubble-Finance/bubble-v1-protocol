@@ -8,12 +8,28 @@ interface IMonadexV1Router {
         external
         returns (uint256, uint256, uint256);
 
+    function addLiquidityNative(MonadexV1Types.AddLiquidityNative memory _addLiquidityNativeParams)
+        external
+        payable
+        returns (uint256, uint256, uint256);
+
     function removeLiquidity(
         address _tokenA,
         address _tokenB,
         uint256 _lpTokensToBurn,
         uint256 _amountAMin,
         uint256 _amountBMin,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        returns (uint256, uint256);
+
+    function removeLiquidityNative(
+        address _token,
+        uint256 _lpTokensToBurn,
+        uint256 _amountTokenMin,
+        uint256 _amountNativeMin,
         address _receiver,
         uint256 _deadline
     )
@@ -41,4 +57,93 @@ interface IMonadexV1Router {
     )
         external
         returns (uint256[] memory, uint256);
+
+    function swapExactNativeForTokens(
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+    )
+        external
+        payable
+        returns (uint256[] memory, uint256);
+
+    function swapTokensForExactNative(
+        uint256 _amountOut,
+        uint256 _amountInMax,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+    )
+        external
+        returns (uint256[] memory, uint256);
+
+    function swapExactTokensForNative(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+    )
+        external
+        returns (uint256[] memory, uint256);
+
+    function swapNativeForExactTokens(
+        uint256 _amountOut,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+    )
+        external
+        payable
+        returns (uint256[] memory, uint256);
+
+    function quote(
+        uint256 _amountA,
+        uint256 _reserveA,
+        uint256 _reserveB
+    )
+        external
+        pure
+        returns (uint256);
+
+    function getAmountOut(
+        uint256 _amountIn,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256);
+
+    function getAmountIn(
+        uint256 _amountOut,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256);
+
+    function getAmountsOut(
+        uint256 _amountIn,
+        address[] calldata _path
+    )
+        external
+        view
+        returns (uint256[] memory);
+
+    function getAmountsIn(
+        uint256 _amountOut,
+        address[] calldata _path
+    )
+        external
+        view
+        returns (uint256[] memory);
 }
