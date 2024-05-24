@@ -32,8 +32,8 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 import { MonadexV1RandomNumberGenerator } from "../raffle/MonadexV1RandomNumberGenerator.sol";
 
 /**
- * @title MonadexV1Raffle
- * @author Monadex Labs -- mgnfy-view
+ * @title MonadexV1Raffle.
+ * @author Monadex Labs -- mgnfy-view.
  * @notice The raffle contract allows users to purchase tickets during swaps from the router,
  * enter the weekly draw by burning their tickets, and have a chance at winning from a large
  * prize pool. This contract will be deployed separately, and then the ownership will be trnasferred

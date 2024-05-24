@@ -33,8 +33,8 @@ import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 /**
- * @title MonadexV1Router
- * @author Monadex Labs -- mgnfy-view
+ * @title MonadexV1Router.
+ * @author Monadex Labs -- mgnfy-view.
  * @notice The router contract acts as a convenient interface to interact with Monadex pools.
  * It performs essential safety checks, and is also the only way to purchase raffle tickets.
  */

@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+/**
+ * @title MonadexV1Types.
+ * @author Monadex Labs -- mgnfy-view.
+ * @notice Type declarations for the protocol.
+ */
 contract MonadexV1Types {
     /**
      * @notice The fee is always a percentage of the amount in consideration.

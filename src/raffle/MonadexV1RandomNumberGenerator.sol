@@ -21,10 +21,10 @@
 pragma solidity 0.8.20;
 
 /**
- * @title MonadexV1Raffle
- * @author Monadex Labs -- Ola Hamid
+ * @title MonadexV1Raffle.
+ * @author Monadex Labs -- Ola Hamid.
  * @notice This contract abstracts away the process of requesting for random words
- * from an on-chain VRF service
+ * from an on-chain VRF service.
  */
 contract MonadexV1RandomNumberGenerator {
     //////////////////////////

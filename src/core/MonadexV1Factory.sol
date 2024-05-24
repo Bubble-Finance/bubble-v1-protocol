@@ -30,8 +30,8 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 import { MonadexV1Pool } from "./MonadexV1Pool.sol";
 
 /**
- * @title MonadexV1Factory
- * @author Monadex Labs -- mgnfy-view
+ * @title MonadexV1Factory.
+ * @author Monadex Labs -- mgnfy-view.
  * @notice The factory allows deployment of Monadex pools with different token combinations.
  * The factory also stores the fee for each pool, the protocol fee, and the protocol team's
  * multisig address.

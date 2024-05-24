@@ -6,6 +6,11 @@ import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
 import { MonadexV1Types } from "./MonadexV1Types.sol";
 
+/**
+ * @title MonadexV1Library.
+ * @author Monadex Labs -- mgnfy-view.
+ * @notice The library holds utility functions to be used by the router and the raffle.
+ */
 library MonadexV1Library {
     error MonadexV1Library__ZeroReserves();
     error MonadexV1Library__ZeroAmountIn();

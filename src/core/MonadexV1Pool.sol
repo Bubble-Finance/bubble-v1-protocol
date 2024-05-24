@@ -35,8 +35,8 @@ import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 /**
- * @title MonadexV1Pool
- * @author Monadex Labs -- mgnfy-view
+ * @title MonadexV1Pool.
+ * @author Monadex Labs -- mgnfy-view.
  * @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
  * withdrawing liquidity, and swapping tokens in either direction.
  */
