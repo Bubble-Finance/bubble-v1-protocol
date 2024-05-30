@@ -128,7 +128,7 @@ contract MonadexV1Raffle is
     event WinningsClaimed(
         address indexed winner, address indexed token, uint256 amount, address indexed receiver
     );
-    event TokenSupported(address indexed token, bool indexed support);
+    event TokenSupported(address indexed token);
 
     //////////////
     /// Errors ///
@@ -143,6 +143,7 @@ contract MonadexV1Raffle is
     error MonadexV1Raffle__DrawNotAllowedYet();
     error MonadexV1Raffle__InsufficientEntries();
     error MonadexV1Raffle__ZeroWinnings();
+    error TokenAlreadySupported();
 
     /////////////////
     /// Modifiers ///
@@ -299,6 +300,20 @@ contract MonadexV1Raffle is
         emit WinningsClaimed(msg.sender, _token, winnings, _receiver);
 
         return winnings;
+    }
+
+    /**
+     * @notice Support new tokens for raffle. Once token is supported, it cannot be removed.
+     * This is avoid potential issues. Protocol team/governance must take care while supporting new tokens.
+     * @param _token The token to support.
+     */
+    function supportToken(address _token) external onlyOwner {
+        if (s_isSupportedToken[_token]) revert TokenAlreadySupported();
+
+        s_isSupportedToken[_token] = true;
+        s_supportedTokens.push(_token);
+
+        emit TokenSupported(_token);
     }
 
     /**
