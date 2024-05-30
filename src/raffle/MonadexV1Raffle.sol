@@ -74,6 +74,7 @@ contract MonadexV1Raffle is
     uint256 private constant WINNERS_IN_TIER3 = 3;
     // the maximum number of multipliers which can be applied during ticket purchase
     uint256 private constant MAX_MULTIPLIERS = 3;
+    address private s_router;
     // stores the time when the last draw was made
     uint256 private s_lastTimestamp;
     // users will only be able to purchase tickets if they conduct swaps
@@ -89,7 +90,7 @@ contract MonadexV1Raffle is
     // if you occupy large ranges, you have more chances of winning
     // a random number is selected and can pick users on any random range
     // you increase your chance of being picked if you occupy a large range
-    uint256 private immutable i_rangeSize;
+    uint256 private s_rangeSize;
     // tracks ranges which are occupied by users
     // for example, range[0] = address("Bob")
     // range[50] = address("Bob")
@@ -122,6 +123,7 @@ contract MonadexV1Raffle is
     /// Events ///
     //////////////
 
+    event RouterAddressSet(address router);
     event TicketsPurchased(address indexed receiver, uint256 indexed amount);
     event Registered(address indexed user, uint256 indexed ticketsBurned);
     event WinnersPicked(address[MAX_WINNERS] indexed winners);
@@ -129,11 +131,14 @@ contract MonadexV1Raffle is
         address indexed winner, address indexed token, uint256 amount, address indexed receiver
     );
     event TokenSupported(address indexed token);
+    event RangeSizeChanged(uint256 rangeSize);
 
     //////////////
     /// Errors ///
     //////////////
 
+    error MonadexV1Raffle__NotRouter();
+    error MonadexV1Raffle__RouterAddressAlreadyInitialised(address router);
     error MonadexV1Raffle__ZeroAmount();
     error MonadexV1Raffle__TokenNotSupported(address token);
     error MonadexV1Raffle__ZeroTickets();
@@ -143,7 +148,7 @@ contract MonadexV1Raffle is
     error MonadexV1Raffle__DrawNotAllowedYet();
     error MonadexV1Raffle__InsufficientEntries();
     error MonadexV1Raffle__ZeroWinnings();
-    error TokenAlreadySupported();
+    error MonadexV1Raffle__TokenAlreadySupported();
 
     /////////////////
     /// Modifiers ///
@@ -151,6 +156,11 @@ contract MonadexV1Raffle is
 
     modifier notZero(uint256 _value) {
         if (_value == 0) revert MonadexV1Raffle__ZeroAmount();
+        _;
+    }
+
+    modifier onlyRouter(address _router) {
+        if (_router != s_router) revert MonadexV1Raffle__NotRouter();
         _;
     }
 
@@ -168,7 +178,7 @@ contract MonadexV1Raffle is
         ERC20("MonadexV1RaffleTicket", "MDXRT")
     {
         s_lastTimestamp = block.timestamp;
-        i_rangeSize = _rangeSize;
+        s_rangeSize = _rangeSize;
 
         for (uint256 count = 0; count < MAX_MULTIPLIERS; ++count) {
             s_multipliersToPercentages[count] = _multipliersToPercentages[count];
@@ -189,6 +199,15 @@ contract MonadexV1Raffle is
     /// External Functions ///
     //////////////////////////
 
+    function initializeRouterAddress(address _routerAddress) external onlyOwner {
+        if (s_router != address(0)) {
+            revert MonadexV1Raffle__RouterAddressAlreadyInitialised(s_router);
+        }
+        s_router = _routerAddress;
+
+        emit RouterAddressSet(_routerAddress);
+    }
+
     /**
      * @notice Allows users to purchase raffle tickets for the given token amount. Purchasing
      * tickets is only possible from the router during swaps. Tickets should be purchasable
@@ -206,7 +225,7 @@ contract MonadexV1Raffle is
         address _receiver
     )
         external
-        onlyOwner
+        onlyRouter(msg.sender)
         notZero(_amount)
         returns (uint256)
     {
@@ -233,17 +252,18 @@ contract MonadexV1Raffle is
      */
     function register(uint256 _amount) external notZero(_amount) returns (uint256) {
         if (!isRegistrationOpen()) revert MonadexV1Raffle__NotOpenForRegistration();
-        uint256 slotsToOccupy = _amount / i_rangeSize;
+        uint256 rangeSize = s_rangeSize;
+        uint256 slotsToOccupy = _amount / rangeSize;
         if (slotsToOccupy == 0) revert MonadexV1Raffle__NotEnoughTickets();
 
         uint256 balance = balanceOf(msg.sender);
-        uint256 ticketsToBurn = slotsToOccupy * i_rangeSize;
+        uint256 ticketsToBurn = slotsToOccupy * rangeSize;
         if (ticketsToBurn < balance) revert MonadexV1Raffle__NotEnoughBalance();
 
         uint256 currentRangeEnd = s_currentRangeEnd;
         for (uint256 count = 0; count < slotsToOccupy; ++count) {
             s_ranges[currentRangeEnd] = msg.sender;
-            currentRangeEnd += i_rangeSize;
+            currentRangeEnd += rangeSize;
         }
         s_currentRangeEnd = currentRangeEnd;
         _burn(msg.sender, ticketsToBurn);
@@ -264,13 +284,14 @@ contract MonadexV1Raffle is
         if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) {
             revert MonadexV1Raffle__DrawNotAllowedYet();
         }
-        if (s_currentRangeEnd - i_rangeSize < MAX_WINNERS * i_rangeSize) {
+        uint256 rangeSize = s_rangeSize;
+        if (s_currentRangeEnd - rangeSize < MAX_WINNERS * rangeSize) {
             revert MonadexV1Raffle__InsufficientEntries();
         }
 
         uint256 randomWord = _requestRandomWord();
         address[MAX_WINNERS] memory winners;
-        s_ranges[s_currentRangeEnd] = s_ranges[s_currentRangeEnd - i_rangeSize];
+        s_ranges[s_currentRangeEnd] = s_ranges[s_currentRangeEnd - rangeSize];
         winners = _selectWinners(randomWord);
         s_currentRangeEnd = 0;
         s_ranges[0] = address(0);
@@ -304,16 +325,23 @@ contract MonadexV1Raffle is
 
     /**
      * @notice Support new tokens for raffle. Once token is supported, it cannot be removed.
-     * This is avoid potential issues. Protocol team/governance must take care while supporting new tokens.
+     * This is to avoid potential issues. Protocol team/governance must take care while
+     * supporting new tokens.
      * @param _token The token to support.
      */
     function supportToken(address _token) external onlyOwner {
-        if (s_isSupportedToken[_token]) revert TokenAlreadySupported();
+        if (s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenAlreadySupported();
 
         s_isSupportedToken[_token] = true;
         s_supportedTokens.push(_token);
 
         emit TokenSupported(_token);
+    }
+
+    function setRangeSize(uint256 _rangeSize) external onlyOwner {
+        s_rangeSize = _rangeSize;
+
+        emit RangeSizeChanged(_rangeSize);
     }
 
     /**
@@ -357,6 +385,14 @@ contract MonadexV1Raffle is
     }
 
     /**
+     * @notice Gets the router address.
+     * @return The router's address.
+     */
+    function getRouterAddress() external view returns (address) {
+        return s_router;
+    }
+
+    /**
      * @notice Gets the UNIX timestamp when the last raffle began.
      * @return The last UNIX timestamp.
      */
@@ -385,7 +421,7 @@ contract MonadexV1Raffle is
      * @return The range size.
      */
     function getRangeSize() external view returns (uint256) {
-        return i_rangeSize;
+        return s_rangeSize;
     }
 
     /**
@@ -504,7 +540,7 @@ contract MonadexV1Raffle is
         // convert the hitpoint so that it points to the start of the range
         // for example, if the hitpoint is 55, then it should point to 50 as the range start
         // selectedRange = 55 - (55 % 50) = 50
-        uint256 selectedRange = hitPoint - (hitPoint % i_rangeSize);
+        uint256 selectedRange = hitPoint - (hitPoint % s_rangeSize);
 
         return selectedRange;
     }
@@ -517,6 +553,7 @@ contract MonadexV1Raffle is
     function _selectWinners(uint256 _randomWord) internal returns (address[6] memory) {
         address[MAX_WINNERS] memory winners;
         uint256 currentRangeEnd = s_currentRangeEnd;
+        uint256 rangeSize = s_rangeSize;
 
         // after a winner has been picked, we swap out the winner with the last user on the number
         // line and decrement the currentRangeEnd by rangeSize
@@ -524,7 +561,7 @@ contract MonadexV1Raffle is
             uint256 selectedRange = _getSelectedRange(_randomWord, currentRangeEnd);
             winners[count] = s_ranges[selectedRange];
             s_ranges[selectedRange] = s_ranges[currentRangeEnd];
-            if (count != 5) currentRangeEnd -= i_rangeSize;
+            if (count != 5) currentRangeEnd -= rangeSize;
         }
 
         return winners;

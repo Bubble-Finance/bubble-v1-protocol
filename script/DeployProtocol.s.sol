@@ -127,7 +127,7 @@ contract DeployProtocol is Script {
             s_multipliersToPercentages, s_winningPortions, s_supportedTokens, s_rangeSize
         );
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
-        s_raffle.transferOwnership(address(s_router));
+        s_raffle.initializeRouterAddress(address(s_router));
 
         s_mdx = new MDX(s_protocolTeamMultisig, s_initialSupply);
         s_timelock = new MonadexV1Timelock(s_minDelay, s_proposers, s_executors);
@@ -147,6 +147,7 @@ contract DeployProtocol is Script {
         s_timelock.grantRole(executorRole, address(0));
 
         s_factory.transferOwnership(address(s_timelock));
+        s_raffle.transferOwnership(address(s_timelock));
         vm.stopBroadcast();
     }
 }

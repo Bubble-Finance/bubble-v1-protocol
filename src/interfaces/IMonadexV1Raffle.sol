@@ -19,6 +19,10 @@ interface IMonadexV1Raffle {
 
     function claimWinnings(address _token, address _receiver) external returns (uint256);
 
+    function supportToken(address _token) external;
+
+    function setRangeSize(uint256 _rangeSize) external;
+
     function getRaffleDuration() external pure returns (uint256);
 
     function getRegistrationPeriod() external pure returns (uint256);
