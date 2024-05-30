@@ -11,6 +11,8 @@ install :; forge install foundry-rs/forge-std --no-commit && forge install openz
 # Update Dependencies
 update:; forge update
 
+compile:; forge compile
+
 build:; forge build
 
 test :; forge test 

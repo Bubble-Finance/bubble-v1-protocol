@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = ["@pythnetwork/pyth-sdk-solidity/=node_modules/@pythnetwork/pyth-sdk-solidity"]
 
 [fmt]
 sort_imports = true

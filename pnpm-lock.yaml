@@ -1,0 +1,16 @@
+lockfileVersion: '6.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+devDependencies:
+  '@pythnetwork/pyth-sdk-solidity':
+    specifier: ^3.1.0
+    version: 3.1.0
+
+packages:
+
+  /@pythnetwork/pyth-sdk-solidity@3.1.0:
+    resolution: {integrity: sha512-NgtEPUTL9r0qqMpIOEtSdUVjrF08fHK6wa7eM8hdjhjzMOti4o053B9oFqpm4lkzJW6eELXuP4sRJOABGmNTUg==}
+    dev: true

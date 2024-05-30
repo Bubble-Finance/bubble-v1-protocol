@@ -19,7 +19,7 @@ interface IMonadexV1Raffle {
 
     function claimWinnings(address _token, address _receiver) external returns (uint256);
 
-    function supportToken(address _token) external;
+    function supportToken(address _token, bytes32 _priceFeedID) external;
 
     function setRangeSize(uint256 _rangeSize) external;
 

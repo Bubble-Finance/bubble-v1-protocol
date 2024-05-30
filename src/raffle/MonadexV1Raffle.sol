@@ -26,6 +26,7 @@ import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
+import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
@@ -130,14 +131,16 @@ contract MonadexV1Raffle is
     event WinningsClaimed(
         address indexed winner, address indexed token, uint256 amount, address indexed receiver
     );
-    event TokenSupported(address indexed token);
-    event RangeSizeChanged(uint256 rangeSize);
+    event TokenSupported(address indexed token, bytes32 indexed pythPriceFeedID);
+    event RangeSizeChanged(uint256 indexed rangeSize);
+    event PriceFeedIDUpdated(address indexed token, bytes32 indexed priceFeedD);
 
     //////////////
     /// Errors ///
     //////////////
 
     error MonadexV1Raffle__NotRouter();
+    error MonadexV1Raffle__InvalidConstructorArgs();
     error MonadexV1Raffle__RouterAddressAlreadyInitialised(address router);
     error MonadexV1Raffle__ZeroAmount();
     error MonadexV1Raffle__TokenNotSupported(address token);
@@ -172,11 +175,17 @@ contract MonadexV1Raffle is
         MonadexV1Types.Fee[MAX_MULTIPLIERS] memory _multipliersToPercentages,
         MonadexV1Types.Fee[MAX_TIERS] memory _winningPortions,
         address[] memory _supportedTokens,
-        uint256 _rangeSize
+        bytes32[] memory _priceFeedIDs,
+        uint256 _rangeSize,
+        address _pythPriceFeedContract
     )
         Ownable(msg.sender)
         ERC20("MonadexV1RaffleTicket", "MDXRT")
     {
+        if (_supportedTokens.length != _priceFeedIDs.length) {
+            revert MonadexV1Raffle__InvalidConstructorArgs();
+        }
+
         s_lastTimestamp = block.timestamp;
         s_rangeSize = _rangeSize;
 
@@ -188,11 +197,14 @@ contract MonadexV1Raffle is
         for (uint256 count = 0; count < length; ++count) {
             s_supportedTokens.push(_supportedTokens[count]);
             s_isSupportedToken[_supportedTokens[count]] = true;
+            s_tokenToPriceFeedID[_supportedTokens[count]] = _priceFeedIDs[count];
         }
 
         for (uint256 count = 0; count < MAX_TIERS; ++count) {
             s_winningPortions[count] = _winningPortions[count];
         }
+
+        s_pyth = IPyth(_pythPriceFeedContract);
     }
 
     //////////////////////////
@@ -230,7 +242,8 @@ contract MonadexV1Raffle is
         returns (uint256)
     {
         if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 tickets = previewPurchase(_amount, _multiplier);
+        uint256 amountAfterMultiplierApplied = previewPurchase(_amount, _multiplier);
+        uint256 tickets = getFinalPrice(_token, amountAfterMultiplierApplied);
         if (tickets == 0) revert MonadexV1Raffle__ZeroTickets();
         _mint(_receiver, tickets);
 
@@ -328,20 +341,33 @@ contract MonadexV1Raffle is
      * This is to avoid potential issues. Protocol team/governance must take care while
      * supporting new tokens.
      * @param _token The token to support.
+     * @param _pythPriceFeedID The _token/USD price feed ID.
      */
-    function supportToken(address _token) external onlyOwner {
+    function supportToken(address _token, bytes32 _pythPriceFeedID) external onlyOwner {
         if (s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenAlreadySupported();
 
         s_isSupportedToken[_token] = true;
         s_supportedTokens.push(_token);
+        s_tokenToPriceFeedID[_token] = _pythPriceFeedID;
 
-        emit TokenSupported(_token);
+        emit TokenSupported(_token, _pythPriceFeedID);
     }
 
+    /**
+     * @notice Updates the range size. Sensitive function.
+     * @param _rangeSize The new range size.
+     */
     function setRangeSize(uint256 _rangeSize) external onlyOwner {
         s_rangeSize = _rangeSize;
 
         emit RangeSizeChanged(_rangeSize);
+    }
+
+    function updatePriceFeedID(address _token, bytes32 _priceFeedID) external onlyOwner {
+        if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
+        s_tokenToPriceFeedID[_token] = _priceFeedID;
+
+        emit PriceFeedIDUpdated(_token, _priceFeedID);
     }
 
     /**
@@ -481,10 +507,9 @@ contract MonadexV1Raffle is
         view
         returns (uint256)
     {
-        uint256 amount = MonadexV1Library.calculateAmountOfTickets(
+        return MonadexV1Library.calculateAmountOfTickets(
             _amount, _getMultiplierToPercentage(_multiplier)
         );
-        return getFinalPrice(amount);
     }
 
     /**
