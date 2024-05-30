@@ -30,6 +30,7 @@ import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 import { MonadexV1RandomNumberGenerator } from "../raffle/MonadexV1RandomNumberGenerator.sol";
+import { MonadexV1PriceCalculator } from "./MonadexV1PriceCalculator.sol";
 
 /**
  * @title MonadexV1Raffle.
@@ -39,7 +40,13 @@ import { MonadexV1RandomNumberGenerator } from "../raffle/MonadexV1RandomNumberG
  * prize pool. This contract will be deployed separately, and then the ownership will be trnasferred
  * to the router.
  */
-contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMonadexV1Raffle {
+contract MonadexV1Raffle is
+    Ownable,
+    ERC20,
+    IMonadexV1Raffle,
+    MonadexV1RandomNumberGenerator,
+    MonadexV1PriceCalculator
+{
     using SafeERC20 for IERC20;
 
     ///////////////////////
@@ -105,7 +112,7 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
     // for example, winner in tier 1 gets 55% of amounts collected in token A, token B, ... and so on
     // 2 winners in tier 2 both get 15% of amounts collected in token A, token B, ... and so on
     // 3 winners in tier 3 both get 5% of amounts collected in token A, token B, ... and so on
-    // 55% + 2 * 15% + 3 * 5% = 100%
+    // 45% + 2 * 20% + 3 * 5% = 100%
     MonadexV1Types.Fee[MAX_TIERS] private s_winningPortions;
     // we use pull or over push
     // users can pull their raffle winnings for a given supported token
@@ -183,7 +190,8 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
 
     /**
      * @notice Allows users to purchase raffle tickets for the given token amount. Purchasing
-     * tickets is only possible from the router during swaps.
+     * tickets is only possible from the router during swaps. Tickets should be purchasable
+     * at a constant price.
      * @param _token The token which was swapped for another token.
      * @param _amount The amount of token that was used for swapping.
      * @param _multiplier The multiplier to apply to the ticket purchase.
@@ -422,9 +430,10 @@ contract MonadexV1Raffle is Ownable, ERC20, MonadexV1RandomNumberGenerator, IMon
         view
         returns (uint256)
     {
-        return MonadexV1Library.calculateAmountOfTickets(
+        uint256 amount = MonadexV1Library.calculateAmountOfTickets(
             _amount, _getMultiplierToPercentage(_multiplier)
         );
+        return getFinalPrice(amount);
     }
 
     /**
