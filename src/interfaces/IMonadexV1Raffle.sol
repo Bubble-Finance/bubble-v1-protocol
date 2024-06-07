@@ -4,6 +4,8 @@ pragma solidity 0.8.20;
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 interface IMonadexV1Raffle {
+    function initializeRouterAddress(address _routerAddress) external;
+
     function purchaseTickets(
         address _token,
         uint256 _amount,
@@ -15,13 +17,25 @@ interface IMonadexV1Raffle {
 
     function register(uint256 _amount) external returns (uint256);
 
-    function drawWinners() external returns (address[6] memory);
+    function drawWinners(bytes32 _userRandomNumber) external payable;
 
     function claimWinnings(address _token, address _receiver) external returns (uint256);
 
     function supportToken(address _token, bytes32 _priceFeedID) external;
 
-    function setRangeSize(uint256 _rangeSize) external;
+    function getRouterAddress() external view returns (address);
+
+    function getLastTimestamp() external view returns (uint256);
+
+    function getSupportedTokens() external view returns (address[] memory);
+
+    function isSupportedToken(address _token) external view returns (bool);
+
+    function getUserAtRangeStart(uint256 _rangeStart) external view returns (address);
+
+    function getCurrentRangeEnd() external view returns (uint256);
+
+    function getWinnings(address _user, address _token) external view returns (uint256);
 
     function getRaffleDuration() external pure returns (uint256);
 
@@ -33,26 +47,15 @@ interface IMonadexV1Raffle {
 
     function getMaxMultipliers() external pure returns (uint256);
 
-    function getLastTimestamp() external view returns (uint256);
-
-    function getSupportedTokens() external view returns (address[] memory);
-
-    function isSupportedToken(address _token) external view returns (bool);
-
     function getRangeSize() external view returns (uint256);
 
-    function getUserAtRangeStart(uint256 _rangeStart) external view returns (address);
-
-    function getCurrentRangeEnd() external view returns (uint256);
-
-    function getMultipliersToPercentages(MonadexV1Types.Multipliers _multiplier)
+    function getMultiplierToPercentage(MonadexV1Types.Multipliers _multiplier)
         external
         view
         returns (MonadexV1Types.Fee memory);
 
-    function getWinnings(address _user, address _token) external view returns (uint256);
-
     function previewPurchase(
+        address _token,
         uint256 _amount,
         MonadexV1Types.Multipliers _multiplier
     )

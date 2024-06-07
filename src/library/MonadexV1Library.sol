@@ -21,7 +21,7 @@ library MonadexV1Library {
 
     /**
      * @notice Sorts tokens such that the token with the smaller address value
-     * stands first
+     * stands first.
      * @param _tokenA Address of token A.
      * @param _tokenB Address of token B.
      * @return A tuple with sorted token addresses.
@@ -59,7 +59,7 @@ library MonadexV1Library {
     }
 
     /**
-     * @notice Gets the reserves of the pool of the given token combination.
+     * @notice Gets the reserves of the pool of the given token pair.
      * @param _factory The address of the MonadexV1Factory.
      * @param _tokenA Address of the first token in the combination.
      * @param _tokenB Address of the second token in the combination.
@@ -86,7 +86,7 @@ library MonadexV1Library {
 
     /**
      * @notice Gets the pool fee given the address of the factory and the the tokens in
-     * the combination.
+     * the pair.
      * @param _factory The address of the MonadexV1Factory.
      * @param _tokenA Address of the first token in the combination.
      * @param _tokenB Address of the second token in the combination.
@@ -109,7 +109,7 @@ library MonadexV1Library {
      * liquidity supply action.
      * @param _amountA The amount of A to supply.
      * @param _reserveA Token A reserve.
-     * @param _reserveB Token A reserve.
+     * @param _reserveB Token B reserve.
      * @return Amount of token B to supply.
      */
     function quote(
@@ -128,7 +128,7 @@ library MonadexV1Library {
     }
 
     /**
-     * @notice Gets the amount that you'll receive for in a swap based on the amount you put in,
+     * @notice Gets the amount that you'll receive in a swap based on the amount you put in,
      * the token reserves of the pool, and the pool fee.
      * @param _amountIn The amount of token to swap for the output token.
      * @param _reserveIn The reserves of the input token.
@@ -248,13 +248,13 @@ library MonadexV1Library {
     }
 
     /**
-     * @notice Gets the amount of tickets based on the input token amount and
-     * the fee percentage
+     * @notice Gets the amount to use for purchasing tickets after applying
+     * the percentage associated with a multiplier.
      * @param _amount The amount of input token.
      * @param _percentage The percentage of the amount to take.
-     * @return The amount of tickets.
+     * @return The amount of after applying the percentage.
      */
-    function calculateAmountOfTickets(
+    function calculateAmountAfterApplyingPercentage(
         uint256 _amount,
         MonadexV1Types.Fee memory _percentage
     )
@@ -263,5 +263,31 @@ library MonadexV1Library {
         returns (uint256)
     {
         return (_amount * _percentage.numerator) / _percentage.denominator;
+    }
+
+    /**
+     * @notice Calculates the total amount of tickets to mint based on the amount, the price
+     * from pyth price feed, and the ticket price.
+     * @param _amount The amount used to purchase tickets.
+     * @param _price The price value obtained from pyth.
+     * @param _exponent The exponent value obtained from pyth.
+     * @param _pricePerTicket The price per ticket (in dollars).
+     * @return The amount of tickets to mint.
+     */
+    function calculateTicketsToMint(
+        uint256 _amount,
+        int256 _price,
+        int256 _exponent,
+        uint256 _pricePerTicket
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        if (_exponent < 0) {
+            return (uint256(_price) * _amount * 1e18)
+                / (10 ** uint256(-1 * _exponent) * _pricePerTicket);
+        }
+        return (uint256(_price) * _amount * 10 ** uint256(_exponent) * 1e18) / (_pricePerTicket);
     }
 }

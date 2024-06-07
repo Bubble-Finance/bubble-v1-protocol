@@ -29,9 +29,12 @@ import { TimelockController } from
  * @notice MonadexV1Timelock manages delayed execution of transactions.
  */
 contract MonadexV1Timelock is TimelockController {
-    // minDelay is how long you have to wait before executing
-    // proposers is the list of addresses that can propose
-    // executors is the list of addresses that can execute
+    /**
+     * @notice Initializes the timelock.
+     * @param minDelay The waiting time before you can execute a transaction.
+     * @param proposers The list of addresses that can propose.
+     * @param executors The list of addresses that can execute.
+     */
     constructor(
         uint256 minDelay,
         address[] memory proposers,

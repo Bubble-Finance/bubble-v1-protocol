@@ -13,18 +13,6 @@ interface IMonadexV1Router {
         payable
         returns (uint256, uint256, uint256);
 
-    function removeLiquidity(
-        address _tokenA,
-        address _tokenB,
-        uint256 _lpTokensToBurn,
-        uint256 _amountAMin,
-        uint256 _amountBMin,
-        address _receiver,
-        uint256 _deadline
-    )
-        external
-        returns (uint256, uint256);
-
     function removeLiquidityNative(
         address _token,
         uint256 _lpTokensToBurn,
@@ -146,4 +134,25 @@ interface IMonadexV1Router {
         external
         view
         returns (uint256[] memory);
+
+    function removeLiquidity(
+        address _tokenA,
+        address _tokenB,
+        uint256 _lpTokensToBurn,
+        uint256 _amountAMin,
+        uint256 _amountBMin,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        returns (uint256, uint256);
+
+    function purchaseRaffleTickets(
+        MonadexV1Types.Multipliers _multiplier,
+        address[] memory _path,
+        uint256[] memory _amounts,
+        address _receiver
+    )
+        external
+        returns (uint256);
 }

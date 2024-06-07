@@ -40,7 +40,7 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
  * @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
  * withdrawing liquidity, and swapping tokens in either direction.
  */
-contract MonadexV1Pool is ERC20, IMonadexV1Pool {
+contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -48,13 +48,16 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// State Variables ///
     ///////////////////////
 
+    uint256 constant MINIMUM_LIQUIDITY = 1_000;
     address private immutable i_factory;
     address private immutable i_tokenA;
     address private immutable i_tokenB;
-    uint256 constant MINIMUM_LIQUIDITY = 1_000;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
+    // the last constant K value, used to calculate the protocol's cut of the total
+    // fee generated
     uint256 private s_lastK;
+    // a global lock to ensure no cross-functional reentrancy issues occur
     bool private s_isLocked;
 
     //////////////
@@ -83,6 +86,8 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         uint256 amountBOut,
         address indexed _receiver
     );
+    event PoolLocked();
+    event PoolUnlocked();
     event ReservesUpdated(uint256 indexed reserveA, uint256 indexed reserveB);
 
     //////////////
@@ -90,6 +95,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     //////////////
 
     error MonadexV1Pool__Locked();
+    error MonadexV1Pool__NotFactory();
     error MonadexV1Pool__ZeroLpTokensToMint();
     error MonadexV1Pool__CannotWithdrawZeroTokenAmount();
     error MonadexV1Pool__InsufficientOutputAmount();
@@ -109,10 +115,20 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         s_isLocked = false;
     }
 
+    modifier onlyFactory() {
+        if (msg.sender != i_factory) revert MonadexV1Pool__NotFactory();
+        _;
+    }
+
     ///////////////////
     /// Constructor ///
     ///////////////////
 
+    /**
+     * @notice Sets the factory address, and addresses of tokens A and B during deployment.
+     * @param _tokenA The address of the first token in the combination.
+     * @param _tokenB The address of the second token in the combination.
+     */
     constructor(
         address _tokenA,
         address _tokenB
@@ -213,10 +229,10 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
      *                    - amountBOut: The amount of token B to send to the receiver
      *                    - receiver: The address to which the token amounts are directed
      *                    - hookConfig: A struct with the following fields:
-     *                          - hookBeforeCall: If true, invoke the before hook on the
-     *                                            receiving contract
-     *                          - hookAfterCall: If true, invoke the after hook on the
-     *                                           receiving contract
+     *                                  - hookBeforeCall: If true, invoke the before hook on the
+     *                                                    receiving contract
+     *                                  - hookAfterCall: If true, invoke the after hook on the
+     *                                                   receiving contract
      *                    - data: bytes data to pass to the flash swap or flash loan receiver
      */
     function swap(MonadexV1Types.SwapParams memory _swapParams) external globalLock {
@@ -312,6 +328,24 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         _updateReserves(
             IERC20(i_tokenA).balanceOf(address(this)), IERC20(i_tokenB).balanceOf(address(this))
         );
+    }
+
+    /**
+     * @notice Locks the pool in case of an emergency, exploit, or suspicious activity.
+     */
+    function lockPool() external onlyFactory {
+        s_isLocked = true;
+
+        emit PoolLocked();
+    }
+
+    /**
+     * @notice Unlocks the pool after it was locked under emergency conditions.
+     */
+    function unlockPool() external onlyFactory {
+        s_isLocked = false;
+
+        emit PoolUnlocked();
     }
 
     /**

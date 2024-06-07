@@ -14,6 +14,10 @@ interface IMonadexV1Factory {
 
     function setTokenPairFee(address _tokenA, address _tokenB, uint256 _feeTier) external;
 
+    function lockPool(address _pool) external;
+
+    function unlockPool(address _pool) external;
+
     function getProtocolTeamMultisig() external view returns (address);
 
     function getProtocolFee() external view returns (MonadexV1Types.Fee memory);

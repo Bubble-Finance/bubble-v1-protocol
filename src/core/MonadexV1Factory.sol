@@ -36,11 +36,15 @@ import { MonadexV1Pool } from "./MonadexV1Pool.sol";
  * The factory also stores the fee for each pool, the protocol fee, and the protocol team's
  * multisig address.
  */
-contract MonadexV1Factory is Ownable, IMonadexV1Factory {
+contract MonadexV1Factory is IMonadexV1Factory, Ownable {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
 
+    // Initially, the protocol team will be the owner of the protocol, and will support tokens
+    // for trading. However, once the ownership is transferred to governance, we do not want the
+    // governance to change the protocol fee recipient and fee value. So it's necessary to track
+    // the team's multisig separately
     address private s_protocolTeamMultisig;
     MonadexV1Types.Fee private s_protocolFee;
     mapping(address token => bool isSupported) private s_supportedTokens;
@@ -53,10 +57,13 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     // Coversely, pools with high liquidity and relatively stable assets may be set with lower fee
     // tiers since liquidity providers don't take on much risk
     // the default fee tier 3 has the Uniswap v2 fee of 0.3% on each swap
+    // fee value for each tier is set during deployment and can't be changed later on
     MonadexV1Types.Fee[5] private s_feeTiers;
     // pools will access data stored in this mapping via a view function to get information
     // on the fee tier they use
     mapping(address tokenA => mapping(address tokenB => uint256 feeTier)) private s_tokenPairToFee;
+    // tokens must be sorted before a pool is searched for them
+    // this saves space
     mapping(address tokenA => mapping(address tokenB => address pool)) private s_tokenPairToPool;
 
     //////////////
@@ -77,10 +84,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
 
     error MonadexV1Factory__NotProtocolTeamMultisig(address sender);
     error MonadexV1Factory__TokenAddressZero();
-    error MonadexV1Factory__CannotCreatePoolForSameTokens(address token);
+    error MonadexV1Factory__CannotCreatePoolForSameTokens();
     error MonadexV1Factory__TokenNotSupported(address token);
     error MonadexV1Factory__PoolAlreadyExists(address pool);
-    error MonadexV1Factory__InvalidFeeTier(uint256 feeTier);
+    error MonadexV1Factory__InvalidFeeTier();
 
     /////////////////
     /// Modifiers ///
@@ -97,6 +104,13 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     /// Constructor ///
     ///////////////////
 
+    /**
+     * @notice Sets the protocol team's multisig address, protocol fee, and the fee tiers
+     * during deployment.
+     * @param _protocolTeamMultisig The protocol team's multisig address.
+     * @param _protocolFee The protocol's cut of the fee generated in pools.
+     * @param _feeTiers The fee tiers that can be used to customize the fee of each pool.
+     */
     constructor(
         address _protocolTeamMultisig,
         MonadexV1Types.Fee memory _protocolFee,
@@ -117,10 +131,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     //////////////////////////
 
     /**
-     * @notice Allows anyone to deploy Monadex pools for supported token combinations in a
-     * permissionless manner. Each token combination can have one pool only. The fee for the
-     * pool is set in the factory itself by either the protocol team (in the initial stages),
-     * or governance. The protocol fee is set by the protocol team in the factory contract as
+     * @notice Allows anyone to deploy Monadex pools for supported token combinations
+     * Each token combination can have one pool only. The fee for the pool is set in
+     * the factory itself by either the protocol team (in the initial stages), or
+     * governance. The protocol fee is set by the protocol team in the factory contract as
      * well. Each Monadex pool queries the factory to retrieve information about it's fee, the
      * protocol fee, and the protocol team's multisig address.
      * @param _tokenA The first token in the combination.
@@ -131,7 +145,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         if (_tokenA == address(0) || _tokenB == address(0)) {
             revert MonadexV1Factory__TokenAddressZero();
         }
-        if (_tokenA == _tokenB) revert MonadexV1Factory__CannotCreatePoolForSameTokens(_tokenA);
+        if (_tokenA == _tokenB) revert MonadexV1Factory__CannotCreatePoolForSameTokens();
         if (!isSupportedToken(_tokenA)) revert MonadexV1Factory__TokenNotSupported(_tokenA);
         if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
         address pool = getTokenPairToPool(_tokenA, _tokenB);
@@ -177,7 +191,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     /**
      * @notice Allows the owner (protocol team in the initial stages, governance later on) to support
      * new tokens for trading or revoke support from existing tokens. It should be ensured that the token
-     * does not support fee on transfer, rebasing features, etc (should not be a weird ERC20).
+     * is not a weird ERC20.
      * @param _token The token to support or revoke support from.
      * @param _isSupported true if supported, false otherwise.
      */
@@ -202,12 +216,28 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         external
         onlyOwner
     {
-        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier();
 
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         s_tokenPairToFee[_tokenA][_tokenB] = _feeTier;
 
         emit FeeTierForTokenPairUpdated(_tokenA, _tokenB, _feeTier);
+    }
+
+    /**
+     * @notice Locks a pool in case of an emergency, exploit, or suspicious activity.
+     * @param _pool The pool to lock.
+     */
+    function lockPool(address _pool) external onlyProtocolTeamMultisig {
+        IMonadexV1Pool(_pool).lockPool();
+    }
+
+    /**
+     * @notice Unlocks a pool which was locked under emergency conditions.
+     * @param _pool The pool to lock.
+     */
+    function unlockPool(address _pool) external onlyProtocolTeamMultisig {
+        IMonadexV1Pool(_pool).unlockPool();
     }
 
     /**
@@ -227,7 +257,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     }
 
     /**
-     * @notice Gets the pool fee for any token pair combination. if the fee tier isn't set
+     * @notice Gets the pool fee for any token pair. If the fee tier isn't set
      * for that pool, it returns the fee for the default fee tier 3.
      * @param _tokenA The first token in the combination.
      * @param _tokenB The second token in the combination.
@@ -262,7 +292,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
      * @return The pool fee struct with numerator and denominator fields.
      */
     function getFeeForTier(uint256 _feeTier) external view returns (MonadexV1Types.Fee memory) {
-        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier();
 
         return s_feeTiers[_feeTier - 1];
     }

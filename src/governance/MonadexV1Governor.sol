@@ -49,6 +49,15 @@ contract MonadexV1Governor is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
+    /**
+     * @notice Initializes the Governor.
+     * @param _token The token to vote with. This will be the $MDX token.
+     * @param _timelock The timelock which will add a delay before executing proposals.
+     * @param _initialVotingDelay The delay after which votes can be cast.
+     * @param _initialVotingPeriod The duration for which the voting will last.
+     * @param _initialProposalThreshold The minimum amount of $MDX you should have to propose.
+     * @param _quorum The minimum percentage of voters that should be involved in the voting.
+     */
     constructor(
         IVotes _token,
         TimelockController _timelock,

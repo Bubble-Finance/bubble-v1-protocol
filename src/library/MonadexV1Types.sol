@@ -25,7 +25,7 @@ contract MonadexV1Types {
     }
 
     /**
-     * @notice We had to pack parameters for swapping into a struct to avoid stack
+     * @notice Packing parameters for swapping into a struct to avoid stack
      * too deep errors.
      */
     struct SwapParams {
@@ -37,7 +37,7 @@ contract MonadexV1Types {
     }
 
     /**
-     * @notice The parameters required for adding liquidity were packed in a struct
+     * @notice Packing parameters required for adding liquidity in a struct
      * to avoid stack too deep errors.
      */
     struct AddLiquidity {
@@ -51,6 +51,10 @@ contract MonadexV1Types {
         uint256 deadline;
     }
 
+    /**
+     * @notice Packing parameters required for adding native token liquidity in a struct
+     * to avoid stack too deep errors.
+     */
     struct AddLiquidityNative {
         address token;
         uint256 amountTokenDesired;
@@ -60,11 +64,17 @@ contract MonadexV1Types {
         uint256 deadline;
     }
 
+    /**
+     * @notice Purchase tickets with a multiplier value during a swap.
+     */
     struct PurchaseTickets {
         bool purchaseTickets;
         Multipliers multiplier;
     }
 
+    /**
+     * @notice A multiplier is associated with a percentage.
+     */
     enum Multipliers {
         Multiplier1,
         Multiplier2,

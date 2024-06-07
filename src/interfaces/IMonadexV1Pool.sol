@@ -14,6 +14,10 @@ interface IMonadexV1Pool {
 
     function syncReservesBasedOnBalances() external;
 
+    function lockPool() external;
+
+    function unlockPool() external;
+
     function isPoolToken(address _token) external view returns (bool);
 
     function getFactory() external view returns (address);
