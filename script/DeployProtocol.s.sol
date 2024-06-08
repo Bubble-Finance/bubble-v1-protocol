@@ -12,7 +12,7 @@ import { MonadexV1Raffle } from "../src/raffle/MonadexV1Raffle.sol";
 import { MonadexV1Router } from "../src/router/MonadexV1Router.sol";
 
 // for testing purposes, use the Base Sepolia testnet
-// swap out the placeholder addresses below with the correct ones
+// the addresses below are for Base Sepolia
 contract DeployProtocol is Script {
     // factory constructor args
     address public s_protocolTeamMultisig;
@@ -73,7 +73,7 @@ contract DeployProtocol is Script {
     }
 
     function initializeRouterConstructorArgs() public {
-        // this is the WETH address for Sepolia testent
+        // this is the WETH address for the Base Sepolia testent
         s_wNative = address(0x4200000000000000000000000000000000000006);
     }
 
@@ -82,7 +82,9 @@ contract DeployProtocol is Script {
 
         // more tokens like USDC, etc must be supported later on
         s_supportedTokens.push(s_wNative);
-        s_priceFeedIds.push(bytes32(0));
+        s_priceFeedIds.push(
+            bytes32(0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6)
+        );
 
         MonadexV1Types.Fee[3] memory multipliersToPercentages = [
             MonadexV1Types.Fee({ numerator: 1, denominator: 100 }), // multiplier 1, 1% of swap amount
