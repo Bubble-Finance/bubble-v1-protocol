@@ -45,6 +45,9 @@ contract DeployProtocol is Script {
     uint256 public s_initialProposalThreshold;
     uint256 public s_quorum;
 
+    // utility
+    address public s_usdc;
+
     MonadexV1Factory public s_factory;
     MonadexV1Raffle public s_raffle;
     MonadexV1Router public s_router;
@@ -56,7 +59,7 @@ contract DeployProtocol is Script {
         // the values below are bound to change
 
         // add the team's multisig address here
-        s_protocolTeamMultisig = makeAddr("protocol team  multi-sig");
+        s_protocolTeamMultisig = address(0xE5261f469bAc513C0a0575A3b686847F48Bc6687);
 
         s_protocolFee = MonadexV1Types.Fee({ numerator: 1, denominator: 5 });
 
@@ -127,14 +130,22 @@ contract DeployProtocol is Script {
         s_quorum = 4; // pretty standard, Compund uses this as well
     }
 
+    function initializeUtilityStuff() public {
+        // USDC address
+        s_usdc = address(0x29Db63ff321b683f92e00C2A20eFdE54B7aEEE86);
+    }
+
     function run() public {
         initializeFactoryConstructorArgs();
         initializeRouterConstructorArgs();
         initializeRaffleConstructorArgs();
         initializeGovernanceConstructorArgs();
+        initializeUtilityStuff();
 
         vm.startBroadcast();
         s_factory = new MonadexV1Factory(s_protocolTeamMultisig, s_protocolFee, s_feeTiers);
+        s_factory.setToken(s_wNative, true);
+        s_factory.setToken(s_usdc, true);
         s_raffle = new MonadexV1Raffle(
             s_supportedTokens,
             s_priceFeedIds,
