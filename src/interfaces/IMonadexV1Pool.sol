@@ -4,6 +4,8 @@ pragma solidity 0.8.20;
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 interface IMonadexV1Pool {
+    function initialize(address _tokenA, address _tokenB) external;
+
     function addLiquidity(address _receiver) external returns (uint256);
 
     function removeLiquidity(address _receiver) external returns (uint256, uint256);

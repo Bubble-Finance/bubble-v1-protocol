@@ -50,8 +50,8 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
 
     uint256 constant MINIMUM_LIQUIDITY = 1_000;
     address private immutable i_factory;
-    address private immutable i_tokenA;
-    address private immutable i_tokenB;
+    address private s_tokenA;
+    address private s_tokenB;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
     // the last constant K value, used to calculate the protocol's cut of the total
@@ -64,6 +64,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     /// Events ///
     //////////////
 
+    event Initialised(address tokenA, address tokenB);
     event LiquidityAdded(
         address indexed by,
         address indexed receiver,
@@ -94,6 +95,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     /// Errors ///
     //////////////
 
+    error MonadexV1Factory__AlreadyInitialised();
     error MonadexV1Pool__Locked();
     error MonadexV1Pool__NotFactory();
     error MonadexV1Pool__ZeroLpTokensToMint();
@@ -125,29 +127,32 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     ///////////////////
 
     /**
-     * @notice Sets the factory address, and addresses of tokens A and B during deployment.
-     * @param _tokenA The address of the first token in the combination.
-     * @param _tokenB The address of the second token in the combination.
+     * @notice Sets the factory address.
      */
-    constructor(
-        address _tokenA,
-        address _tokenB
-    )
-        ERC20(
-            string.concat(
-                "Monadex", IERC20Metadata(_tokenA).name(), IERC20Metadata(_tokenB).name(), "Pool"
-            ),
-            string.concat("MDX", IERC20Metadata(_tokenA).symbol(), IERC20Metadata(_tokenB).symbol())
-        )
-    {
+    constructor() ERC20("MonadexLPToken", "MDXLP") {
         i_factory = msg.sender;
-        i_tokenA = _tokenA;
-        i_tokenB = _tokenB;
     }
 
     //////////////////////////
     /// External Functions ///
     //////////////////////////
+
+    /**
+     * @notice This function is called by the Monadex V1 factory right after pool deployment using the
+     * CREATE2 opcode to set the token addresses for this pool.
+     * @param _tokenA Address of the first token in the pair.
+     * @param _tokenB Address of the second token in the pair.
+     */
+    function initialize(address _tokenA, address _tokenB) external onlyFactory {
+        if (s_tokenA != address(0) && s_tokenB != address(0)) {
+            revert MonadexV1Factory__AlreadyInitialised();
+        }
+
+        s_tokenA = _tokenA;
+        s_tokenB = _tokenB;
+
+        emit Initialised(_tokenA, _tokenB);
+    }
 
     /**
      * @notice Allows liquidity providers to add liquidity to the pool, and get LP tokens which
@@ -159,8 +164,8 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      */
     function addLiquidity(address _receiver) external globalLock returns (uint256) {
         (uint256 reserveA, uint256 reserveB) = getReserves();
-        uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(i_tokenB).balanceOf(address(this));
+        uint256 balanceA = IERC20(s_tokenA).balanceOf(address(this));
+        uint256 balanceB = IERC20(s_tokenB).balanceOf(address(this));
         uint256 amountAIn = balanceA - reserveA;
         uint256 amountBIn = balanceB - reserveB;
         uint256 lpTokensToMint;
@@ -196,8 +201,8 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      */
     function removeLiquidity(address _receiver) external globalLock returns (uint256, uint256) {
         (uint256 reserveA, uint256 reserveB) = getReserves();
-        uint256 balanceA = IERC20(i_tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(i_tokenB).balanceOf(address(this));
+        uint256 balanceA = IERC20(s_tokenA).balanceOf(address(this));
+        uint256 balanceB = IERC20(s_tokenB).balanceOf(address(this));
         uint256 lpTokensReceived = balanceOf(address(this));
 
         _mintProtocolFee(reserveA, reserveB);
@@ -208,10 +213,10 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
             revert MonadexV1Pool__CannotWithdrawZeroTokenAmount();
         }
         _burn(address(this), lpTokensReceived);
-        IERC20(i_tokenA).safeTransfer(_receiver, amountAOut);
-        IERC20(i_tokenB).safeTransfer(_receiver, amountBOut);
-        balanceA = IERC20(i_tokenA).balanceOf(address(this));
-        balanceB = IERC20(i_tokenB).balanceOf(address(this));
+        IERC20(s_tokenA).safeTransfer(_receiver, amountAOut);
+        IERC20(s_tokenB).safeTransfer(_receiver, amountBOut);
+        balanceA = IERC20(s_tokenA).balanceOf(address(this));
+        balanceB = IERC20(s_tokenB).balanceOf(address(this));
         _updateReserves(balanceA, balanceB);
         s_lastK = s_reserveA * s_reserveB;
 
@@ -247,7 +252,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
         uint256 balanceA;
         uint256 balanceB;
         {
-            if (_swapParams.receiver == i_tokenA || _swapParams.receiver == i_tokenB) {
+            if (_swapParams.receiver == s_tokenA || _swapParams.receiver == s_tokenB) {
                 revert MonadexV1Pool__InvalidReceiver(_swapParams.receiver);
             }
             if (_swapParams.hookConfig.hookBeforeCall) {
@@ -256,18 +261,18 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
                 );
             }
             if (_swapParams.amountAOut > 0) {
-                IERC20(i_tokenA).safeTransfer(_swapParams.receiver, _swapParams.amountAOut);
+                IERC20(s_tokenA).safeTransfer(_swapParams.receiver, _swapParams.amountAOut);
             }
             if (_swapParams.amountBOut > 0) {
-                IERC20(i_tokenB).safeTransfer(_swapParams.receiver, _swapParams.amountBOut);
+                IERC20(s_tokenB).safeTransfer(_swapParams.receiver, _swapParams.amountBOut);
             }
             if (_swapParams.data.length > 0) {
                 IMonadexV1Callee(_swapParams.receiver).onCall(
                     msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
                 );
             }
-            balanceA = IERC20(i_tokenA).balanceOf(address(this));
-            balanceB = IERC20(i_tokenB).balanceOf(address(this));
+            balanceA = IERC20(s_tokenA).balanceOf(address(this));
+            balanceB = IERC20(s_tokenB).balanceOf(address(this));
         }
         uint256 amountAIn = balanceA > reserveA - _swapParams.amountAOut
             ? balanceA - (reserveA - _swapParams.amountAOut)
@@ -326,7 +331,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      */
     function syncReservesBasedOnBalances() external globalLock {
         _updateReserves(
-            IERC20(i_tokenA).balanceOf(address(this)), IERC20(i_tokenB).balanceOf(address(this))
+            IERC20(s_tokenA).balanceOf(address(this)), IERC20(s_tokenB).balanceOf(address(this))
         );
     }
 
@@ -354,7 +359,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      * @return True if the token is a pool token, false otherwise.
      */
     function isPoolToken(address _token) external view returns (bool) {
-        if (_token != i_tokenA && _token != i_tokenB) return false;
+        if (_token != s_tokenA && _token != s_tokenB) return false;
         return true;
     }
 
@@ -392,7 +397,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      * @return The pool fee, a struct with numerator and denominator fields.
      */
     function getPoolFee() public view returns (MonadexV1Types.Fee memory) {
-        return IMonadexV1Factory(i_factory).getTokenPairToFee(i_tokenA, i_tokenB);
+        return IMonadexV1Factory(i_factory).getTokenPairToFee(s_tokenA, s_tokenB);
     }
 
     /**
@@ -401,7 +406,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      * @return The second token's address.
      */
     function getPoolTokens() public view returns (address, address) {
-        return (i_tokenA, i_tokenB);
+        return (s_tokenA, s_tokenB);
     }
 
     /**

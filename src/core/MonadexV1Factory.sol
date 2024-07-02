@@ -41,13 +41,13 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
     /// State Variables ///
     ///////////////////////
 
-    // Initially, the protocol team will be the owner of the protocol, and will support tokens
-    // for trading. However, once the ownership is transferred to governance, we do not want the
+    // initially, the protocol team will be the owner of the protocol, and will blacklist some
+    // weird tokens. However, once the ownership is transferred to governance, we do not want the
     // governance to change the protocol fee recipient and fee value. So it's necessary to track
     // the team's multisig separately
     address private s_protocolTeamMultisig;
     MonadexV1Types.Fee private s_protocolFee;
-    mapping(address token => bool isSupported) private s_supportedTokens;
+    mapping(address token => bool isBlacklisted) private s_blacklistedTokens;
     // fee tiers range from 1 to 5
     // The first tier has the lowest fee, the third tier is the default fee tier
     // and the 5th tier has the highest fee. The protocol team (in the initial stages, or
@@ -149,11 +149,18 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
         if (!isSupportedToken(_tokenA)) revert MonadexV1Factory__TokenNotSupported(_tokenA);
         if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
         address pool = getTokenPairToPool(_tokenA, _tokenB);
-        if (pool != address(0)) revert MonadexV1Factory__PoolAlreadyExists(pool);
+        if (pool != address(0)) {
+            revert MonadexV1Factory__PoolAlreadyExists(pool);
+        }
 
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
-        MonadexV1Pool newPool = new MonadexV1Pool(_tokenA, _tokenB);
-        address newPoolAddress = address(newPool);
+        bytes memory bytecode = type(MonadexV1Pool).creationCode;
+        bytes32 salt = keccak256(abi.encodePacked(_tokenA, _tokenB));
+        address newPoolAddress;
+        assembly {
+            newPoolAddress := create2(0, add(bytecode, 32), mload(bytecode), salt)
+        }
+        IMonadexV1Pool(newPoolAddress).initialize(_tokenA, _tokenB);
         s_tokenPairToPool[_tokenA][_tokenB] = newPoolAddress;
 
         emit PoolCreated(newPoolAddress, _tokenA, _tokenB);
@@ -189,16 +196,15 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
     }
 
     /**
-     * @notice Allows the owner (protocol team in the initial stages, governance later on) to support
-     * new tokens for trading or revoke support from existing tokens. It should be ensured that the token
-     * is not a weird ERC20.
+     * @notice Allows the owner (protocol team in the initial stages, governance later on) to blacklist
+     * tokens for trading or remove them from the blacklist.
      * @param _token The token to support or revoke support from.
-     * @param _isSupported true if supported, false otherwise.
+     * @param _isBlacklisted true if supported, false otherwise.
      */
-    function setToken(address _token, bool _isSupported) external onlyOwner {
-        s_supportedTokens[_token] = _isSupported;
+    function setBlackListedToken(address _token, bool _isBlacklisted) external onlyOwner {
+        s_blacklistedTokens[_token] = _isBlacklisted;
 
-        emit TokenSupportChanged(_token, _isSupported);
+        emit TokenSupportChanged(_token, _isBlacklisted);
     }
 
     /**
@@ -216,6 +222,8 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
         external
         onlyOwner
     {
+        if (!isSupportedToken(_tokenA)) revert MonadexV1Factory__TokenNotSupported(_tokenA);
+        if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
         if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier();
 
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
@@ -307,7 +315,7 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
      * @return True if the token is supported, false otherwise.
      */
     function isSupportedToken(address _token) public view returns (bool) {
-        return s_supportedTokens[_token];
+        return !s_blacklistedTokens[_token];
     }
 
     /**

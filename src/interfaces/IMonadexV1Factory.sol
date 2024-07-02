@@ -10,7 +10,7 @@ interface IMonadexV1Factory {
 
     function setProtocolFee(MonadexV1Types.Fee memory _protocolFee) external;
 
-    function setToken(address _token, bool _isSupported) external;
+    function setBlackListedToken(address _token, bool _isBlacklisted) external;
 
     function setTokenPairFee(address _tokenA, address _tokenB, uint256 _feeTier) external;
 
