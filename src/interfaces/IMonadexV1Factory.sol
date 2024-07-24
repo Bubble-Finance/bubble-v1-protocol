@@ -18,6 +18,8 @@ interface IMonadexV1Factory {
 
     function unlockPool(address _pool) external;
 
+    function isSupportedToken(address _token) external view returns (bool);
+
     function getProtocolTeamMultisig() external view returns (address);
 
     function getProtocolFee() external view returns (MonadexV1Types.Fee memory);
@@ -34,7 +36,15 @@ interface IMonadexV1Factory {
 
     function getFeeForTier(uint256 _feeTier) external view returns (MonadexV1Types.Fee memory);
 
-    function isSupportedToken(address _token) external view returns (bool);
+    function getAllPools() external view returns (address[] memory);
+
+    function precalculatePoolAddress(
+        address _tokenA,
+        address _tokenB
+    )
+        external
+        view
+        returns (address);
 
     function getTokenPairToPool(address _tokenA, address _tokenB) external view returns (address);
 }
