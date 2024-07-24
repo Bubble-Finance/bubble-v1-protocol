@@ -83,6 +83,7 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
     //////////////
 
     error MonadexV1Factory__NotProtocolTeamMultisig(address sender, address protocolTeamMultisig);
+    error MonadexV1Factory__AddressZero();
     error MonadexV1Factory__TokenAddressZero();
     error MonadexV1Factory__CannotCreatePoolForSameTokens();
     error MonadexV1Factory__TokenNotSupported(address token);
@@ -118,6 +119,7 @@ contract MonadexV1Factory is IMonadexV1Factory, Ownable {
     )
         Ownable(msg.sender)
     {
+        if (_protocolTeamMultisig == address(0)) revert MonadexV1Factory__AddressZero();
         s_protocolTeamMultisig = _protocolTeamMultisig;
         s_protocolFee = _protocolFee;
 
