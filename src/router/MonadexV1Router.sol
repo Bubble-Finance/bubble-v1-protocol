@@ -61,6 +61,9 @@ contract MonadexV1Router is IMonadexV1Router {
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
     error MonadexV1Router__InvalidPath();
     error MonadexV1Router__TokenNotSupportedByRaffle();
+    error MonadexV1Router__InsufficientTicketAmountReceived(
+        uint256 ticketsReceived, uint256 minimumTicketsToReceive
+    );
 
     /////////////////
     /// Modifiers ///
@@ -263,7 +266,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -314,7 +323,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -368,7 +383,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -423,7 +444,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -480,7 +507,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -536,7 +569,13 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(_purchaseTickets.multiplier, _path, amounts, _receiver);
+            tickets = purchaseRaffleTickets(
+                _purchaseTickets.multiplier,
+                _path,
+                amounts,
+                _purchaseTickets.minimumTicketsToReceive,
+                _receiver
+            );
         }
 
         return (amounts, tickets);
@@ -650,21 +689,29 @@ contract MonadexV1Router is IMonadexV1Router {
         MonadexV1Types.Multipliers _multiplier,
         address[] memory _path,
         uint256[] memory _amounts,
+        uint256 _minimumTicketsToReceive,
         address _receiver
     )
         public
         returns (uint256)
     {
+        uint256 ticketsReceived;
         if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
-            return IMonadexV1Raffle(i_raffle).purchaseTickets(
+            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
                 _path[0], _amounts[0], _multiplier, _receiver
             );
         } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
-            return IMonadexV1Raffle(i_raffle).purchaseTickets(
+            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
                 _path[_path.length - 1], _amounts[_amounts.length - 1], _multiplier, _receiver
             );
         } else {
             revert MonadexV1Router__TokenNotSupportedByRaffle();
+        }
+
+        if (ticketsReceived < _minimumTicketsToReceive) {
+            revert MonadexV1Router__InsufficientTicketAmountReceived(
+                ticketsReceived, _minimumTicketsToReceive
+            );
         }
     }
 
