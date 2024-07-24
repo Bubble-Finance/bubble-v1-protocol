@@ -54,10 +54,10 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     address private s_tokenB;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
-    // the last constant K value, used to calculate the protocol's cut of the total
-    // fee generated
+    // The last constant K value, used to calculate the protocol's cut of the total
+    // swap fee generated.
     uint256 private s_lastK;
-    // a global lock to ensure no cross-functional reentrancy issues occur
+    // A global lock to ensure no reentrancy issues occur.
     bool private s_isLocked;
 
     //////////////
@@ -156,7 +156,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
 
     /**
      * @notice Allows liquidity providers to add liquidity to the pool, and get LP tokens which
-     * represent their share of the pool. The protocol team is minted their share of the fee
+     * represent their share of the pool. The protocol team is minted their share of the swap fee
      * accumulated in the pool before proceeding to add liquidity. It is recommended to use the
      * Monadex v1 router (which performs additional safety checks) for this action.
      * @param _receiver The address to send the LP tokens to.
@@ -353,71 +353,6 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
         emit PoolUnlocked();
     }
 
-    /**
-     * @notice Checks if the specified token is one of the tokens in the pool.
-     * @param _token The token address.
-     * @return True if the token is a pool token, false otherwise.
-     */
-    function isPoolToken(address _token) external view returns (bool) {
-        if (_token != s_tokenA && _token != s_tokenB) return false;
-        return true;
-    }
-
-    /**
-     * @notice Gets the address of the MonadexV1Factory.
-     * @return The factory address.
-     */
-    function getFactory() external view returns (address) {
-        return i_factory;
-    }
-
-    ////////////////////////
-    /// Public Functions ///
-    ////////////////////////
-
-    /**
-     * @notice Gets the protocol team's multi-sig address from the factory. Used to direct
-     * part of the pool fee to the protocol team.
-     * @return The protocol team's multi-sig address.
-     */
-    function getProtocolTeamMultisig() public view returns (address) {
-        return IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
-    }
-
-    /**
-     * @notice Gets the protocol fee from the factory.
-     * @return The protocol fee, a struct with numerator and denominator fields.
-     */
-    function getProtocolFee() public view returns (MonadexV1Types.Fee memory) {
-        return IMonadexV1Factory(i_factory).getProtocolFee();
-    }
-
-    /**
-     * @notice Gets the pool fee from the factory.
-     * @return The pool fee, a struct with numerator and denominator fields.
-     */
-    function getPoolFee() public view returns (MonadexV1Types.Fee memory) {
-        return IMonadexV1Factory(i_factory).getTokenPairToFee(s_tokenA, s_tokenB);
-    }
-
-    /**
-     * @notice Gets the addresses of the tokens in this pool.
-     * @return The first token's address.
-     * @return The second token's address.
-     */
-    function getPoolTokens() public view returns (address, address) {
-        return (s_tokenA, s_tokenB);
-    }
-
-    /**
-     * @notice Gets the reserves of both tokens in the pool.
-     * @return Token A's reserve.
-     * @return Token B's reserve.
-     */
-    function getReserves() public view returns (uint256, uint256) {
-        return (s_reserveA, s_reserveB);
-    }
-
     //////////////////////////
     /// Internal Functions ///
     //////////////////////////
@@ -435,7 +370,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     }
 
     /**
-     * @notice Mint's the protocol fee to the protocol team's multi-sig address.
+     * @notice Mint's the protocol's cut of the swap fee to the protocol team's multi-sig address.
      * @param _reserveA Token A's reserve.
      * @param _reserveB Token B's reserve.
      */
@@ -457,5 +392,70 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
                 if (lpTokensToMint > 0) _mint(protocolTeamMultisig, lpTokensToMint);
             }
         }
+    }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
+
+    /**
+     * @notice Checks if the specified token is one of the tokens in the pool.
+     * @param _token The token address.
+     * @return True if the token is a pool token, false otherwise.
+     */
+    function isPoolToken(address _token) external view returns (bool) {
+        if (_token != s_tokenA && _token != s_tokenB) return false;
+        return true;
+    }
+
+    /**
+     * @notice Gets the address of the MonadexV1Factory.
+     * @return The factory address.
+     */
+    function getFactory() external view returns (address) {
+        return i_factory;
+    }
+
+    /**
+     * @notice Gets the protocol team's multi-sig address from the factory. Used to direct
+     * part of the swap fee to the protocol team.
+     * @return The protocol team's multi-sig address.
+     */
+    function getProtocolTeamMultisig() public view returns (address) {
+        return IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
+    }
+
+    /**
+     * @notice Gets the protocol's cut of the swap fee from the factory.
+     * @return The protocol fee, a struct with numerator and denominator fields.
+     */
+    function getProtocolFee() public view returns (MonadexV1Types.Fee memory) {
+        return IMonadexV1Factory(i_factory).getProtocolFee();
+    }
+
+    /**
+     * @notice Gets the swap fee from the factory.
+     * @return The swap fee, a struct with numerator and denominator fields.
+     */
+    function getPoolFee() public view returns (MonadexV1Types.Fee memory) {
+        return IMonadexV1Factory(i_factory).getTokenPairToFee(s_tokenA, s_tokenB);
+    }
+
+    /**
+     * @notice Gets the addresses of the tokens in this pool.
+     * @return The first token's address.
+     * @return The second token's address.
+     */
+    function getPoolTokens() public view returns (address, address) {
+        return (s_tokenA, s_tokenB);
+    }
+
+    /**
+     * @notice Gets the reserves of both tokens in the pool.
+     * @return Token A's reserve.
+     * @return Token B's reserve.
+     */
+    function getReserves() public view returns (uint256, uint256) {
+        return (s_reserveA, s_reserveB);
     }
 }
