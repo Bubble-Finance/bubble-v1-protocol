@@ -713,6 +713,8 @@ contract MonadexV1Router is IMonadexV1Router {
                 ticketsReceived, _minimumTicketsToReceive
             );
         }
+
+        return ticketsReceived;
     }
 
     //////////////////////////
