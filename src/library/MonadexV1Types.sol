@@ -70,6 +70,7 @@ contract MonadexV1Types {
     struct PurchaseTickets {
         bool purchaseTickets;
         Multipliers multiplier;
+        uint256 minimumTicketsToReceive;
     }
 
     /**

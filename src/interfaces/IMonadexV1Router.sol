@@ -151,6 +151,7 @@ interface IMonadexV1Router {
         MonadexV1Types.Multipliers _multiplier,
         address[] memory _path,
         uint256[] memory _amounts,
+        uint256 minimumTicketsToReceive,
         address _receiver
     )
         external
