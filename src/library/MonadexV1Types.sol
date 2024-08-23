@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
 /**
  * @title MonadexV1Types.
@@ -9,6 +9,8 @@ pragma solidity 0.8.20;
 contract MonadexV1Types {
     /**
      * @notice The fee is always a percentage of the amount in consideration.
+     * @param numerator The fee numerator.
+     * @param denominator The fee denominator.
      */
     struct Fee {
         uint256 numerator;
@@ -18,6 +20,8 @@ contract MonadexV1Types {
     /**
      * @notice Users leveraging flash swaps and flash loans can execute custom
      * logic before and after a swap by setting these values.
+     * @param hookBeforeCall If true, invoke the before hook on the receiving contract.
+     * @param hookAfterCall If true, invoke the after hook on the receiving contract.
      */
     struct HookConfig {
         bool hookBeforeCall;
@@ -27,6 +31,11 @@ contract MonadexV1Types {
     /**
      * @notice Packing parameters for swapping into a struct to avoid stack
      * too deep errors.
+     * @param amountAOut The amount of token A to send to the receiver.
+     * @param amountBOut The amount of token B to send to the receiver.
+     * @param receiver The address to which the token amounts are directed.
+     * @param hookConfig Hook configuration parameters.
+     * @param data bytes data to pass to the flash swap or flash loan receiver.
      */
     struct SwapParams {
         uint256 amountAOut;
@@ -39,6 +48,14 @@ contract MonadexV1Types {
     /**
      * @notice Packing parameters required for adding liquidity in a struct
      * to avoid stack too deep errors.
+     * @param tokenA Address of token A.
+     * @param tokenB Address of token B.
+     * @param amountADesired Maximum amount of token A to add as liquidity.
+     * @param amountBDesired Maximum amount of token B to add as liquidity.
+     * @param amountAMin Minimum amount of token A to add as liquidity.
+     * @param amountBMin Minimum amount of token B to add as liquidity.
+     * @param receiver The address to direct the LP tokens to.
+     * @param deadline UNIX timestamp before which the liquidity should be added.
      */
     struct AddLiquidity {
         address tokenA;
@@ -54,6 +71,12 @@ contract MonadexV1Types {
     /**
      * @notice Packing parameters required for adding native token liquidity in a struct
      * to avoid stack too deep errors.
+     * @param token Address of token.
+     * @param amountTokenDesired Maximum amount of token to add as liquidity.
+     * @param amountTokenMin Minimum amount of token to add as liquidity.
+     * @param amountNativeMin Minimum amount of native currency to add as liquidity.
+     * @param receiver The address to direct the LP tokens to.
+     * @param deadline UNIX timestamp before which the liquidity should be added.
      */
     struct AddLiquidityNative {
         address token;
@@ -66,6 +89,10 @@ contract MonadexV1Types {
 
     /**
      * @notice Purchase tickets with a multiplier value during a swap.
+     * @param purchaseTickets True, if the user wants to pruchase tickets, false otherwise.
+     * @param multiplier The multiplier to apply to the ticket purchase. The higher the multiplier,
+     * the higher fees is taken, and more raffle tickets are obtained.
+     * @param minimumTicketsToReceive Slippage protection for ticket purchase.
      */
     struct PurchaseTickets {
         bool purchaseTickets;
@@ -74,7 +101,20 @@ contract MonadexV1Types {
     }
 
     /**
+     * @notice The price feed config for the raffle contract.
+     * @param priceFeedId The token/usd price feed id.
+     * @param noOlderThan The max age before a price feed can be considered stale.
+     */
+    struct PriceFeedConfig {
+        bytes32 priceFeedId;
+        uint256 noOlderThan;
+    }
+
+    /**
      * @notice A multiplier is associated with a percentage.
+     * @param Multiplier1 A small percentage of swap amount is used to purchase tickets.
+     * @param Multiplier2 A slightly higher percentage of swap amount is used to purchase tickets.
+     * @param Multiplier3 A higher percentage of swap amount is used to purchase tickets.
      */
     enum Multipliers {
         Multiplier1,

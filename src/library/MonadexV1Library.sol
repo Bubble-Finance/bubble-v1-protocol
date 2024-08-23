@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
 import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
 import { MonadexV1Types } from "./MonadexV1Types.sol";
+import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 /**
  * @title MonadexV1Library.
  * @author Monadex Labs -- mgnfy-view.
- * @notice The library holds utility functions to be used by the router and the raffle.
+ * @notice The library holds utility functions to be used by the other contracts.
  */
 library MonadexV1Library {
-    error MonadexV1Library__ZeroReserves();
-    error MonadexV1Library__ZeroAmountIn();
-    error MonadexV1Library__InvalidSwapPath();
+    error MonadexV1Library__ReservesZero();
     error MonadexV1Library__InputAmountZero();
     error MonadexV1Library__OutputAmountZero();
-    error MonadexV1Library__ReservesZero();
+    error MonadexV1Library__ZeroAmountIn();
+    error MonadexV1Library__InvalidSwapPath();
 
     /**
      * @notice Sorts tokens such that the token with the smaller address value
@@ -40,10 +40,10 @@ library MonadexV1Library {
 
     /**
      * @notice Gets the pool address given the address of the factory and the
-     * tokens in the combination.
+     * tokens in the pair.
      * @param _factory The address of the MonadexV1Factory.
-     * @param _tokenA Address of the first token in the combination.
-     * @param _tokenB Address of the second token in the combination.
+     * @param _tokenA Address of the first token in the pair.
+     * @param _tokenB Address of the second token in the pair.
      * @return Address of the pool.
      */
     function getPool(
@@ -61,8 +61,8 @@ library MonadexV1Library {
     /**
      * @notice Gets the reserves of the pool of the given token pair.
      * @param _factory The address of the MonadexV1Factory.
-     * @param _tokenA Address of the first token in the combination.
-     * @param _tokenB Address of the second token in the combination.
+     * @param _tokenA Address of the first token in the pair.
+     * @param _tokenB Address of the second token in the pair.
      * @return Reserve of the first token.
      * @return Reserve of the second token.
      */
@@ -88,8 +88,8 @@ library MonadexV1Library {
      * @notice Gets the pool fee given the address of the factory and the the tokens in
      * the pair.
      * @param _factory The address of the MonadexV1Factory.
-     * @param _tokenA Address of the first token in the combination.
-     * @param _tokenB Address of the second token in the combination.
+     * @param _tokenA Address of the first token in the pair.
+     * @param _tokenB Address of the second token in the pair.
      * @return The fee struct, consisting of numerator and denominator fields.
      */
     function getPoolFee(
@@ -122,7 +122,7 @@ library MonadexV1Library {
         returns (uint256)
     {
         if (_amountA == 0) revert MonadexV1Library__ZeroAmountIn();
-        if (_reserveA == 0 || _reserveB == 0) revert MonadexV1Library__ZeroReserves();
+        if (_reserveA == 0 || _reserveB == 0) revert MonadexV1Library__ReservesZero();
 
         return (_amountA * _reserveB) / _reserveA;
     }
@@ -266,28 +266,31 @@ library MonadexV1Library {
     }
 
     /**
-     * @notice Calculates the total amount of tickets to mint based on the amount, the price
-     * from pyth price feed, and the ticket price.
+     * @notice Calculates the total amount of tickets to mint based on the token amount, the price
+     * from Pyth price feed, and the ticket price.
      * @param _amount The amount used to purchase tickets.
-     * @param _price The price value obtained from pyth.
-     * @param _exponent The exponent value obtained from pyth.
+     * @param _pythPrice The price struct obtained from Pyth.
      * @param _pricePerTicket The price per ticket (in dollars).
      * @return The amount of tickets to mint.
      */
     function calculateTicketsToMint(
         uint256 _amount,
-        int256 _price,
-        int256 _exponent,
+        PythStructs.Price memory _pythPrice,
         uint256 _pricePerTicket
     )
         internal
         pure
         returns (uint256)
     {
-        if (_exponent < 0) {
-            return (uint256(_price) * _amount * 1e18)
-                / (10 ** uint256(-1 * _exponent) * _pricePerTicket);
-        }
-        return (uint256(_price) * _amount * 10 ** uint256(_exponent) * 1e18) / (_pricePerTicket);
+        uint256 decimals = 1e18;
+        uint256 price = _pythPrice.expo < 0
+            ? uint256(uint64(_pythPrice.price)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+            : uint256(uint64(_pythPrice.price)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
+        uint256 confidence = _pythPrice.expo < 0
+            ? uint256(uint64(_pythPrice.price)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+            : uint256(uint64(_pythPrice.price)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
+        uint256 ticketsToMint = (price - confidence) * _amount / _pricePerTicket;
+
+        return ticketsToMint;
     }
 }
