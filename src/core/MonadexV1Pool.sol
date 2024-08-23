@@ -45,7 +45,7 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
  * @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
  * withdrawing liquidity, and swapping tokens in either direction.
  */
-contract MonadexV1Pool is IMonadexV1Pool, ERC20Permit {
+contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
 

@@ -88,6 +88,62 @@ contract MonadexV1Types {
     }
 
     /**
+     * @notice Allows removal of liquidity from Monadex pools using a permit.
+     * @param tokenA Address of token A.
+     * @param tokenB Address of token B.
+     * @param lpTokensToBurn Amount of LP tokens to burn.
+     * @param amountAMin Minimum amount of token A to withdraw from pool.
+     * @param amountBMin Minimum amount of token B to withdraw from pool.
+     * @param receiver The address to direct the withdrawn tokens to.
+     * @param deadline The UNIX timestamp before which the liquidity should be removed.
+     * @param approveMax Approve maximum amount (type(uint256).max) to the router or just the
+     * required LP token amount.
+     * @param v The v part of the signature.
+     * @param r The r part of the signature.
+     * @param s The s part of the signature.
+     */
+    struct RemoveLiquidityWithPermit {
+        address tokenA;
+        address tokenB;
+        uint256 lpTokensToBurn;
+        uint256 amountAMin;
+        uint256 amountBMin;
+        address receiver;
+        uint256 deadline;
+        bool approveMax;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    /**
+     * @notice Allows removal of native currency liquidity from Monadex pools using a permit.
+     * @param token Address of token.
+     * @param lpTokensToBurn Amount of LP tokens to burn.
+     * @param amountTokenMin Minimum amount of token to withdraw from pool.
+     * @param amountNativeMin Minimum amount of native currency to withdraw from pool.
+     * @param receiver The address to direct the withdrawn tokens to.
+     * @param deadline The UNIX timestamp before which the liquidity should be removed.
+     * @param approveMax Approve maximum amount (type(uint256).max) to the router or just
+     * the required LP token amount.
+     * @param v The v part of the signature.
+     * @param r The r part of the signature.
+     * @param s The s part of the signature.
+     */
+    struct RemoveLiquidityNativeWithPermit {
+        address token;
+        uint256 lpTokensToBurn;
+        uint256 amountTokenMin;
+        uint256 amountNativeMin;
+        address receiver;
+        uint256 deadline;
+        bool approveMax;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    /**
      * @notice Purchase tickets with a multiplier value during a swap.
      * @param purchaseTickets True, if the user wants to pruchase tickets, false otherwise.
      * @param multiplier The multiplier to apply to the ticket purchase. The higher the multiplier,

@@ -36,7 +36,7 @@ import { MonadexV1Pool } from "./MonadexV1Pool.sol";
  * The factory also stores the swap fee for each pool, the protocol fee, and the protocol team's
  * multi-sig address.
  */
-contract MonadexV1Factory is IMonadexV1Factory, Ownable {
+contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
