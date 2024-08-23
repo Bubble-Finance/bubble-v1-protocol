@@ -18,7 +18,10 @@
 //         - view and pure functions
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
+
+import { IVotes } from
+    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
 
 import { Governor } from "lib/openzeppelin-contracts/contracts/governance/Governor.sol";
 import { GovernorCountingSimple } from
@@ -29,10 +32,8 @@ import {
     GovernorTimelockControl,
     TimelockController
 } from "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol";
-import {
-    GovernorVotes,
-    IVotes
-} from "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
+import { GovernorVotes } from
+    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
 import { GovernorVotesQuorumFraction } from
     "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
@@ -50,7 +51,7 @@ contract MonadexV1Governor is
     GovernorTimelockControl
 {
     /**
-     * @notice Initializes the Governor.
+     * @notice Initializes the Governor. Fully configurable during deployment.
      * @param _token The token to vote with. This will be the $MDX token.
      * @param _timelock The timelock which will add a delay before executing proposals.
      * @param _initialVotingDelay The delay after which votes can be cast.
@@ -83,7 +84,9 @@ contract MonadexV1Governor is
         return super.votingPeriod();
     }
 
-    function quorum(uint256 blockNumber)
+    function quorum(
+        uint256 blockNumber
+    )
         public
         view
         override(Governor, GovernorVotesQuorumFraction)
@@ -92,7 +95,9 @@ contract MonadexV1Governor is
         return super.quorum(blockNumber);
     }
 
-    function state(uint256 proposalId)
+    function state(
+        uint256 proposalId
+    )
         public
         view
         override(Governor, GovernorTimelockControl)
@@ -101,7 +106,9 @@ contract MonadexV1Governor is
         return super.state(proposalId);
     }
 
-    function proposalNeedsQueuing(uint256 proposalId)
+    function proposalNeedsQueuing(
+        uint256 proposalId
+    )
         public
         view
         override(Governor, GovernorTimelockControl)

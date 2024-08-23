@@ -18,7 +18,7 @@
 //         - view and pure functions
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
@@ -38,8 +38,8 @@ contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
     /**
      * @notice Sets the owner of the token and mints them the initial supply
      * during deployment. The owner will distribute the tokens as per the decided
-     * allocation ratios.
-     * @param _owner The owner of the token (the protocol team multisig)
+     * allocation ratios later on.
+     * @param _owner The owner of the token (the protocol team multisig).
      * @param _initialSupply The market cap.
      */
     constructor(
@@ -66,7 +66,9 @@ contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
         super._update(from, to, value);
     }
 
-    function nonces(address ownerOfNonce)
+    function nonces(
+        address ownerOfNonce
+    )
         public
         view
         override(ERC20Permit, Nonces)
