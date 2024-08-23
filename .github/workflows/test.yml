@@ -22,9 +22,15 @@ jobs:
         with:
           version: nightly
 
-      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          version: 9
+          node-version: 20
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
+          standalone: true
+          dest: ~/setup-pnpm
 
       - name: Install node modules
         run: /
