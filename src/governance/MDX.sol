@@ -35,6 +35,10 @@ import { ERC20Votes } from
  * @notice MDX is the governance and utility token of Monadex.
  */
 contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
+
     /**
      * @notice Sets the owner of the token and mints them the initial supply
      * during deployment. The owner will distribute the tokens as per the decided
@@ -55,6 +59,10 @@ contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     // The functions below are overrides required by Solidity using openZepplin.
 
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
+
     function _update(
         address from,
         address to,
@@ -65,6 +73,10 @@ contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
     {
         super._update(from, to, value);
     }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
 
     function nonces(
         address ownerOfNonce

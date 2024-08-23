@@ -50,6 +50,10 @@ contract MonadexV1Governor is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
+
     /**
      * @notice Initializes the Governor. Fully configurable during deployment.
      * @param _token The token to vote with. This will be the $MDX token.
@@ -75,6 +79,63 @@ contract MonadexV1Governor is
     { }
 
     // The following functions are overrides required by Solidity.
+
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
+
+    function _queueOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
+        internal
+        override(Governor, GovernorTimelockControl)
+        returns (uint48)
+    {
+        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _executeOperations(
+        uint256 proposalId,
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
+        internal
+        override(Governor, GovernorTimelockControl)
+    {
+        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    )
+        internal
+        override(Governor, GovernorTimelockControl)
+        returns (uint256)
+    {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    function _executor()
+        internal
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (address)
+    {
+        return super._executor();
+    }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
 
     function votingDelay() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
@@ -124,54 +185,5 @@ contract MonadexV1Governor is
         returns (uint256)
     {
         return super.proposalThreshold();
-    }
-
-    function _queueOperations(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    )
-        internal
-        override(Governor, GovernorTimelockControl)
-        returns (uint48)
-    {
-        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
-    }
-
-    function _executeOperations(
-        uint256 proposalId,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    )
-        internal
-        override(Governor, GovernorTimelockControl)
-    {
-        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
-    }
-
-    function _cancel(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    )
-        internal
-        override(Governor, GovernorTimelockControl)
-        returns (uint256)
-    {
-        return super._cancel(targets, values, calldatas, descriptionHash);
-    }
-
-    function _executor()
-        internal
-        view
-        override(Governor, GovernorTimelockControl)
-        returns (address)
-    {
-        return super._executor();
     }
 }
