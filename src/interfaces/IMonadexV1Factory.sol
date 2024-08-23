@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
@@ -17,8 +17,6 @@ interface IMonadexV1Factory {
     function lockPool(address _pool) external;
 
     function unlockPool(address _pool) external;
-
-    function isSupportedToken(address _token) external view returns (bool);
 
     function getProtocolTeamMultisig() external view returns (address);
 
@@ -47,4 +45,6 @@ interface IMonadexV1Factory {
         returns (address);
 
     function getTokenPairToPool(address _tokenA, address _tokenB) external view returns (address);
+
+    function isSupportedToken(address _token) external view returns (bool);
 }
