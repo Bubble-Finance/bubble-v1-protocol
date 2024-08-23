@@ -18,14 +18,19 @@
 //         - view and pure functions
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from
     "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+
+import {
+    ERC20,
+    ERC20Permit
+} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 import { IMonadexV1Callee } from "../interfaces/IMonadexV1Callee.sol";
 import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
@@ -40,7 +45,7 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
  * @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
  * withdrawing liquidity, and swapping tokens in either direction.
  */
-contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
+contract MonadexV1Pool is IMonadexV1Pool, ERC20Permit {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -54,17 +59,21 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     address private s_tokenB;
     uint256 private s_reserveA;
     uint256 private s_reserveB;
-    // The last constant K value, used to calculate the protocol's cut of the total
-    // swap fee generated.
+    /**
+     * @dev The last constant K value, used to calculate the protocol's cut of the total
+     * fees generated during swaps.
+     */
     uint256 private s_lastK;
-    // A global lock to ensure no reentrancy issues occur.
+    /**
+     * @dev A global lock to ensure no re-entrancy issues occur.
+     */
     bool private s_isLocked;
 
     //////////////
     /// Events ///
     //////////////
 
-    event Initialised(address tokenA, address tokenB);
+    event Initialised(address indexed tokenA, address indexed tokenB);
     event LiquidityAdded(
         address indexed by,
         address indexed receiver,
@@ -77,7 +86,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
         address indexed receiver,
         uint256 amountA,
         uint256 amountB,
-        uint256 indexed lpTokensBurnt
+        uint256 indexed lpTokensBurned
     );
     event AmountSwapped(
         address indexed caller,
@@ -127,9 +136,9 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     ///////////////////
 
     /**
-     * @notice Sets the factory address.
+     * @notice Sets the factory address as well as the name for EIP712 signatures.
      */
-    constructor() ERC20("MonadexLPToken", "MDXLP") {
+    constructor() ERC20("MonadexLPToken", "MDXLP") ERC20Permit("MonadexV1Pool") {
         i_factory = msg.sender;
     }
 
@@ -138,8 +147,8 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
     //////////////////////////
 
     /**
-     * @notice This function is called by the Monadex V1 factory right after pool deployment using the
-     * CREATE2 opcode to set the token addresses for this pool.
+     * @notice This function is called by the Monadex V1 factory right after pool deployment
+     * to set the token addresses for this pool.
      * @param _tokenA Address of the first token in the pair.
      * @param _tokenB Address of the second token in the pair.
      */
@@ -229,16 +238,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      * @notice Allows swapping of tokens in either direction. Also allows flash swaps and
      * flash loans, all packed in the same function. Additionally, users leveraging flash
      * swaps and flash loans can invoke hooks before and after a swap.
-     * @param _swapParams The parameters for swapping include:
-     *                    - amountAOut: The amount of token A to send to the receiver
-     *                    - amountBOut: The amount of token B to send to the receiver
-     *                    - receiver: The address to which the token amounts are directed
-     *                    - hookConfig: A struct with the following fields:
-     *                                  - hookBeforeCall: If true, invoke the before hook on the
-     *                                                    receiving contract
-     *                                  - hookAfterCall: If true, invoke the after hook on the
-     *                                                   receiving contract
-     *                    - data: bytes data to pass to the flash swap or flash loan receiver
+     * @param _swapParams The parameters for swapping.
      */
     function swap(MonadexV1Types.SwapParams memory _swapParams) external globalLock {
         if (_swapParams.amountAOut == 0 && _swapParams.amountBOut == 0) {
@@ -404,7 +404,7 @@ contract MonadexV1Pool is IMonadexV1Pool, ERC20 {
      * @return True if the token is a pool token, false otherwise.
      */
     function isPoolToken(address _token) external view returns (bool) {
-        if (_token != s_tokenA && _token != s_tokenB) return false;
+        if (_token != s_tokenA || _token != s_tokenB) return false;
         return true;
     }
 
