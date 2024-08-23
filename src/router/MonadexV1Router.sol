@@ -18,16 +18,19 @@
 //         - view and pure functions
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.24;
 
-import { IWNative } from "../interfaces/IWNative.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC20Permit } from
+    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
+
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 import { IMonadexV1Router } from "../interfaces/IMonadexV1Router.sol";
+import { IWNative } from "../interfaces/IWNative.sol";
 
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
@@ -90,26 +93,14 @@ contract MonadexV1Router is IMonadexV1Router {
 
     /**
      * @notice Allows supplying liquidity to Monadex pools with safety checks.
-     * @param _addLiquidityParams We needed to wrap these parameters in a struct to avoid
-     * stack too deep errors. The parameters include:
-     *                        - tokenA: Address of token A
-     *                        - tokenB: Address of token B
-     *                        - amountADesired: Maximum amount of token A to add
-     *                                          as liquidity
-     *                        - amountBDesired: Maximum amount of token B to add
-     *                                          as liquidity
-     *                        - amountAMin: Minimum amount of token A to add
-     *                                      as liquidity
-     *                        - amountBMin: Minimum amount of token B to add
-     *                                      as liquidity
-     *                        - receiver: The address to direct the LP tokens to
-     *                        - deadline: UNIX timestamp before which the liquidity
-     *                                    should be added
+     * @param _addLiquidityParams The parameters required to add liquidity.
      * @return Amount of token A added.
      * @return Amount of token B added.
      * @return Amount of LP tokens received.
      */
-    function addLiquidity(MonadexV1Types.AddLiquidity memory _addLiquidityParams)
+    function addLiquidity(
+        MonadexV1Types.AddLiquidity calldata _addLiquidityParams
+    )
         external
         beforeDeadline(_addLiquidityParams.deadline)
         returns (uint256, uint256, uint256)
@@ -134,23 +125,14 @@ contract MonadexV1Router is IMonadexV1Router {
 
     /**
      * @notice Allows supplying native currency as liquidity to Monadex pools with safety checks.
-     * @param _addLiquidityNativeParams We needed to wrap these parameters in a struct to avoid
-     * stack too deep errors. The parameters include:
-     *                        - token: Address of token
-     *                        - amountTokenDesired: Maximum amount of token to add
-     *                                          as liquidity
-     *                        - amountTokenMin: Minimum amount of token to add
-     *                                      as liquidity
-     *                        - amountNativeMin: Minimum amount of native currency to add
-     *                                      as liquidity
-     *                        - receiver: The address to direct the LP tokens to
-     *                        - deadline: UNIX timestamp before which the liquidity
-     *                                    should be added
+     * @param _addLiquidityNativeParams The parameters required to add liquidity in native currency.
      * @return Amount of token added.
      * @return Amount of native currency added.
      * @return Amount of LP tokens received.
      */
-    function addLiquidityNative(MonadexV1Types.AddLiquidityNative memory _addLiquidityNativeParams)
+    function addLiquidityNative(
+        MonadexV1Types.AddLiquidityNative calldata _addLiquidityNativeParams
+    )
         external
         payable
         beforeDeadline(_addLiquidityNativeParams.deadline)
@@ -180,43 +162,62 @@ contract MonadexV1Router is IMonadexV1Router {
     }
 
     /**
-     * @notice Allows removal of native currency liquidity from Monadex pools with safety checks.
-     * @param _token Address of token.
-     * @param _lpTokensToBurn Amount of LP tokens to burn.
-     * @param _amountTokenMin Minimum amount of token to withdraw from pool.
-     * @param _amountNativeMin Minimum amount of native currency to withdraw from pool.
-     * @param _receiver The address to direct the withdrawn tokens to.
-     * @param _deadline The UNIX timestamp before which the liquidity should be removed.
-     * @return Amount of token withdrawn.
-     * @return Amount of native currency withdrawn.
+     * @notice Allows removal of liquidity from Monadex pools using a permit.
+     * @param _params The liquidity removal params.
+     * @return Amount of token A withdrawn.
+     * @return Amount of token B withdrawn.
      */
-    function removeLiquidityNative(
-        address _token,
-        uint256 _lpTokensToBurn,
-        uint256 _amountTokenMin,
-        uint256 _amountNativeMin,
-        address _receiver,
-        uint256 _deadline
+    function removeLiquidityWithPermit(
+        MonadexV1Types.RemoveLiquidityWithPermit calldata _params
     )
         external
-        beforeDeadline(_deadline)
+        beforeDeadline(_params.deadline)
         returns (uint256, uint256)
     {
-        (uint256 amountToken, uint256 amountNative) = removeLiquidity(
-            _token,
-            i_wNative,
-            _lpTokensToBurn,
-            _amountTokenMin,
-            _amountNativeMin,
-            address(this),
-            _deadline
-        );
-        IERC20(_token).safeTransfer(_receiver, amountToken);
-        IWNative(payable(i_wNative)).withdraw(amountNative);
-        (bool success,) = payable(_receiver).call{ value: amountNative }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        address pool = MonadexV1Library.getPool(i_factory, _params.tokenA, _params.tokenB);
+        uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
 
-        return (amountToken, amountNative);
+        IERC20Permit(pool).permit(
+            msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
+        );
+        return removeLiquidity(
+            _params.tokenA,
+            _params.tokenB,
+            _params.lpTokensToBurn,
+            _params.amountAMin,
+            _params.amountBMin,
+            _params.receiver,
+            _params.deadline
+        );
+    }
+
+    /**
+     * @notice Allows removal of native currency liquidity from Monadex pools using a permit.
+     * @param _params The liquidity removal params.
+     * @return Amount of tokens withdrawn.
+     * @return Amount of native currency withdrawn.
+     */
+    function removeLiquidityNativeWithPermit(
+        MonadexV1Types.RemoveLiquidityNativeWithPermit calldata _params
+    )
+        external
+        beforeDeadline(_params.deadline)
+        returns (uint256, uint256)
+    {
+        address pool = MonadexV1Library.getPool(i_factory, _params.token, i_wNative);
+        uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
+
+        IERC20Permit(pool).permit(
+            msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
+        );
+        return removeLiquidityNative(
+            _params.token,
+            _params.lpTokensToBurn,
+            _params.amountTokenMin,
+            _params.amountNativeMin,
+            _params.receiver,
+            _params.deadline
+        );
     }
 
     /**
@@ -228,16 +229,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets Details about ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -266,7 +258,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -287,16 +279,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets The parameters for ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -323,7 +306,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -343,16 +326,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets The parameters for ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -383,7 +357,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -404,16 +378,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets The parameters for ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -444,7 +409,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -465,16 +430,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets The parameters for ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -507,7 +463,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -527,16 +483,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * path does not exist from token A to B.
      * @param _receiver The address to direct the output amount to.
      * @param _deadline The UNIX timestamp before which the swap should be conducted.
-     * @param _purchaseTickets Users can participate in a weekly lottery by purchasing
-     * tickets during swaps. The purchase parameters include:
-     *                       - purchaseTickets: True, if the user wants to pruchase tickets,
-     *                                          false otherwise.
-     *                       - multiplier: The multiplier to apply to the ticket purchase. The
-     *                                     higher the multiplier, the higher fees is taken, and
-     *                                     more raffle tickets are obtained. The multipliers are:
-     *                                     - multiplier 1: 0.5% of swap amount as ticket price
-     *                                     - multiplier 2: 1% of swap amount as ticket price
-     *                                     - multiplier 3: 2% of swap amount as ticket price
+     * @param _purchaseTickets The parameters for ticket purchase during swap.
      * @return The amounts obtained at each checkpoint of the swap path.
      * @return The amount of tickets obtained.
      */
@@ -569,7 +516,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            tickets = purchaseRaffleTickets(
+            tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
                 amounts,
@@ -579,66 +526,6 @@ contract MonadexV1Router is IMonadexV1Router {
         }
 
         return (amounts, tickets);
-    }
-
-    function quote(
-        uint256 _amountA,
-        uint256 _reserveA,
-        uint256 _reserveB
-    )
-        external
-        pure
-        returns (uint256)
-    {
-        return MonadexV1Library.quote(_amountA, _reserveA, _reserveB);
-    }
-
-    function getAmountOut(
-        uint256 _amountIn,
-        uint256 _reserveIn,
-        uint256 _reserveOut,
-        MonadexV1Types.Fee memory _poolFee
-    )
-        external
-        pure
-        returns (uint256)
-    {
-        return MonadexV1Library.getAmountOut(_amountIn, _reserveIn, _reserveOut, _poolFee);
-    }
-
-    function getAmountIn(
-        uint256 _amountOut,
-        uint256 _reserveIn,
-        uint256 _reserveOut,
-        MonadexV1Types.Fee memory _poolFee
-    )
-        external
-        pure
-        returns (uint256)
-    {
-        return MonadexV1Library.getAmountOut(_amountOut, _reserveIn, _reserveOut, _poolFee);
-    }
-
-    function getAmountsOut(
-        uint256 _amountIn,
-        address[] calldata _path
-    )
-        external
-        view
-        returns (uint256[] memory)
-    {
-        return MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
-    }
-
-    function getAmountsIn(
-        uint256 _amountOut,
-        address[] calldata _path
-    )
-        public
-        view
-        returns (uint256[] memory)
-    {
-        return MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
     }
 
     ////////////////////////
@@ -685,36 +572,44 @@ contract MonadexV1Router is IMonadexV1Router {
         return (amountA, amountB);
     }
 
-    function purchaseRaffleTickets(
-        MonadexV1Types.Multipliers _multiplier,
-        address[] memory _path,
-        uint256[] memory _amounts,
-        uint256 _minimumTicketsToReceive,
-        address _receiver
+    /**
+     * @notice Allows removal of native currency liquidity from Monadex pools with safety checks.
+     * @param _token Address of token.
+     * @param _lpTokensToBurn Amount of LP tokens to burn.
+     * @param _amountTokenMin Minimum amount of token to withdraw from pool.
+     * @param _amountNativeMin Minimum amount of native currency to withdraw from pool.
+     * @param _receiver The address to direct the withdrawn tokens to.
+     * @param _deadline The UNIX timestamp before which the liquidity should be removed.
+     * @return Amount of token withdrawn.
+     * @return Amount of native currency withdrawn.
+     */
+    function removeLiquidityNative(
+        address _token,
+        uint256 _lpTokensToBurn,
+        uint256 _amountTokenMin,
+        uint256 _amountNativeMin,
+        address _receiver,
+        uint256 _deadline
     )
         public
-        returns (uint256)
+        beforeDeadline(_deadline)
+        returns (uint256, uint256)
     {
-        uint256 ticketsReceived;
-        if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
-            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[0], _amounts[0], _multiplier, _receiver
-            );
-        } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
-            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
-                _path[_path.length - 1], _amounts[_amounts.length - 1], _multiplier, _receiver
-            );
-        } else {
-            revert MonadexV1Router__TokenNotSupportedByRaffle();
-        }
+        (uint256 amountToken, uint256 amountNative) = removeLiquidity(
+            _token,
+            i_wNative,
+            _lpTokensToBurn,
+            _amountTokenMin,
+            _amountNativeMin,
+            address(this),
+            _deadline
+        );
+        IERC20(_token).safeTransfer(_receiver, amountToken);
+        IWNative(payable(i_wNative)).withdraw(amountNative);
+        (bool success,) = payable(_receiver).call{ value: amountNative }("");
+        if (!success) revert MonadexV1Router__TransferFailed();
 
-        if (ticketsReceived < _minimumTicketsToReceive) {
-            revert MonadexV1Router__InsufficientTicketAmountReceived(
-                ticketsReceived, _minimumTicketsToReceive
-            );
-        }
-
-        return ticketsReceived;
+        return (amountToken, amountNative);
     }
 
     //////////////////////////
@@ -723,7 +618,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
     /**
      * @notice A helper function to calculate safe amount A and amount B to add as
-     * liquidity. Also deploys the pool for the token combination if one doesn't exist yet.
+     * liquidity. Also deploys the pool for the token pair if one doesn't exist yet.
      * @param _tokenA Address of token A.
      * @param _tokenB Address of token B.
      * @param _amountADesired Maximum amount of token A to add as liquidity.
@@ -800,5 +695,137 @@ contract MonadexV1Router is IMonadexV1Router {
                 swapParams
             );
         }
+    }
+
+    /**
+     * @notice Allows users to purchase raffle tickets during a swap.
+     * @param _multiplier The multiplier to apply on the swap amount.
+     * @param _path The swap path.
+     * @param _amounts The amount of tokens at each checkpoint of the swap path.
+     * @param _minimumTicketsToReceive The minimum number of tickets to receive.
+     * @param _receiver The address of the receiver of tickets.
+     */
+    function _purchaseRaffleTickets(
+        MonadexV1Types.Multipliers _multiplier,
+        address[] memory _path,
+        uint256[] memory _amounts,
+        uint256 _minimumTicketsToReceive,
+        address _receiver
+    )
+        internal
+        returns (uint256)
+    {
+        uint256 ticketsReceived;
+        if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
+            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
+                msg.sender, _path[0], _amounts[0], _multiplier, _receiver
+            );
+        } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
+            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
+                msg.sender,
+                _path[_path.length - 1],
+                _amounts[_amounts.length - 1],
+                _multiplier,
+                _receiver
+            );
+        } else {
+            revert MonadexV1Router__TokenNotSupportedByRaffle();
+        }
+
+        if (ticketsReceived < _minimumTicketsToReceive) {
+            revert MonadexV1Router__InsufficientTicketAmountReceived(
+                ticketsReceived, _minimumTicketsToReceive
+            );
+        }
+
+        return ticketsReceived;
+    }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
+
+    /**
+     * @notice Gets the factory's address.
+     * @return The factory's address.
+     */
+    function getFactory() external view returns (address) {
+        return i_factory;
+    }
+
+    /**
+     * @notice Gets the raffle contract's address.
+     * @return The raffle contract's address.
+     */
+    function getRaffle() external view returns (address) {
+        return i_raffle;
+    }
+
+    /**
+     * @notice Gets the native token's address.
+     * @return The native token's address.
+     */
+    function getWNative() external view returns (address) {
+        return i_wNative;
+    }
+
+    function quote(
+        uint256 _amountA,
+        uint256 _reserveA,
+        uint256 _reserveB
+    )
+        external
+        pure
+        returns (uint256)
+    {
+        return MonadexV1Library.quote(_amountA, _reserveA, _reserveB);
+    }
+
+    function getAmountOut(
+        uint256 _amountIn,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256)
+    {
+        return MonadexV1Library.getAmountOut(_amountIn, _reserveIn, _reserveOut, _poolFee);
+    }
+
+    function getAmountIn(
+        uint256 _amountOut,
+        uint256 _reserveIn,
+        uint256 _reserveOut,
+        MonadexV1Types.Fee memory _poolFee
+    )
+        external
+        pure
+        returns (uint256)
+    {
+        return MonadexV1Library.getAmountOut(_amountOut, _reserveIn, _reserveOut, _poolFee);
+    }
+
+    function getAmountsOut(
+        uint256 _amountIn,
+        address[] calldata _path
+    )
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+    }
+
+    function getAmountsIn(
+        uint256 _amountOut,
+        address[] calldata _path
+    )
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
     }
 }
