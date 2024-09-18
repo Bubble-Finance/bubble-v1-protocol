@@ -367,7 +367,7 @@ contract MonadexV1Raffle is
 
         uint256 balance = balanceOf(msg.sender);
         uint256 ticketsToBurn = slotsToOccupy * RANGE_SIZE;
-        if (ticketsToBurn < balance) {
+        if (balance < ticketsToBurn) {
             revert MonadexV1Raffle__NotEnoughBalance(ticketsToBurn, balance);
         }
 

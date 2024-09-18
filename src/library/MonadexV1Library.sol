@@ -287,8 +287,8 @@ library MonadexV1Library {
             ? uint256(uint64(_pythPrice.price)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
             : uint256(uint64(_pythPrice.price)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
         uint256 confidence = _pythPrice.expo < 0
-            ? uint256(uint64(_pythPrice.price)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
-            : uint256(uint64(_pythPrice.price)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
+            ? uint256(uint64(_pythPrice.conf)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+            : uint256(uint64(_pythPrice.conf)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
         uint256 ticketsToMint = (price - confidence) * _amount / _pricePerTicket;
 
         return ticketsToMint;
