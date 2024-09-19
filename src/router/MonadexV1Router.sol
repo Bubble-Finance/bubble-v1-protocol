@@ -98,9 +98,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * @return Amount of token B added.
      * @return Amount of LP tokens received.
      */
-    function addLiquidity(
-        MonadexV1Types.AddLiquidity calldata _addLiquidityParams
-    )
+    function addLiquidity(MonadexV1Types.AddLiquidity calldata _addLiquidityParams)
         external
         beforeDeadline(_addLiquidityParams.deadline)
         returns (uint256, uint256, uint256)
@@ -167,9 +165,7 @@ contract MonadexV1Router is IMonadexV1Router {
      * @return Amount of token A withdrawn.
      * @return Amount of token B withdrawn.
      */
-    function removeLiquidityWithPermit(
-        MonadexV1Types.RemoveLiquidityWithPermit calldata _params
-    )
+    function removeLiquidityWithPermit(MonadexV1Types.RemoveLiquidityWithPermit calldata _params)
         external
         beforeDeadline(_params.deadline)
         returns (uint256, uint256)

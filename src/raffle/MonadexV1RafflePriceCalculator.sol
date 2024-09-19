@@ -83,7 +83,6 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
         MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
         PythStructs.Price memory price =
             IPyth(i_pyth).getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
-
         return MonadexV1Library.calculateTicketsToMint(_amount, price, PRICE_PER_TICKET);
     }
 
@@ -112,9 +111,7 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
      * @param _token The token's address.
      * @return The price feed config for the given token.
      */
-    function getPythPriceFeedConfigForToken(
-        address _token
-    )
+    function getPythPriceFeedConfigForToken(address _token)
         external
         view
         returns (MonadexV1Types.PriceFeedConfig memory)

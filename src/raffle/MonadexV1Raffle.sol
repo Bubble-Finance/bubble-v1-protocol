@@ -642,9 +642,7 @@ contract MonadexV1Raffle is
      * @param _multiplier The multiplier.
      * @return A fee struct, with numerator and denominator fields.
      */
-    function getMultiplierToPercentage(
-        MonadexV1Types.Multipliers _multiplier
-    )
+    function getMultiplierToPercentage(MonadexV1Types.Multipliers _multiplier)
         public
         view
         returns (MonadexV1Types.Fee memory)
