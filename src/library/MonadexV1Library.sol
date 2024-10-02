@@ -13,11 +13,18 @@ import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
  * @notice The library holds utility functions to be used by the other contracts.
  */
 library MonadexV1Library {
+    /**
+     * @dev The confidence should not exceed a certain percentage of the price.
+     */
+    uint256 internal constant MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS = 1_000;
+    uint256 internal constant BPS = 10_000;
+
     error MonadexV1Library__ReservesZero();
     error MonadexV1Library__InputAmountZero();
     error MonadexV1Library__OutputAmountZero();
     error MonadexV1Library__ZeroAmountIn();
     error MonadexV1Library__InvalidSwapPath();
+    error MonadexV1Library__ExcessiveConfidence();
 
     /**
      * @notice Sorts tokens such that the token with the smaller address value
@@ -289,7 +296,11 @@ library MonadexV1Library {
         uint256 confidence = _pythPrice.expo < 0
             ? uint256(uint64(_pythPrice.conf)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
             : uint256(uint64(_pythPrice.conf)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
-        uint256 ticketsToMint = (price - confidence) * _amount / _pricePerTicket;
+        if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
+            revert MonadexV1Library__ExcessiveConfidence();
+        }
+
+        uint256 ticketsToMint = (price * _amount) / _pricePerTicket;
 
         return ticketsToMint;
     }
