@@ -111,7 +111,9 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
      * @param _token The token's address.
      * @return The price feed config for the given token.
      */
-    function getPythPriceFeedConfigForToken(address _token)
+    function getPythPriceFeedConfigForToken(
+        address _token
+    )
         external
         view
         returns (MonadexV1Types.PriceFeedConfig memory)

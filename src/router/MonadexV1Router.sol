@@ -58,6 +58,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
     error MonadexV1Router__DeadlinePasssed(uint256 deadline);
     error MonadexV1Router__TransferFailed();
+    error MonadexV1Router__PermitFailed();
     error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
     error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
     error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
@@ -98,7 +99,9 @@ contract MonadexV1Router is IMonadexV1Router {
      * @return Amount of token B added.
      * @return Amount of LP tokens received.
      */
-    function addLiquidity(MonadexV1Types.AddLiquidity calldata _addLiquidityParams)
+    function addLiquidity(
+        MonadexV1Types.AddLiquidity calldata _addLiquidityParams
+    )
         external
         beforeDeadline(_addLiquidityParams.deadline)
         returns (uint256, uint256, uint256)
@@ -165,7 +168,9 @@ contract MonadexV1Router is IMonadexV1Router {
      * @return Amount of token A withdrawn.
      * @return Amount of token B withdrawn.
      */
-    function removeLiquidityWithPermit(MonadexV1Types.RemoveLiquidityWithPermit calldata _params)
+    function removeLiquidityWithPermit(
+        MonadexV1Types.RemoveLiquidityWithPermit calldata _params
+    )
         external
         beforeDeadline(_params.deadline)
         returns (uint256, uint256)
@@ -173,9 +178,13 @@ contract MonadexV1Router is IMonadexV1Router {
         address pool = MonadexV1Library.getPool(i_factory, _params.tokenA, _params.tokenB);
         uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
 
-        IERC20Permit(pool).permit(
+        try IERC20Permit(pool).permit(
             msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
-        );
+        ) { } catch {
+            uint256 allowance = IERC20(pool).allowance(msg.sender, address(this));
+            if (allowance < value) revert MonadexV1Router__PermitFailed();
+        }
+
         return removeLiquidity(
             _params.tokenA,
             _params.tokenB,
@@ -203,9 +212,13 @@ contract MonadexV1Router is IMonadexV1Router {
         address pool = MonadexV1Library.getPool(i_factory, _params.token, i_wNative);
         uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
 
-        IERC20Permit(pool).permit(
+        try IERC20Permit(pool).permit(
             msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
-        );
+        ) { } catch {
+            uint256 allowance = IERC20(pool).allowance(msg.sender, address(this));
+            if (allowance < value) revert MonadexV1Router__PermitFailed();
+        }
+
         return removeLiquidityNative(
             _params.token,
             _params.lpTokensToBurn,
