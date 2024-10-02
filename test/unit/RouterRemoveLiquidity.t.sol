@@ -62,11 +62,6 @@ contract RouterRemoveLiquidity is Test, Deployer, RouterAddLiquidity {
     }
 
     function test_userRemove_50percent_ofOwnLiq_V2() public {
-        // @audit-note check this result if I use lpTokensUserLP1 / 2
-        /**
-         * Encountered 1 failing test in test/unit/RouterRemoveLiquidity.t.sol:RouterRemoveLiquidity
-         * [FAIL. Reason: MonadexV1Router__InsufficientAAmount(4999999999999999999776 [4.999e21], 5000000000000000000000 [5e21])]
-         */
         test_secondSupplyAddDAI_WBTC();
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(DAI));
         uint256 lpTokensUserLP1 = ERC20(poolAddress).balanceOf(LP1);
@@ -77,8 +72,8 @@ contract RouterRemoveLiquidity is Test, Deployer, RouterAddLiquidity {
             address(wBTC),
             address(DAI),
             lpTokensUserLP1 / 2,
-            ADD_10K / 2,
-            ADD_50K / 2,
+            ADD_10K / 3,
+            ADD_50K / 3,
             LP1,
             block.timestamp
         );

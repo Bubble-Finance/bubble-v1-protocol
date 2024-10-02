@@ -108,7 +108,7 @@ contract RouterGeters is Test, Deployer {
         uint256 denominator = (_reserveA * _poolFee.denominator) + amountInAfterFee;
 
         uint256 amountOutFormula = numerator / denominator;
-        assertEq(amountInAfterFee, amountOutFunction);
+        assertEq(amountOutFunction, amountOutFormula);
     }
 
     // ----------------------------------

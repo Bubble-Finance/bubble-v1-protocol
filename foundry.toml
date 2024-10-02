@@ -4,6 +4,8 @@ out = "out"
 libs = ["lib"]
 remappings = ["@pythnetwork/=node_modules/@pythnetwork"]
 
+ignored_error_codes = ["unused-var"]
+
 [fmt]
 sort_imports = true
 bracket_spacing = true
@@ -12,4 +14,3 @@ line_length = 100
 multiline_func_header = "all"
 quote_style = "double"
 tab_width = 4
-

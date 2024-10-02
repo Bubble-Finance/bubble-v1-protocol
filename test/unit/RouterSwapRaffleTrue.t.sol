@@ -118,7 +118,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         vm.deal(address(this), value);
         s_pythPriceFeedContract.updatePriceFeeds{ value: value }(updateData);
 
-        PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
+        // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: true,
@@ -135,6 +135,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         vm.stopPrank();
 
         // 4. Checks
+        /// zzz
         assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K);
     }
 }
