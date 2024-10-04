@@ -74,14 +74,14 @@ contract FactoryGeters is Test, Deployer {
         assertEq(TPF.numerator, 5);
     }
 
-    function test_getFeeForAllFeeTiers() external {
+    function test_getFeeForAllFeeTiers() external view {
         MonadexV1Types.Fee[5] memory AFT = s_factory.getFeeForAllFeeTiers();
         MonadexV1Types.Fee memory aft0 = AFT[0];
         assertEq(aft0.numerator, 1);
         assertEq(aft0.denominator, 1000);
     }
 
-    function test_getFeeForTier() external {
+    function test_getFeeForTier() external view {
         MonadexV1Types.Fee memory FFT = s_factory.getFeeForTier(5);
         assertEq(FFT.numerator, 5);
     }
