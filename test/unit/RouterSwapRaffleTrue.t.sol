@@ -129,6 +129,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 3. swap
         vm.startPrank(swapper1);
         DAI.approve(address(s_router), ADD_10K);
+        DAI.approve(address(s_raffle), ADD_10K);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper1, block.timestamp, purchaseTickets
         );
@@ -136,6 +137,6 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // 4. Checks
         /// zzz
-        assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K);
+        assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
     }
 }

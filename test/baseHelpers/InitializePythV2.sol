@@ -63,7 +63,7 @@ contract InitializePythV2 is Test {
         updateData[1] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptowBTCUSD,
             50000 * 100000, // price
-            10 * 1000000, // confidence
+            10, // confidence
             -5, // exponent
             50000 * 1000000, // emaPrice
             10 * 1000000, // emaConfidence
@@ -74,7 +74,7 @@ contract InitializePythV2 is Test {
         updateData[2] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoDAIUSD,
             1 * 1000000, // price
-            10 * 1000000, // confidence
+            10, // confidence
             -5, // exponent
             1 * 1000000, // emaPrice
             10 * 1000000, // emaConfidence
@@ -85,7 +85,7 @@ contract InitializePythV2 is Test {
         updateData[3] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoUSDTUSD,
             1 * 1000000, // price
-            10 * 1000000, // confidence
+            10, // confidence
             -5, // exponent
             1 * 1000000, // emaPrice
             10 * 1000000, // emaConfidence
@@ -96,7 +96,7 @@ contract InitializePythV2 is Test {
         updateData[4] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoSHIBUSD,
             5, // price
-            10 * 1000000, // confidence
+            10, // confidence
             -5, // exponent
             5, // emaPrice
             10 * 1000000, // emaConfidence
