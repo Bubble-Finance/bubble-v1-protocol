@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 // ----------------------------------
 //  CONTRACT: MonadexV1Router
-//  FUNCTIONS TESTED: 8
+//  FUNCTIONS TESTED: 6
 //  THIS TEST HAS RAFFLE TICKETS SET TO TRUE
-//  THE PORPUSE IS TEST THE CAPACITY OF USER TO BUY TICKETS
-//  IF THE ARE MAKING SWAPS
+//  THE ONLY PORPUSE OF THIS TEST THE CAPACITY OF USER TO BUY TICKETS
+//  IF THE ARE MAKING SWAPS. WE ARE JUST CHECKIN `purchaseTickets: true`
 // ----------------------------------
 
 // ----------------------------------
@@ -69,6 +69,10 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
     //    Tests
     // --------------------------------
 
+    // --------------------------------
+    //    ADD Supported Tokens
+    // --------------------------------
+
     function test_supportTokenGetSupported() public {
         vm.startPrank(protocolTeamMultisig);
         MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
@@ -92,7 +96,11 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         vm.stopPrank();
     }
 
-    function test_raffleEqualTrueWorks() public addSupportedTokens {
+    // --------------------------------
+    //    swapExactTokensForTokens
+    // --------------------------------
+
+    function test_swapDAIForWBTCAndBuyTickets() public addSupportedTokens {
         // 1. Lets add some cash to the pool:
         test_secondSupplyAddDAI_WBTC();
 
@@ -135,8 +143,107 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         );
         vm.stopPrank();
 
+        // 4. Checks:
+        assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
+        console.log("tickets DAI balance: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+    }
+
+    function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
+        // 1. Lets add some cash to the pool:
+        test_initialSupplyAddUSDT_WBTC();
+
+        // 2. A few checks before the start:
+        address pool = s_factory.getTokenPairToPool(address(USDT), address(wBTC));
+
+        uint256 balance_swapper1_USDT = USDT.balanceOf(swapper1);
+        uint256 balance_swapper1_wBTC = wBTC.balanceOf(swapper1);
+        uint256 balance_pool_USDT = USDT.balanceOf(pool);
+        uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
+
+        /**
+         * SWAP START *
+         */
+        // 1. Calculate path:
+        address[] memory path = new address[](2);
+        path[0] = address(USDT);
+        path[1] = address(wBTC);
+
+        // 2. Purchase tickets = true
+        bytes[] memory updateData = s_initializePyth.createEthUpdate();
+        uint256 value = s_pythPriceFeedContract.getUpdateFee(updateData);
+        vm.deal(address(this), value);
+        s_pythPriceFeedContract.updatePriceFeeds{ value: value }(updateData);
+
+        // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
+
+        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
+            purchaseTickets: true,
+            multiplier: MonadexV1Types.Multipliers.Multiplier1,
+            minimumTicketsToReceive: 0
+        });
+
+        // 3. swap
+        vm.startPrank(swapper2);
+        USDT.approve(address(s_router), ADD_10K);
+        USDT.approve(address(s_raffle), ADD_10K);
+        s_router.swapExactTokensForTokens(
+            ADD_10K, 1, path, swapper2, block.timestamp, purchaseTickets
+        );
+        vm.stopPrank();
+
         // 4. Checks
         /// zzz
-        assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
+        console.log("tickets USDT balances: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+    }
+
+    function test_checkDecimalsInBuyTickets() public {
+        test_swapDAIForWBTCAndBuyTickets();
+        test_initialSupplyAddUSDT_WBTC();
+
+        // 2. A few checks before the start:
+        address pool = s_factory.getTokenPairToPool(address(USDT), address(wBTC));
+
+        uint256 balance_swapper1_USDT = USDT.balanceOf(swapper1);
+        uint256 balance_swapper1_wBTC = wBTC.balanceOf(swapper1);
+        uint256 balance_pool_USDT = USDT.balanceOf(pool);
+        uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
+
+        /**
+         * SWAP START *
+         */
+        // 1. Calculate path:
+        address[] memory path = new address[](2);
+        path[0] = address(USDT);
+        path[1] = address(wBTC);
+
+        // 2. Purchase tickets = true
+        bytes[] memory updateData = s_initializePyth.createEthUpdate();
+        uint256 value = s_pythPriceFeedContract.getUpdateFee(updateData);
+        vm.deal(address(this), value);
+        s_pythPriceFeedContract.updatePriceFeeds{ value: value }(updateData);
+
+        // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
+
+        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
+            purchaseTickets: true,
+            multiplier: MonadexV1Types.Multipliers.Multiplier1,
+            minimumTicketsToReceive: 0
+        });
+
+        // 3. swap
+        vm.startPrank(swapper2);
+        USDT.approve(address(s_router), ADD_10K);
+        USDT.approve(address(s_raffle), ADD_10K);
+        s_router.swapExactTokensForTokens(
+            ADD_10K, 1, path, swapper2, block.timestamp, purchaseTickets
+        );
+        vm.stopPrank();
+
+        // 4. Checks
+        /// zzz
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
+        console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
     }
 }
