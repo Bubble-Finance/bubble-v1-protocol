@@ -91,6 +91,42 @@ contract RouterAddLiquidity is Test, Deployer {
         );
     }
 
+    function test_initialSupplyAddUSDT_WBTC() public {
+        vm.startPrank(LP1);
+        wBTC.approve(address(s_router), ADD_10K);
+        USDT.approve(address(s_router), ADD_50K);
+
+        // Note: deadline = max deadLine possible => 1921000304
+        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+            tokenA: address(wBTC),
+            tokenB: address(USDT),
+            amountADesired: ADD_10K,
+            amountBDesired: ADD_50K,
+            amountAMin: 1,
+            amountBMin: 1,
+            receiver: LP1,
+            deadline: block.timestamp
+        });
+        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
+            s_router.addLiquidity(liquidityLP1);
+        vm.stopPrank();
+
+        address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(USDT));
+
+        /*
+         * CHECKS:
+         */
+        assertEq(wBTC.balanceOf(poolAddress), ADD_10K);
+        assertEq(USDT.balanceOf(poolAddress), ADD_50K);
+        assert(ERC20(poolAddress).balanceOf(LP1) != 0);
+        assertEq(ERC20(poolAddress).balanceOf(LP1), lpTokensMintedLP1);
+        assertEq(ERC20(poolAddress).balanceOf(address(1)), 1000);
+        assertEq(
+            ERC20(poolAddress).balanceOf(LP1),
+            ERC20(poolAddress).totalSupply() - ERC20(poolAddress).balanceOf(address(1))
+        );
+    }
+
     function test_secondSupplyAddDAI_WBTC() public {
         test_initialSupplyAddDAI_WBTC();
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(DAI));
