@@ -27,10 +27,7 @@ import { IERC20Metadata } from
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {
-    ERC20,
-    ERC20Permit
-} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { ERC20 } from "@solmate/tokens/ERC20.sol";
 
 import { IMonadexV1Callee } from "../interfaces/IMonadexV1Callee.sol";
 import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
@@ -45,7 +42,7 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
  * @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
  * withdrawing liquidity, and swapping tokens in either direction.
  */
-contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
+contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -138,7 +135,7 @@ contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
     /**
      * @notice Sets the factory address as well as the name for EIP712 signatures.
      */
-    constructor() ERC20("MonadexLPToken", "MDXLP") ERC20Permit("MonadexV1Pool") {
+    constructor() ERC20("MonadexLPToken", "MDXLP", 18) {
         i_factory = msg.sender;
     }
 
@@ -180,7 +177,7 @@ contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
         uint256 lpTokensToMint;
 
         _mintProtocolFee(reserveA, reserveB);
-        uint256 totalLpTokenSupply = totalSupply();
+        uint256 totalLpTokenSupply = totalSupply;
         if (totalLpTokenSupply == 0) {
             lpTokensToMint = (amountAIn * amountBIn).sqrt() - MINIMUM_LIQUIDITY;
             _mint(address(1), MINIMUM_LIQUIDITY);
@@ -212,10 +209,10 @@ contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
         (uint256 reserveA, uint256 reserveB) = getReserves();
         uint256 balanceA = IERC20(s_tokenA).balanceOf(address(this));
         uint256 balanceB = IERC20(s_tokenB).balanceOf(address(this));
-        uint256 lpTokensReceived = balanceOf(address(this));
+        uint256 lpTokensReceived = balanceOf[address(this)];
 
         _mintProtocolFee(reserveA, reserveB);
-        uint256 totalLpTokenSupply = totalSupply();
+        uint256 totalLpTokenSupply = totalSupply;
         uint256 amountAOut = (lpTokensReceived * balanceA) / totalLpTokenSupply;
         uint256 amountBOut = (lpTokensReceived * balanceB) / totalLpTokenSupply;
         if (amountAOut == 0 || amountBOut == 0) {
@@ -378,7 +375,7 @@ contract MonadexV1Pool is ERC20Permit, IMonadexV1Pool {
         address protocolTeamMultisig = getProtocolTeamMultisig();
         MonadexV1Types.Fee memory protocolFee = getProtocolFee();
         uint256 lastK = s_lastK;
-        uint256 totalLpTokenSupply = totalSupply();
+        uint256 totalLpTokenSupply = totalSupply;
 
         if (lastK != 0) {
             uint256 rootK = (_reserveA * _reserveB).sqrt();
