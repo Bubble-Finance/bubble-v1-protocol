@@ -108,6 +108,10 @@ contract MonadexV1Raffle is
      * The range size is given by: 10 ** token decimals (by default 18).
      */
     uint256 private constant RANGE_SIZE = 1e18;
+    /**
+     * @dev The maximum number of tokens that can be used for raffle.
+     */
+    uint256 private constant MAX_SUPPORTED_TOKENS = 5;
 
     /**
      * @dev We need to store the router's address to ensure that purchases are made from the router
@@ -222,6 +226,7 @@ contract MonadexV1Raffle is
     );
     error MonadexV1Raffle__ZeroWinnings();
     error MonadexV1Raffle__TokenAlreadySupported(address token);
+    error MonadexV1Raffle__CannotSupportMoreTokens();
     error MonadexV1Raffle__CannotRemoveTokenYet(address token, uint256 currentBalance);
 
     /////////////////
@@ -473,6 +478,9 @@ contract MonadexV1Raffle is
         onlyOwner
     {
         if (s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenAlreadySupported(_token);
+        if (s_supportedTokens.length == MAX_SUPPORTED_TOKENS) {
+            revert MonadexV1Raffle__CannotSupportMoreTokens();
+        }
 
         s_isSupportedToken[_token] = true;
         s_supportedTokens.push(_token);
