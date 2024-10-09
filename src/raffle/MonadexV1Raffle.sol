@@ -22,8 +22,8 @@ pragma solidity 0.8.24;
 
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
+import { ERC20 } from "@solmate/tokens/ERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -270,7 +270,7 @@ contract MonadexV1Raffle is
     )
         MonadexV1RafflePriceCalculator(_pythPriceFeedContract)
         MonadexV1Entropy(_entropyContract, _entropyProvider)
-        ERC20("MonadexV1RaffleTicket", "MDXRT")
+        ERC20("MonadexV1RaffleTicket", "MDXRT", 18)
         Ownable(msg.sender)
     {
         if (_supportedTokens.length != _priceFeedConfigs.length) {
@@ -370,7 +370,7 @@ contract MonadexV1Raffle is
         uint256 slotsToOccupy = _amount / RANGE_SIZE;
         if (slotsToOccupy == 0) revert MonadexV1Raffle__NotEnoughTickets();
 
-        uint256 balance = balanceOf(msg.sender);
+        uint256 balance = balanceOf[msg.sender];
         uint256 ticketsToBurn = slotsToOccupy * RANGE_SIZE;
         if (balance < ticketsToBurn) {
             revert MonadexV1Raffle__NotEnoughBalance(ticketsToBurn, balance);
