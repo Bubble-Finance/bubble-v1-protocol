@@ -38,7 +38,7 @@ import { Test, console } from "lib/forge-std/src/Test.sol";
 //    Monadex Contracts Imports
 // --------------------------------
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
@@ -49,76 +49,88 @@ import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
+import { RouterSwapRaffleTrue } from "test/unit/RouterSwapRaffleTrue.t.sol";
+
 // ------------------------------------------------------
 //    Contract for testing and debugging
 // -----------------------------------------------------
 
-contract RaffleGetters is Test, Deployer {
-// ----------------------------------
-//    CONS
-// ----------------------------------
+contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
+    // ----------------------------------
+    //    CONS
+    // ----------------------------------
 
-// ----------------------------------
-//    getRouterAddress()
-// ----------------------------------
+    // ----------------------------------
+    //    getRouterAddress()
+    // ----------------------------------
 
-// ----------------------------------
-//    getLastTimestamp()
-// ----------------------------------
+    function test_getRouterAddress() public view {
+        address routerAddress = s_raffle.getRouterAddress();
+        assertEq(routerAddress, address(s_router));
+    }
 
-// ----------------------------------
-//    getSupportedTokens()
-// ----------------------------------
+    // ----------------------------------
+    //    getLastTimestamp()
+    // ----------------------------------
 
-// ----------------------------------
-//    isSupportedToken()
-// ----------------------------------
+    function test_getLastTimestamp() public view {
+        uint256 lastTimeStamp = s_raffle.getLastTimestamp();
+        console.log("sss: ", lastTimeStamp);
+    }
 
-// ----------------------------------
-//    getUserAtRangeStart()
-// ----------------------------------
+    // ----------------------------------
+    //    getSupportedTokens()
+    // ----------------------------------
 
-// ----------------------------------
-//    getCurrentRangeEnd()
-// ----------------------------------
+    // ----------------------------------
+    //    isSupportedToken()
+    // ----------------------------------
 
-// ----------------------------------
-//    getMultiplierToPercentage()
-// ----------------------------------
+    // ----------------------------------
+    //    getUserAtRangeStart()
+    // ----------------------------------
 
-// ----------------------------------
-//    getWinningPortions()
-// ----------------------------------
+    // ----------------------------------
+    //    getCurrentRangeEnd()
+    // ----------------------------------
 
-// ----------------------------------
-//    getWinnings()
-// ----------------------------------
+    // ----------------------------------
+    //    getMultiplierToPercentage()
+    // ----------------------------------
 
-// ----------------------------------
-//    getRaffleDuration()
-// ----------------------------------
+    // ----------------------------------
+    //    getWinningPortions()
+    // ----------------------------------
 
-// ----------------------------------
-//    getRegistrationPeriod()
-// ----------------------------------
+    // ----------------------------------
+    //    getWinnings()
+    // ----------------------------------
 
-// ----------------------------------
-//    getMaxWinners()
-// ----------------------------------
+    // ----------------------------------
+    //    getRaffleDuration()
+    // ----------------------------------
 
-// ----------------------------------
-//    getMinimumParticipantsForRaffle()
-// ----------------------------------
+    // ----------------------------------
+    //    getRegistrationPeriod()
+    // ----------------------------------
 
-// ----------------------------------
-//    previewPurchase()
-// ----------------------------------
+    // ----------------------------------
+    //    getMaxWinners()
+    // ----------------------------------
 
-// ----------------------------------
-//    isRegistrationOpen()
-// ----------------------------------
+    // ----------------------------------
+    //    getMinimumParticipantsForRaffle()
+    // ----------------------------------
 
-// ----------------------------------
-//    hasRegistrationPeriodEnded()
-// ----------------------------------
+    // ----------------------------------
+    //    previewPurchase()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    isRegistrationOpen()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    hasRegistrationPeriodEnded()
+    // ----------------------------------
 }

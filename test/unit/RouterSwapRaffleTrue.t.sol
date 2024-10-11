@@ -29,7 +29,7 @@ import { Test, console } from "lib/forge-std/src/Test.sol";
 //    Monadex Contracts Imports
 // --------------------------------
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
@@ -145,7 +145,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // 4. Checks:
         assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
-        // console.log("tickets DAI balance: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets DAI balance: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
     }
 
     function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
@@ -194,7 +194,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 4. Checks
         /// zzz
         assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
-        // console.log("tickets USDT balances: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets USDT balances: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
     }
 
     function test_checkDecimalsInBuyTickets() public {
@@ -243,7 +243,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 4. Checks
         /// zzz
         assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
-        // console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
-        // console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
+        console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
     }
 }
