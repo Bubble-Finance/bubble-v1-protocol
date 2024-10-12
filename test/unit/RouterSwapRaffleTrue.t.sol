@@ -7,16 +7,20 @@ pragma solidity ^0.8.24;
 //  THIS TEST HAS RAFFLE TICKETS SET TO TRUE
 //  THE ONLY PORPUSE OF THIS TEST THE CAPACITY OF USER TO BUY TICKETS
 //  IF THE ARE MAKING SWAPS. WE ARE JUST CHECKIN `purchaseTickets: true`
+//  AFTER SET `purchaseTickets: true` THE ROUTER CALLS s_raffle.purchaseTickets()
 // ----------------------------------
 
 // ----------------------------------
 //  TEST:
+// ** ROUTER **
 //  1. swapExactTokensForTokens()
 //  2. swapTokensForExactTokens()
 //  3. swapExactNativeForTokens()
 //  4. swapTokensForExactNative()
 //  5. swapExactTokensForNative()
 //  6. swapNativeForExactTokens()
+// ** RAFFLE **
+//  7. s_raffle.purchaseTickets()
 // ----------------------------------
 
 // ----------------------------------
@@ -182,7 +186,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
             minimumTicketsToReceive: 0
         });
 
-        // 3. swap
+        // 3. SWAP AND PURCHASE TICKETS
         vm.startPrank(swapper2);
         USDT.approve(address(s_router), ADD_10K);
         USDT.approve(address(s_raffle), ADD_10K);

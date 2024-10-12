@@ -74,17 +74,62 @@ contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
     // ----------------------------------
 
     function test_getLastTimestamp() public view {
+        // @audit-check lastTimeStamp:  1 for the first period
         uint256 lastTimeStamp = s_raffle.getLastTimestamp();
-        console.log("sss: ", lastTimeStamp);
+        console.log("lastTimeStamp: ", lastTimeStamp);
     }
 
     // ----------------------------------
     //    getSupportedTokens()
     // ----------------------------------
+    function test_getSupportedTokens() public {
+        address[] memory supportedTokens = s_raffle.getSupportedTokens();
+        assertEq(supportedTokens[0], s_wNative);
+        assertEq(supportedTokens.length, 1);
+
+        vm.startPrank(protocolTeamMultisig);
+        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        ];
+
+        s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
+        s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
+        s_raffle.supportToken(address(USDT), _pythPriceFeedConfig[2]);
+        s_raffle.supportToken(address(SHIB), _pythPriceFeedConfig[3]);
+        vm.stopPrank();
+
+        supportedTokens = s_raffle.getSupportedTokens();
+        assertEq(supportedTokens[3], address(USDT));
+        assertEq(supportedTokens.length, 5);
+    }
 
     // ----------------------------------
     //    isSupportedToken()
     // ----------------------------------
+
+    function test_isSupportedToken() public {
+        vm.startPrank(protocolTeamMultisig);
+        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        ];
+
+        s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
+        s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
+        vm.stopPrank();
+
+        assertEq(s_raffle.isSupportedToken(address(wBTC)), true);
+        assertEq(s_raffle.isSupportedToken(address(DAI)), true);
+        assertEq(s_raffle.isSupportedToken(address(USDT)), false);
+        assertEq(s_raffle.isSupportedToken(address(SHIB)), false);
+    }
 
     // ----------------------------------
     //    getUserAtRangeStart()
