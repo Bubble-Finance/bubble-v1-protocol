@@ -149,7 +149,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // 4. Checks:
         assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
-        console.log("tickets DAI balance: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        // console.log("tickets balance: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
     function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
@@ -198,7 +198,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 4. Checks
         /// zzz
         assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
-        console.log("tickets USDT balances: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets balances: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
     function test_checkDecimalsInBuyTickets() public {

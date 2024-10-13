@@ -175,6 +175,20 @@ contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
     //    isRegistrationOpen()
     // ----------------------------------
 
+    function test_isRegistrationOpen() public {
+        /*
+         * @audit-check registration is open after 6 days but:
+         * if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) return false;
+         * RAFFLE_DURATION = 6 days;
+         * REGISTRATION_PERIOD = 1 days;
+         */
+        bool isOpen = s_raffle.isRegistrationOpen();
+        assertEq(isOpen, false);
+        vm.warp(block.timestamp + 6 days);
+        isOpen = s_raffle.isRegistrationOpen();
+        assertEq(isOpen, true);
+    }
+
     // ----------------------------------
     //    hasRegistrationPeriodEnded()
     // ----------------------------------
