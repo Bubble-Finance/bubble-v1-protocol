@@ -283,24 +283,29 @@ library MonadexV1Library {
     function calculateTicketsToMint(
         uint256 _amount,
         PythStructs.Price memory _pythPrice,
-        uint256 _pricePerTicket
+        uint256 _pricePerTicket,
+        uint256 _decimals
     )
         internal
         pure
         returns (uint256)
     {
-        uint256 decimals = 1e18;
+        uint256 raffleTicketDecimals = 1e18;
         uint256 price = _pythPrice.expo < 0
-            ? uint256(uint64(_pythPrice.price)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
-            : uint256(uint64(_pythPrice.price)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
+            ? uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
+                / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+            : uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
+                * 10 ** uint256(uint32(_pythPrice.expo));
         uint256 confidence = _pythPrice.expo < 0
-            ? uint256(uint64(_pythPrice.conf)) * decimals / 10 ** uint256(uint32(-1 * _pythPrice.expo))
-            : uint256(uint64(_pythPrice.conf)) * decimals * 10 ** uint256(uint32(-1 * _pythPrice.expo));
+            ? uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
+                / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+            : uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
+                * 10 ** uint256(uint32(_pythPrice.expo));
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
             revert MonadexV1Library__ExcessiveConfidence();
         }
 
-        uint256 ticketsToMint = (price * _amount) / _pricePerTicket;
+        uint256 ticketsToMint = (price * _amount) / (_pricePerTicket * _decimals);
 
         return ticketsToMint;
     }
