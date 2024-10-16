@@ -62,44 +62,44 @@ contract InitializePythV2 is Test {
 
         updateData[1] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptowBTCUSD,
-            50000 * 100000, // price
-            10, // confidence
-            -5, // exponent
-            50000 * 1000000, // emaPrice
-            10 * 1000000, // emaConfidence
+            6694393168987, // price
+            7408528286, // confidence
+            -8, // exponent
+            6703066300000, // emaPrice
+            8104350500, // emaConfidence
             uint64(block.timestamp), // publishTime
             uint64(block.timestamp) // prevPublishTime
         );
 
         updateData[2] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoDAIUSD,
-            1 * 1000000, // price
-            10, // confidence
-            -5, // exponent
-            1 * 1000000, // emaPrice
-            10 * 1000000, // emaConfidence
+            99984529, // price
+            225894, // confidence
+            -8, // exponent
+            99986299, // emaPrice
+            227157, // emaConfidence
             uint64(block.timestamp), // publishTime
             uint64(block.timestamp) // prevPublishTime
         );
 
         updateData[3] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoUSDTUSD,
-            1 * 1000000, // price
-            10, // confidence
-            -5, // exponent
-            1 * 1000000, // emaPrice
-            10 * 1000000, // emaConfidence
+            99993992, // price
+            177642, // confidence
+            -8, // exponent
+            99985931, // emaPrice
+            149516, // emaConfidence
             uint64(block.timestamp), // publishTime
             uint64(block.timestamp) // prevPublishTime
         );
 
         updateData[4] = s_pythPriceFeedContract.createPriceFeedUpdateData(
             cryptoSHIBUSD,
-            5, // price
-            10, // confidence
-            -5, // exponent
-            5, // emaPrice
-            10 * 1000000, // emaConfidence
+            181756, // price
+            241, // confidence
+            -10, // exponent
+            182053, // emaPrice
+            261, // emaConfidence
             uint64(block.timestamp), // publishTime
             uint64(block.timestamp) // prevPublishTime
         );
