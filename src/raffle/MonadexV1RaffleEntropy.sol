@@ -31,7 +31,7 @@ import { IMonadexV1Entropy } from "../interfaces/IMonadexV1Entropy.sol";
  * @notice This contract stores state associated with getting a random number,
  * and the entropy callback function.
  */
-abstract contract MonadexV1Entropy is IEntropyConsumer, IMonadexV1Entropy {
+abstract contract MonadexV1RaffleEntropy is IEntropyConsumer, IMonadexV1Entropy {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
