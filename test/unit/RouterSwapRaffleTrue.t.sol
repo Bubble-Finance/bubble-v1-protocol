@@ -7,16 +7,20 @@ pragma solidity ^0.8.24;
 //  THIS TEST HAS RAFFLE TICKETS SET TO TRUE
 //  THE ONLY PORPUSE OF THIS TEST THE CAPACITY OF USER TO BUY TICKETS
 //  IF THE ARE MAKING SWAPS. WE ARE JUST CHECKIN `purchaseTickets: true`
+//  AFTER SET `purchaseTickets: true` THE ROUTER CALLS s_raffle.purchaseTickets()
 // ----------------------------------
 
 // ----------------------------------
 //  TEST:
+// ** ROUTER **
 //  1. swapExactTokensForTokens()
 //  2. swapTokensForExactTokens()
 //  3. swapExactNativeForTokens()
 //  4. swapTokensForExactNative()
 //  5. swapExactTokensForNative()
 //  6. swapNativeForExactTokens()
+// ** RAFFLE **
+//  7. s_raffle.purchaseTickets()
 // ----------------------------------
 
 // ----------------------------------
@@ -29,7 +33,7 @@ import { Test, console } from "lib/forge-std/src/Test.sol";
 //    Monadex Contracts Imports
 // --------------------------------
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
@@ -145,7 +149,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // 4. Checks:
         assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
-        // console.log("tickets DAI balance: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        // console.log("tickets balance: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
     function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
@@ -182,7 +186,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
             minimumTicketsToReceive: 0
         });
 
-        // 3. swap
+        // 3. SWAP AND PURCHASE TICKETS
         vm.startPrank(swapper2);
         USDT.approve(address(s_router), ADD_10K);
         USDT.approve(address(s_raffle), ADD_10K);
@@ -194,7 +198,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 4. Checks
         /// zzz
         assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
-        // console.log("tickets USDT balances: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets balances: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
     function test_checkDecimalsInBuyTickets() public {
@@ -243,7 +247,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // 4. Checks
         /// zzz
         assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
-        // console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
-        // console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
+        console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
+        console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
     }
 }

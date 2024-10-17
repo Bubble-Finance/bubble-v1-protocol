@@ -38,7 +38,7 @@ import { Test, console } from "lib/forge-std/src/Test.sol";
 //    Monadex Contracts Imports
 // --------------------------------
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
@@ -49,76 +49,147 @@ import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
+import { RouterSwapRaffleTrue } from "test/unit/RouterSwapRaffleTrue.t.sol";
+
 // ------------------------------------------------------
 //    Contract for testing and debugging
 // -----------------------------------------------------
 
-contract RaffleGetters is Test, Deployer {
-// ----------------------------------
-//    CONS
-// ----------------------------------
+contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
+    // ----------------------------------
+    //    CONS
+    // ----------------------------------
 
-// ----------------------------------
-//    getRouterAddress()
-// ----------------------------------
+    // ----------------------------------
+    //    getRouterAddress()
+    // ----------------------------------
 
-// ----------------------------------
-//    getLastTimestamp()
-// ----------------------------------
+    function test_getRouterAddress() public view {
+        address routerAddress = s_raffle.getRouterAddress();
+        assertEq(routerAddress, address(s_router));
+    }
 
-// ----------------------------------
-//    getSupportedTokens()
-// ----------------------------------
+    // ----------------------------------
+    //    getLastTimestamp()
+    // ----------------------------------
 
-// ----------------------------------
-//    isSupportedToken()
-// ----------------------------------
+    function test_getLastTimestamp() public view {
+        // @audit-check lastTimeStamp:  1 for the first period
+        uint256 lastTimeStamp = s_raffle.getLastTimestamp();
+        console.log("lastTimeStamp: ", lastTimeStamp);
+    }
 
-// ----------------------------------
-//    getUserAtRangeStart()
-// ----------------------------------
+    // ----------------------------------
+    //    getSupportedTokens()
+    // ----------------------------------
+    function test_getSupportedTokens() public {
+        address[] memory supportedTokens = s_raffle.getSupportedTokens();
+        assertEq(supportedTokens[0], s_wNative);
+        assertEq(supportedTokens.length, 1);
 
-// ----------------------------------
-//    getCurrentRangeEnd()
-// ----------------------------------
+        vm.startPrank(protocolTeamMultisig);
+        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        ];
 
-// ----------------------------------
-//    getMultiplierToPercentage()
-// ----------------------------------
+        s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
+        s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
+        s_raffle.supportToken(address(USDT), _pythPriceFeedConfig[2]);
+        s_raffle.supportToken(address(SHIB), _pythPriceFeedConfig[3]);
+        vm.stopPrank();
 
-// ----------------------------------
-//    getWinningPortions()
-// ----------------------------------
+        supportedTokens = s_raffle.getSupportedTokens();
+        assertEq(supportedTokens[3], address(USDT));
+        assertEq(supportedTokens.length, 5);
+    }
 
-// ----------------------------------
-//    getWinnings()
-// ----------------------------------
+    // ----------------------------------
+    //    isSupportedToken()
+    // ----------------------------------
 
-// ----------------------------------
-//    getRaffleDuration()
-// ----------------------------------
+    function test_isSupportedToken() public {
+        vm.startPrank(protocolTeamMultisig);
+        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        ];
 
-// ----------------------------------
-//    getRegistrationPeriod()
-// ----------------------------------
+        s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
+        s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
+        vm.stopPrank();
 
-// ----------------------------------
-//    getMaxWinners()
-// ----------------------------------
+        assertEq(s_raffle.isSupportedToken(address(wBTC)), true);
+        assertEq(s_raffle.isSupportedToken(address(DAI)), true);
+        assertEq(s_raffle.isSupportedToken(address(USDT)), false);
+        assertEq(s_raffle.isSupportedToken(address(SHIB)), false);
+    }
 
-// ----------------------------------
-//    getMinimumParticipantsForRaffle()
-// ----------------------------------
+    // ----------------------------------
+    //    getUserAtRangeStart()
+    // ----------------------------------
 
-// ----------------------------------
-//    previewPurchase()
-// ----------------------------------
+    // ----------------------------------
+    //    getCurrentRangeEnd()
+    // ----------------------------------
 
-// ----------------------------------
-//    isRegistrationOpen()
-// ----------------------------------
+    // ----------------------------------
+    //    getMultiplierToPercentage()
+    // ----------------------------------
 
-// ----------------------------------
-//    hasRegistrationPeriodEnded()
-// ----------------------------------
+    // ----------------------------------
+    //    getWinningPortions()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    getWinnings()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    getRaffleDuration()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    getRegistrationPeriod()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    getMaxWinners()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    getMinimumParticipantsForRaffle()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    previewPurchase()
+    // ----------------------------------
+
+    // ----------------------------------
+    //    isRegistrationOpen()
+    // ----------------------------------
+
+    function test_isRegistrationOpen() public {
+        /*
+         * @audit-check registration is open after 6 days but:
+         * if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) return false;
+         * RAFFLE_DURATION = 6 days;
+         * REGISTRATION_PERIOD = 1 days;
+         */
+        bool isOpen = s_raffle.isRegistrationOpen();
+        assertEq(isOpen, false);
+        vm.warp(block.timestamp + 6 days);
+        isOpen = s_raffle.isRegistrationOpen();
+        assertEq(isOpen, true);
+    }
+
+    // ----------------------------------
+    //    hasRegistrationPeriodEnded()
+    // ----------------------------------
 }

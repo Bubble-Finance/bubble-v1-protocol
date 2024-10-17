@@ -20,6 +20,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
@@ -83,7 +84,9 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
         MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
         PythStructs.Price memory price =
             IPyth(i_pyth).getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
-        return MonadexV1Library.calculateTicketsToMint(_amount, price, PRICE_PER_TICKET);
+        uint256 tokenDecimals = IERC20Metadata(_token).decimals();
+        return
+            MonadexV1Library.calculateTicketsToMint(_amount, price, PRICE_PER_TICKET, tokenDecimals);
     }
 
     //////////////////////////////

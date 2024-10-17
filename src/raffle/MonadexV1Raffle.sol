@@ -34,7 +34,7 @@ import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
-import { MonadexV1Entropy } from "./MonadexV1Entropy.sol";
+import { MonadexV1RaffleEntropy } from "./MonadexV1RaffleEntropy.sol";
 import { MonadexV1RafflePriceCalculator } from "./MonadexV1RafflePriceCalculator.sol";
 
 /**
@@ -49,7 +49,7 @@ contract MonadexV1Raffle is
     ERC20,
     Ownable,
     MonadexV1RafflePriceCalculator,
-    MonadexV1Entropy,
+    MonadexV1RaffleEntropy,
     IMonadexV1Raffle
 {
     using SafeERC20 for IERC20;
@@ -269,7 +269,7 @@ contract MonadexV1Raffle is
         uint256 _minimumParticipants
     )
         MonadexV1RafflePriceCalculator(_pythPriceFeedContract)
-        MonadexV1Entropy(_entropyContract, _entropyProvider)
+        MonadexV1RaffleEntropy(_entropyContract, _entropyProvider)
         ERC20("MonadexV1RaffleTicket", "MDXRT", 18)
         Ownable(msg.sender)
     {

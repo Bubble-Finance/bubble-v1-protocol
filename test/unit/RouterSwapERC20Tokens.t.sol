@@ -24,7 +24,7 @@ import { Test, console } from "lib/forge-std/src/Test.sol";
 //    Monadex Contracts Imports
 // --------------------------------
 
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
