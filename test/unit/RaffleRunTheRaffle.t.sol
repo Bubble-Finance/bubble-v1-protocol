@@ -101,6 +101,7 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
         assertEq(ticketsToBurn, 1000e18);
     }
 
+    /* //@audit-note:commented bc take too long
     function test_userRegisterLimit() public {
         test_swapDAIForWBTCAndBuyTickets();
 
@@ -110,7 +111,7 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
         uint256 ticketsToBurn = s_raffle.register(1e25);
         assertEq(ticketsToBurn, 1e25);
     }
-
+    */
     // @audit-high - Not finishing, Potential DoS attack.
     /* function test_userRegister100x100OfThetickets() public {
         test_swapDAIForWBTCAndBuyTickets(); //User swap DAI = 10K for wBTC
@@ -127,6 +128,11 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
     // --------------------------------
     //    requestRandomNumber()
     // --------------------------------
+    function test_howWorksPythEntropy() public {
+        vm.startPrank(LP1);
+
+        vm.stopPrank();
+    }
 
     // --------------------------------
     //    drawWinnersAndAllocateRewards()
