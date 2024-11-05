@@ -21,6 +21,10 @@ import { InitializeTokens } from "./InitializeTokens.sol";
 
 import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 
+import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
+import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
+
 contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 {
     // -------------------------------------------
     //  Governor Initialize
@@ -72,6 +76,39 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     }
 
     // -------------------------------------------
+    //     Oracle Pyth Prices Initialize
+    // -------------------------------------------
+    InitializePythV2 public s_initializePyth;
+    MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
+
+    function initializePythMockAndPrices() public {
+        s_entropyContract = address(s_pythPriceFeedContract);
+
+        s_initializePyth = new InitializePythV2();
+
+        // bytes[] memory updateData = s_initializePyth.createEthUpdate();
+    }
+
+    // -------------------------------------------
+    //     Oracle Pyth Entropy Initialize
+    // -------------------------------------------
+    MockEntropy mock; // provider and entropy;
+    bytes32 userRandomNumber = 0x85f0ce7392d4ff75162f550c8a2679da7b3c39465d126ebae57b4bb126423d3a;
+
+    address public s_entropyContract;
+    address public s_entropyProvider;
+
+    MockEntropyContract mockEntropy;
+
+    function initializeEntropy() public {
+        mock = new MockEntropy(userRandomNumber);
+        // mockEntropy = new MockEntropyContract(address(mock), address(mock)); // not needed
+
+        s_entropyProvider = address(mock);
+        s_entropyContract = address(mock);
+    }
+
+    // -------------------------------------------
     //     Raffle Initialize
     // -------------------------------------------
     address[] public s_supportedTokens;
@@ -79,16 +116,12 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     MonadexV1Types.Fee[3] public s_winningPortions;
     uint256 public s_minimumParticipants;
 
-    // Oracle => Pyth
-    MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
-    address public s_entropyContract;
-    address public s_entropyProvider;
-
     uint256 public constant WINNING_PORTTIONS_1 = 45;
     uint256 public constant WINNING_PORTTIONS_2 = 20;
     uint256 public constant WINNING_PORTTIONS_3 = 5;
 
     function initializeRaffleConstructorArgs() public {
+        // ADDING  s_wNative AS AUTHORISED TOKEN //
         s_supportedTokens.push(s_wNative);
 
         MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
@@ -96,6 +129,7 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
             noOlderThan: type(uint32).max // This is a dangerous value, make sure to not use it for mainnet
          });
         s_priceFeedConfigs.push(wethConfig);
+        // FINISHED ADDING  s_wNative AS AUTHORISED TOKEN //
 
         MonadexV1Types.Fee[3] memory multipliersToPercentages = [
             MonadexV1Types.Fee({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
@@ -124,18 +158,4 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     //     Router Initialize
     // -------------------------------------------
     address s_wNative = address(wMonad);
-
-    // -------------------------------------------
-    //     Oracle Pyth Initialize
-    // -------------------------------------------
-    InitializePythV2 public s_initializePyth;
-
-    function initializePythMockAndPrices() public {
-        s_entropyContract = address(s_pythPriceFeedContract);
-        s_entropyProvider = address(s_pythPriceFeedContract);
-
-        s_initializePyth = new InitializePythV2();
-
-        // bytes[] memory updateData = s_initializePyth.createEthUpdate();
-    }
 }

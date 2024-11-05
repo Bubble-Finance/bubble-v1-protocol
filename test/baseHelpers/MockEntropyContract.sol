@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 
-contract InitializeEntropy is IEntropyConsumer {
+contract MockEntropyContract is IEntropyConsumer {
     IEntropy entropy;
     address provider;
     uint256 raffleRandomNumber;

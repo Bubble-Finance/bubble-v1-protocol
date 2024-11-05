@@ -1,34 +1,40 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
+
+// ----------------------------------
+//    Foundry Contracts Imports
+// ----------------------------------
 
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
-import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+// --------------------------------
+//    Monadex Contracts Imports
+// --------------------------------
 
-import { InitializeEntropy } from "test/baseHelpers/InitializeEntropy.sol";
-import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
+import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
-contract EntropyTest is Test {
-    MockEntropy mock; // provider;
-    bytes32 userRandomNumber = 0x85f0ce7392d4ff75162f550c8a2679da7b3c39465d126ebae57b4bb126423d3a;
+import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-    InitializeEntropy initializeEntropy;
+import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 
-    function setUp() public {
-        mock = new MockEntropy(userRandomNumber);
-        initializeEntropy = new InitializeEntropy(address(mock), address(mock));
-    }
+import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
-    function test_addresses() public view {
+// ------------------------------------------------------
+//    Contract for testing and debugging
+// -----------------------------------------------------
+
+contract EntropyTest is Test, Deployer {
+/* function test_addresses() public view {
         console.log("mock: ", address(mock));
-        console.log("initializeEntropy: ", address(initializeEntropy));
+        console.log("initializeEntropy: ", address(mockEntropy));
     }
 
     function test_requestNumber() public {
         uint128 requestFee = mock.getFee(address(mock));
-        initializeEntropy.request(userRandomNumber);
-        uint256 theRaffleRandomNumber = initializeEntropy.getRandomNumber();
+        mockEntropy.request(userRandomNumber);
+        uint256 theRaffleRandomNumber = mockEntropy.getRandomNumber();
         console.log("Enthropy Fees: ", requestFee);
         console.log("Raffle Random Number: ", theRaffleRandomNumber);
-    }
+    } */
 }
