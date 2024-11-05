@@ -177,4 +177,13 @@ contract MonadexV1Types {
         Multiplier2,
         Multiplier3
     }
+
+    struct TokenDetails {
+        string name;
+        string symbol;
+        address creator;
+        uint256 totalSupply;
+        uint256 virtualNativeReserve;
+        uint256 targetNativeReserve;
+    }
 }
