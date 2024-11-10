@@ -49,13 +49,13 @@ import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
-import { RouterSwapRaffleTrue } from "test/unit/RouterSwapRaffleTrue.t.sol";
+import { ASuperTest } from "test/unit/ASuperTest.t.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
 // -----------------------------------------------------
 
-contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
+contract RaffleGetters is Test, Deployer, ASuperTest {
     // ----------------------------------
     //    CONS
     // ----------------------------------
@@ -134,42 +134,52 @@ contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
     // ----------------------------------
     //    getUserAtRangeStart()
     // ----------------------------------
+    function test_getUserAtRangeStart() public { }
 
     // ----------------------------------
     //    getCurrentRangeEnd()
     // ----------------------------------
+    function test_getCurrentRangeEnd() public { }
 
     // ----------------------------------
     //    getMultiplierToPercentage()
     // ----------------------------------
+    function test_getMultiplierToPercentage() public { }
 
     // ----------------------------------
     //    getWinningPortions()
     // ----------------------------------
+    function test_getWinningPortions() public { }
 
     // ----------------------------------
     //    getWinnings()
     // ----------------------------------
+    function test_getWinnings() public { }
 
     // ----------------------------------
     //    getRaffleDuration()
     // ----------------------------------
+    function test_getRaffleDuration() public { }
 
     // ----------------------------------
     //    getRegistrationPeriod()
     // ----------------------------------
+    function test_getRegistrationPeriod() public { }
 
     // ----------------------------------
     //    getMaxWinners()
     // ----------------------------------
+    function test_getMaxWinners() public { }
 
     // ----------------------------------
     //    getMinimumParticipantsForRaffle()
     // ----------------------------------
+    function test_getMinimumParticipantsForRaffle() public { }
 
     // ----------------------------------
     //    previewPurchase()
     // ----------------------------------
+    function test_previewPurchase() public { }
 
     // ----------------------------------
     //    isRegistrationOpen()
@@ -192,4 +202,5 @@ contract RaffleGetters is Test, Deployer, RouterSwapRaffleTrue {
     // ----------------------------------
     //    hasRegistrationPeriodEnded()
     // ----------------------------------
+    function test_hasRegistrationPeriodEnded() public { }
 }
