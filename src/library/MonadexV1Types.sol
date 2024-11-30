@@ -182,8 +182,11 @@ contract MonadexV1Types {
         string name;
         string symbol;
         address creator;
-        uint256 totalSupply;
+        uint256 tokenReserve;
+        uint256 nativeReserve;
         uint256 virtualNativeReserve;
         uint256 targetNativeReserve;
+        uint256 tokenCreatorReward;
+        uint256 liquidityMigrationFee;
     }
 }

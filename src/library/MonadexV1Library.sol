@@ -293,20 +293,41 @@ library MonadexV1Library {
         uint256 raffleTicketDecimals = 1e18;
         uint256 price = _pythPrice.expo < 0
             ? uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
-                / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+                / 10 ** uint256(uint32(-_pythPrice.expo))
             : uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
                 * 10 ** uint256(uint32(_pythPrice.expo));
         uint256 confidence = _pythPrice.expo < 0
             ? uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
-                / 10 ** uint256(uint32(-1 * _pythPrice.expo))
+                / 10 ** uint256(uint32(-_pythPrice.expo))
             : uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
                 * 10 ** uint256(uint32(_pythPrice.expo));
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
             revert MonadexV1Library__ExcessiveConfidence();
         }
 
-        uint256 ticketsToMint = (price * _amount) / (_pricePerTicket * _decimals);
+        return (price * _amount) / (_pricePerTicket * _decimals);
+    }
 
-        return ticketsToMint;
+    function calculateBuyAmountAfterFeeForCampaigns(
+        uint256 _amount,
+        MonadexV1Types.Fee memory _fee
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return _fee.denominator * _amount / _fee.denominator + _fee.numerator;
+    }
+
+    function getAmountOutForCampaigns(
+        uint256 _amountIn,
+        uint256 _reserveIn,
+        uint256 _reserveOut
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return _reserveOut * _amountIn / _amountIn + _reserveIn;
     }
 }
