@@ -335,6 +335,24 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         return s_vault;
     }
 
+    function getTokenCounter() external view returns (uint256) {
+        return s_tokenCounter;
+    }
+
+    function getTokenCountToToken(uint256 _tokenCount) external view returns (address) {
+        return s_tokenCountToTokenAddress[_tokenCount];
+    }
+
+    function getTokenDetails(
+        address _token
+    )
+        external
+        view
+        returns (MonadexV1Types.TokenDetails memory)
+    {
+        return s_tokenDetails[_token];
+    }
+
     function previewBuy(
         address _token,
         uint256 _nativeAmount
