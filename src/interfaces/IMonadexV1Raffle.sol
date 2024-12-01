@@ -49,9 +49,9 @@ interface IMonadexV1Raffle {
     )
         external
         view
-        returns (MonadexV1Types.Fee memory);
+        returns (MonadexV1Types.Fraction memory);
 
-    function getWinningPortions() external view returns (MonadexV1Types.Fee[3] memory);
+    function getWinningPortions() external view returns (MonadexV1Types.Fraction[3] memory);
 
     function getWinnings(address _user, address _token) external view returns (uint256);
 

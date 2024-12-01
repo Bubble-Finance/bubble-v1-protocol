@@ -137,7 +137,7 @@ interface IMonadexV1Router {
         uint256 _amountIn,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fee memory _poolFee
+        MonadexV1Types.Fraction memory _poolFee
     )
         external
         pure
@@ -147,7 +147,7 @@ interface IMonadexV1Router {
         uint256 _amountOut,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fee memory _poolFee
+        MonadexV1Types.Fraction memory _poolFee
     )
         external
         pure

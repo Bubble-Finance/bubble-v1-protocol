@@ -26,9 +26,9 @@ interface IMonadexV1Pool {
 
     function getProtocolTeamMultisig() external view returns (address);
 
-    function getProtocolFee() external view returns (MonadexV1Types.Fee memory);
+    function getProtocolFee() external view returns (MonadexV1Types.Fraction memory);
 
-    function getPoolFee() external view returns (MonadexV1Types.Fee memory);
+    function getPoolFee() external view returns (MonadexV1Types.Fraction memory);
 
     function getPoolTokens() external view returns (address, address);
 
