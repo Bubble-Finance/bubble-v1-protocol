@@ -21,8 +21,8 @@ import { MonadexV1Router } from "../src/router/MonadexV1Router.sol";
 contract DeployProtocol is Script {
     // Factory constructor args
     address public s_protocolTeamMultisig;
-    MonadexV1Types.Fee public s_protocolFee;
-    MonadexV1Types.Fee[5] public s_feeTiers;
+    MonadexV1Types.Fraction public s_protocolFee;
+    MonadexV1Types.Fraction[5] public s_feeTiers;
 
     // Raffle constructor args
     address[] public s_supportedTokens;
@@ -30,8 +30,8 @@ contract DeployProtocol is Script {
     MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
     address public s_entropyContract;
     address public s_entropyProvider;
-    MonadexV1Types.Fee[3] public s_multipliersToPercentages;
-    MonadexV1Types.Fee[3] public s_winningPortions;
+    MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
+    MonadexV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumParticipants;
 
     // Router constructor args
@@ -104,14 +104,14 @@ contract DeployProtocol is Script {
     function _initializeFactoryConstructorArgs() internal {
         s_protocolTeamMultisig = address(0x16aD730C8797EEC0481ba0BB32D98914073846e6);
 
-        s_protocolFee = MonadexV1Types.Fee({ numerator: 1, denominator: 5 });
+        s_protocolFee = MonadexV1Types.Fraction({ numerator: 1, denominator: 5 });
 
-        MonadexV1Types.Fee[5] memory feeTiers = [
-            MonadexV1Types.Fee({ numerator: 1, denominator: 1000 }), // Tier 1, 0.1%
-            MonadexV1Types.Fee({ numerator: 2, denominator: 1000 }), // Tier 2, 0.2%
-            MonadexV1Types.Fee({ numerator: 3, denominator: 1000 }), // Tier 3 (default), 0.3%
-            MonadexV1Types.Fee({ numerator: 4, denominator: 1000 }), // Tier 4, 0.4%
-            MonadexV1Types.Fee({ numerator: 5, denominator: 1000 }) // Tier 5, 0.5%
+        MonadexV1Types.Fraction[5] memory feeTiers = [
+            MonadexV1Types.Fraction({ numerator: 1, denominator: 1000 }), // Tier 1, 0.1%
+            MonadexV1Types.Fraction({ numerator: 2, denominator: 1000 }), // Tier 2, 0.2%
+            MonadexV1Types.Fraction({ numerator: 3, denominator: 1000 }), // Tier 3 (default), 0.3%
+            MonadexV1Types.Fraction({ numerator: 4, denominator: 1000 }), // Tier 4, 0.4%
+            MonadexV1Types.Fraction({ numerator: 5, denominator: 1000 }) // Tier 5, 0.5%
         ];
         for (uint256 count = 0; count < 5; ++count) {
             s_feeTiers[count] = feeTiers[count];
@@ -137,19 +137,19 @@ contract DeployProtocol is Script {
         s_entropyContract = address(0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c);
         s_entropyProvider = address(0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344);
 
-        MonadexV1Types.Fee[3] memory multipliersToPercentages = [
-            MonadexV1Types.Fee({ numerator: 1, denominator: 100 }), // Multiplier 1, 1% of swap amount
-            MonadexV1Types.Fee({ numerator: 2, denominator: 100 }), // Multiplier 2, 2% of swap amount
-            MonadexV1Types.Fee({ numerator: 4, denominator: 100 }) // Multiplier 3, 4% of swap amount
+        MonadexV1Types.Fraction[3] memory multipliersToPercentages = [
+            MonadexV1Types.Fraction({ numerator: 1, denominator: 100 }), // Multiplier 1, 1% of swap amount
+            MonadexV1Types.Fraction({ numerator: 2, denominator: 100 }), // Multiplier 2, 2% of swap amount
+            MonadexV1Types.Fraction({ numerator: 4, denominator: 100 }) // Multiplier 3, 4% of swap amount
         ];
         for (uint256 count = 0; count < 3; ++count) {
             s_multipliersToPercentages[count] = multipliersToPercentages[count];
         }
 
-        MonadexV1Types.Fee[3] memory winningPortions = [
-            MonadexV1Types.Fee({ numerator: 45, denominator: 100 }), // Tier 1, 45% to 1 winner
-            MonadexV1Types.Fee({ numerator: 20, denominator: 100 }), // Tier 2, 20% to 2 winners
-            MonadexV1Types.Fee({ numerator: 5, denominator: 100 }) // Tier 3, 5% to 3 winners
+        MonadexV1Types.Fraction[3] memory winningPortions = [
+            MonadexV1Types.Fraction({ numerator: 45, denominator: 100 }), // Tier 1, 45% to 1 winner
+            MonadexV1Types.Fraction({ numerator: 20, denominator: 100 }), // Tier 2, 20% to 2 winners
+            MonadexV1Types.Fraction({ numerator: 5, denominator: 100 }) // Tier 3, 5% to 3 winners
         ];
         for (uint256 count = 0; count < 3; ++count) {
             s_winningPortions[count] = winningPortions[count];

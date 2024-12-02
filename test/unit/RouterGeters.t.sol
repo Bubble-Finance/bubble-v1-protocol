@@ -98,7 +98,8 @@ contract RouterGeters is Test, Deployer {
     // ----------------------------------
 
     function test_calculatePotentialAmountOut() public {
-        MonadexV1Types.Fee memory _poolFee = MonadexV1Types.Fee({ numerator: 3, denominator: 1000 });
+        MonadexV1Types.Fraction memory _poolFee =
+            MonadexV1Types.Fraction({ numerator: 3, denominator: 1000 });
 
         vm.prank(LP1);
         uint256 amountOutFunction = s_router.getAmountOut(_amountA, _reserveA, _reserveB, _poolFee);

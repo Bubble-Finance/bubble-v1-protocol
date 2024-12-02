@@ -43,8 +43,8 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     // -------------------------------------------
     //     Factory Initialize
     // -------------------------------------------
-    MonadexV1Types.Fee public s_protocolFee;
-    MonadexV1Types.Fee[5] public s_feeTiers;
+    MonadexV1Types.Fraction public s_protocolFee;
+    MonadexV1Types.Fraction[5] public s_feeTiers;
 
     // ** Fee Tiers for LPs => swaps
     uint256 public constant NUMERATOR1 = 1;
@@ -59,15 +59,17 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     uint256 public constant PROTOCOL_DENOMINATOR = 5;
 
     function initializeFactoryConstructorArgs() public {
-        s_protocolFee =
-            MonadexV1Types.Fee({ numerator: PROTOCOL_NUMERATOR, denominator: PROTOCOL_DENOMINATOR });
+        s_protocolFee = MonadexV1Types.Fraction({
+            numerator: PROTOCOL_NUMERATOR,
+            denominator: PROTOCOL_DENOMINATOR
+        });
 
-        MonadexV1Types.Fee[5] memory feeTiers = [
-            MonadexV1Types.Fee({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fee({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fee({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fee({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fee({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        MonadexV1Types.Fraction[5] memory feeTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
         ];
 
         for (uint256 count = 0; count < 5; ++count) {
@@ -112,8 +114,8 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     //     Raffle Initialize
     // -------------------------------------------
     address[] public s_supportedTokens;
-    MonadexV1Types.Fee[3] public s_multipliersToPercentages;
-    MonadexV1Types.Fee[3] public s_winningPortions;
+    MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
+    MonadexV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumParticipants;
 
     uint256 public constant WINNING_PORTTIONS_1 = 45;
@@ -131,20 +133,20 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
         s_priceFeedConfigs.push(wethConfig);
         // FINISHED ADDING  s_wNative AS AUTHORISED TOKEN //
 
-        MonadexV1Types.Fee[3] memory multipliersToPercentages = [
-            MonadexV1Types.Fee({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 })
+        MonadexV1Types.Fraction[3] memory multipliersToPercentages = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 })
         ];
 
         for (uint256 count = 0; count < 3; ++count) {
             s_multipliersToPercentages[count] = multipliersToPercentages[count];
         }
 
-        MonadexV1Types.Fee[3] memory winningPortions = [
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
+        MonadexV1Types.Fraction[3] memory winningPortions = [
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
         ];
 
         for (uint256 count = 0; count < 3; ++count) {
