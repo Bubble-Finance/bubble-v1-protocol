@@ -6,6 +6,7 @@ import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
 import { MonadexV1Types } from "./MonadexV1Types.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 
 /// @title MonadexV1Library.
 /// @author Monadex Labs -- mgnfy-view.
@@ -275,22 +276,15 @@ library MonadexV1Library {
         pure
         returns (uint256)
     {
-        uint256 raffleTicketDecimals = 1e18;
-        uint256 price = _pythPrice.expo < 0
-            ? uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
-                / 10 ** uint256(uint32(-_pythPrice.expo))
-            : uint256(uint64(_pythPrice.price)) * raffleTicketDecimals
-                * 10 ** uint256(uint32(_pythPrice.expo));
-        uint256 confidence = _pythPrice.expo < 0
-            ? uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
-                / 10 ** uint256(uint32(-_pythPrice.expo))
-            : uint256(uint64(_pythPrice.conf)) * raffleTicketDecimals
-                * 10 ** uint256(uint32(_pythPrice.expo));
+        uint8 targetDecimals = 18;
+        uint256 price = PythUtils.convertToUint(_pythPrice.price, _pythPrice.expo, targetDecimals);
+        uint256 confidence =
+            PythUtils.convertToUint(int64(_pythPrice.conf), _pythPrice.expo, targetDecimals);
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
             revert MonadexV1Library__ExcessiveConfidence();
         }
 
-        return (price * _amount) / (_pricePerTicket * _decimals);
+        return _amount * price / _decimals * _pricePerTicket;
     }
 
     /// @notice Calculates the amount sent by the user for purchasing a token after removing the fee.
