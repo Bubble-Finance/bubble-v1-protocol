@@ -308,8 +308,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         s_tokenDetails[_token].tokenReserve += _amount;
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        IWNative(payable(i_wNative)).deposit{ value: nativeAmount }();
-        IERC20(i_wNative).safeTransfer(_receiver, nativeAmount);
+        _safeTransferNativeWithFallback(_receiver, nativeAmount);
 
         emit TokensSold(msg.sender, _token, _amount, _receiver);
     }
@@ -345,22 +344,15 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
         emit TokensBought(msg.sender, _token, tokenAmount, _receiver);
 
-        if (
-            tokenDetails.nativeReserve
-                > tokenDetails.targetNativeReserve + tokenDetails.tokenCreatorReward
-                    + tokenDetails.liquidityMigrationFee
-        ) {
+        int256 nativeAmountToCompleteBondingCurve = getRemainingNativeToCompleteBondingCurve(_token);
+        if (nativeAmountToCompleteBondingCurve < 0) {
             revert MonadexV1Campaigns__BondingCurveBreached(
                 tokenDetails.targetNativeReserve + tokenDetails.tokenCreatorReward
                     + tokenDetails.liquidityMigrationFee,
                 tokenDetails.nativeReserve
             );
         }
-        if (
-            tokenDetails.nativeReserve
-                == tokenDetails.targetNativeReserve + tokenDetails.tokenCreatorReward
-                    + tokenDetails.liquidityMigrationFee
-        ) {
+        if (nativeAmountToCompleteBondingCurve == 0) {
             _completeBondingCurve(_token, tokenDetails, _deadline);
         }
     }
@@ -394,8 +386,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
                 - _tokenDetails.tokenCreatorReward - _tokenDetails.liquidityMigrationFee
         }(addLiquidityNativeParams);
 
-        IWNative(payable(i_wNative)).deposit{ value: _tokenDetails.tokenCreatorReward }();
-        IERC20(i_wNative).safeTransfer(_tokenDetails.creator, _tokenDetails.tokenCreatorReward);
+        _safeTransferNativeWithFallback(_tokenDetails.creator, _tokenDetails.tokenCreatorReward);
         s_feeCollected += _tokenDetails.liquidityMigrationFee;
 
         s_tokenDetails[_token].launched = true;
@@ -403,6 +394,18 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         IOwned(_token).transferOwnership(ZERO_ADDRESS);
 
         emit BondingCurveCompleted(_token);
+    }
+
+    /// @notice Transfers native currency to the given user, and if it fails, transfers the wrapped native tokens
+    /// to the user.
+    /// @param _to The address to transfer the native currency/wrapped native tokens to.
+    /// @param _amount The amount of native currency/wrapped native tokens to transfer.
+    function _safeTransferNativeWithFallback(address _to, uint256 _amount) internal {
+        (bool success,) = _to.call{ value: _amount }("");
+        if (!success) {
+            IWNative(payable(i_wNative)).deposit{ value: _amount }();
+            IERC20(i_wNative).safeTransfer(_to, _amount);
+        }
     }
 
     ///////////////////////////////
@@ -495,6 +498,22 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         returns (MonadexV1Types.TokenDetails memory)
     {
         return s_tokenDetails[_token];
+    }
+
+    function getRemainingNativeToCompleteBondingCurve(
+        address _token
+    )
+        public
+        view
+        returns (int256)
+    {
+        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        if (tokenDetails.launched) return 0;
+
+        return (
+            int256(tokenDetails.targetNativeReserve) + int256(tokenDetails.tokenCreatorReward)
+                + int256(tokenDetails.liquidityMigrationFee)
+        ) - int256(tokenDetails.nativeReserve);
     }
 
     /// @notice Gets the token amount the user will receive and fee to pay in the buy transaction.
