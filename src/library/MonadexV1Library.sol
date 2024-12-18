@@ -6,7 +6,6 @@ import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
 
 import { MonadexV1Types } from "./MonadexV1Types.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
-import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 
 /// @title MonadexV1Library.
 /// @author Monadex Labs -- mgnfy-view.
@@ -277,9 +276,8 @@ library MonadexV1Library {
         returns (uint256)
     {
         uint8 targetDecimals = 18;
-        uint256 price = PythUtils.convertToUint(_pythPrice.price, _pythPrice.expo, targetDecimals);
-        uint256 confidence =
-            PythUtils.convertToUint(int64(_pythPrice.conf), _pythPrice.expo, targetDecimals);
+        uint256 price = _convertToUint(_pythPrice.price, _pythPrice.expo, targetDecimals);
+        uint256 confidence = _convertToUint(int64(_pythPrice.conf), _pythPrice.expo, targetDecimals);
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
             revert MonadexV1Library__ExcessiveConfidence();
         }
@@ -318,5 +316,35 @@ library MonadexV1Library {
         returns (uint256)
     {
         return _reserveOut * _amountIn / _amountIn + _reserveIn;
+    }
+
+    /// @notice Converts a Pyth price to a uint256 with a target number of decimals.
+    /// @param _price The Pyth price.
+    /// @param _expo The Pyth price exponent.
+    /// @param _targetDecimals The target number of decimals.
+    /// @return The price as a uint256.
+    /// @dev Function will lose precision if targetDecimals is less than the Pyth price decimals.
+    /// This method will truncate any digits that cannot be represented by the targetDecimals.
+    /// e.g. If the price is 0.000123 and the targetDecimals is 2, the result will be 0.
+    function _convertToUint(
+        int64 _price,
+        int32 _expo,
+        uint8 _targetDecimals
+    )
+        public
+        pure
+        returns (uint256)
+    {
+        if (_price < 0 || _expo > 0 || _expo < -255) {
+            revert();
+        }
+
+        uint8 priceDecimals = uint8(uint32(-1 * _expo));
+
+        if (_targetDecimals >= priceDecimals) {
+            return uint256(uint64(_price)) * 10 ** uint32(_targetDecimals - priceDecimals);
+        } else {
+            return uint256(uint64(_price)) / 10 ** uint32(priceDecimals - _targetDecimals);
+        }
     }
 }
