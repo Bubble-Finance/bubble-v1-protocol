@@ -11,6 +11,8 @@ import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 /// @author Monadex Labs -- mgnfy-view.
 /// @notice The library holds utility functions to be used by the other contracts.
 library MonadexV1Library {
+    /// @dev Constant used for TWAP oracle.
+    uint224 internal constant Q112 = 2 ** 112;
     /// @dev The confidence should not exceed a certain percentage of the price (in this case, 10%).
     uint256 internal constant MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS = 1_000;
     /// @dev Basis points.
@@ -44,7 +46,8 @@ library MonadexV1Library {
         pure
         returns (address, address)
     {
-        if (_tokenA <= _tokenB) return (_tokenA, _tokenB);
+        if (_tokenA < _tokenB) return (_tokenA, _tokenB);
+
         return (_tokenB, _tokenA);
     }
 
@@ -241,6 +244,19 @@ library MonadexV1Library {
         }
 
         return amounts;
+    }
+
+    /// @notice Encodes a uint112 as a UQ112x112.
+    /// @param _number The number to encode.
+    function encode(uint112 _number) internal pure returns (uint224) {
+        return uint224(_number) * Q112; // never overflows
+    }
+
+    /// @notice Divides a UQ112x112 by a uint112, returning a UQ112x112.
+    /// @param _dividend The numerator.
+    /// @param _divisor The denominator.
+    function uqdiv(uint224 _dividend, uint112 _divisor) internal pure returns (uint224) {
+        return _dividend / uint224(_divisor);
     }
 
     /// @notice Gets the amount to use for purchasing tickets after applying

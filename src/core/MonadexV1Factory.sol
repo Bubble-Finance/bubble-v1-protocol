@@ -31,13 +31,18 @@ import { MonadexV1Pool } from "./MonadexV1Pool.sol";
 
 /// @title MonadexV1Factory.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice The factory allows deployment of Monadex pools with different token pairs.
+/// @notice The factory enables deployment of Monadex pools with different token pairs.
 /// The factory also stores the swap fee for each pool, the protocol fee, and the protocol team's
 /// multi-sig address.
 contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
+
+    /// @dev The maximum numbr of fee tiers available for different pools.
+    uint256 private constant MAX_FEE_TIERS = 5;
+    /// @dev The default fee tier for each pool.
+    uint256 private constant DEFAULT_FEE_TIER = 2;
 
     /// @dev Initially, the protocol team multi-sig will be the owner of the protocol, and will blacklist some
     /// weird tokens. However, once the ownership is transferred to governance, we do not want the
@@ -52,14 +57,14 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     /// @dev Fee tiers range from 1 to 5.
     /// The first tier has the lowest fee, the third tier is the default fee tier
     /// and the 5th tier has the highest fee. The protocol team (in the initial stages, or
-    /// governance later on) can set a custom fee tier for different pools.
+    /// governance later on) can set a custom fee tiers for different pools.
     /// Pools with low liquidity or highly volatile assets may be set with higher fee tiers
     /// to compensate liquidity providers for the risk of supplying liquidity to these pools.
     /// Conversely, pools with high liquidity and relatively stable assets may be set with lower fee
     /// tiers since liquidity providers don't take on much risk here.
     /// The default fee tier 3 has the Uniswap v2 fee of 0.3% on each swap.
     /// Fee value for each tier is set during deployment and can't be changed later on.
-    MonadexV1Types.Fraction[5] private s_feeTiers;
+    MonadexV1Types.Fraction[MAX_FEE_TIERS] private s_feeTiers;
     /// @dev Pools will access data stored in this mapping via a view function to get information
     /// on the fee tier they use.
     mapping(address tokenA => mapping(address tokenB => uint256 feeTier)) private s_tokenPairToFee;
@@ -84,10 +89,10 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     /// Errors ///
     //////////////
 
-    error MonadexV1Factory__NotProtocolTeamMultisig(address sender, address protocolTeamMultisig);
+    error MonadexV1Factory__NotProtocolTeamMultisig(address caller, address protocolTeamMultisig);
     error MonadexV1Factory__AddressZero();
-    error MonadexV1Factory__InvalidFeeTier();
-    error MonadexV1Factory__CannotCreatePoolForSameTokens();
+    error MonadexV1Factory__InvalidFeeTier(uint256 invalidFeeTier);
+    error MonadexV1Factory__CannotCreatePoolForSameTokens(address token);
     error MonadexV1Factory__TokenNotSupported(address token);
     error MonadexV1Factory__PoolAlreadyExists(address pool);
 
@@ -114,7 +119,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     constructor(
         address _protocolTeamMultisig,
         MonadexV1Types.Fraction memory _protocolFee,
-        MonadexV1Types.Fraction[5] memory _feeTiers
+        MonadexV1Types.Fraction[MAX_FEE_TIERS] memory _feeTiers
     )
         Ownable(msg.sender)
     {
@@ -122,9 +127,9 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         s_protocolTeamMultisig = _protocolTeamMultisig;
         s_protocolFee = _protocolFee;
 
-        for (uint256 count = 0; count < 5; ++count) {
+        for (uint256 count; count < 5; ++count) {
             if (_feeTiers[count].numerator == 0 || _feeTiers[count].denominator == 0) {
-                revert MonadexV1Factory__InvalidFeeTier();
+                revert MonadexV1Factory__InvalidFeeTier(count);
             }
             s_feeTiers[count] = _feeTiers[count];
         }
@@ -148,7 +153,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         if (_tokenA == address(0) || _tokenB == address(0)) {
             revert MonadexV1Factory__AddressZero();
         }
-        if (_tokenA == _tokenB) revert MonadexV1Factory__CannotCreatePoolForSameTokens();
+        if (_tokenA == _tokenB) revert MonadexV1Factory__CannotCreatePoolForSameTokens(_tokenA);
         if (!isSupportedToken(_tokenA)) revert MonadexV1Factory__TokenNotSupported(_tokenA);
         if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
         address pool = getTokenPairToPool(_tokenA, _tokenB);
@@ -231,7 +236,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     {
         if (!isSupportedToken(_tokenA)) revert MonadexV1Factory__TokenNotSupported(_tokenA);
         if (!isSupportedToken(_tokenB)) revert MonadexV1Factory__TokenNotSupported(_tokenB);
-        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier();
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
 
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         s_tokenPairToFee[_tokenA][_tokenB] = _feeTier;
@@ -242,14 +247,14 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     /// @notice Locks a pool in case of an emergency, exploit, or suspicious activity. This will disallow
     /// adding/removing liquidity, and swapping in either direction.
     /// @param _pool The pool to lock.
-    function lockPool(address _pool) external onlyProtocolTeamMultisig {
+    function lockPool(address _pool) external onlyOwner {
         IMonadexV1Pool(_pool).lockPool();
     }
 
     /// @notice Unlocks a pool which was locked under emergency conditions. This will allow
     /// adding/removing liquidity, and swapping in either direction.
     /// @param _pool The pool to lock.
-    function unlockPool(address _pool) external onlyProtocolTeamMultisig {
+    function unlockPool(address _pool) external onlyOwner {
         IMonadexV1Pool(_pool).unlockPool();
     }
 
@@ -291,13 +296,17 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
         uint256 feeTier = s_tokenPairToFee[_tokenA][_tokenB];
 
-        if (feeTier == 0) return s_feeTiers[2];
+        if (feeTier == 0) return s_feeTiers[DEFAULT_FEE_TIER];
         else return s_feeTiers[feeTier - 1];
     }
 
     /// @notice Gets the fee structs for all fee tiers packed into an array.
     /// @return An array of fee structs for fee tiers 1 to 5.
-    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fraction[5] memory) {
+    function getFeeForAllFeeTiers()
+        external
+        view
+        returns (MonadexV1Types.Fraction[MAX_FEE_TIERS] memory)
+    {
         return s_feeTiers;
     }
 
@@ -311,7 +320,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         view
         returns (MonadexV1Types.Fraction memory)
     {
-        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier();
+        if (_feeTier == 0 || _feeTier > 5) revert MonadexV1Factory__InvalidFeeTier(_feeTier);
 
         return s_feeTiers[_feeTier - 1];
     }
@@ -356,9 +365,9 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
         return pool;
     }
 
-    /// @notice Gets the pool address from the specified token combination.
-    /// @param _tokenA The first token in the combination.
-    /// @param _tokenB The second token in the combination.
+    /// @notice Gets the pool address from the specified token pair.
+    /// @param _tokenA The first token in the pair.
+    /// @param _tokenB The second token in the pair.
     /// @return The pool address.
     function getTokenPairToPool(address _tokenA, address _tokenB) public view returns (address) {
         if (_tokenA == address(0) || _tokenB == address(0)) revert MonadexV1Factory__AddressZero();

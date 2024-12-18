@@ -24,6 +24,8 @@ interface IMonadexV1Pool {
 
     function getFactory() external view returns (address);
 
+    function getTWAPData() external view returns (uint32, uint256, uint256);
+
     function getProtocolTeamMultisig() external view returns (address);
 
     function getProtocolFee() external view returns (MonadexV1Types.Fraction memory);
