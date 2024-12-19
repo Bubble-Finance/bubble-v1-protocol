@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 /// @title MonadexV1Types.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice All type declarations for the protocol collected in one place for convenience.
+/// @notice All type declarations for the protocol are collected here for convenience.
 contract MonadexV1Types {
     /// @notice A fraction struct to store fee percentages, etc.
     struct Fraction {
@@ -16,14 +16,14 @@ contract MonadexV1Types {
     /// @notice Users leveraging flash swaps and flash loans can execute custom
     /// logic before and after a swap by setting these values.
     struct HookConfig {
-        /// @dev If true, invoke the before hook on the receiving contract.
+        /// @dev If true, invoke the `before swap hook` on the receiving contract.
         bool hookBeforeCall;
-        /// @dev If true, invoke the after hook on the receiving contract.
+        /// @dev If true, invoke the `after swap hook` on the receiving contract.
         bool hookAfterCall;
     }
 
     /// @notice Packing parameters for swapping into a struct to avoid stack
-    /// too deep errors. To be used by the MonadexV1Pool contract.
+    /// too deep errors. To be used by the `MonadexV1Pool` contract.
     struct SwapParams {
         /// @dev The amount of token A to send to the receiver.
         uint256 amountAOut;
@@ -33,7 +33,7 @@ contract MonadexV1Types {
         address receiver;
         /// @dev Hook configuration parameters.
         HookConfig hookConfig;
-        /// @dev bytes data to pass to the flash swap or flash loan receiver.
+        /// @dev Bytes data to pass to the flash swap or flash loan receiver.
         bytes data;
     }
 
@@ -58,7 +58,7 @@ contract MonadexV1Types {
         uint256 deadline;
     }
 
-    /// @notice Packing parameters required for adding native cuurency liquidity in a struct
+    /// @notice Packing parameters required for adding native token liquidity in a struct
     /// to avoid stack too deep errors.
     struct AddLiquidityNative {
         /// @dev Address of token.
@@ -67,7 +67,7 @@ contract MonadexV1Types {
         uint256 amountTokenDesired;
         /// @dev Minimum amount of token to add as liquidity.
         uint256 amountTokenMin;
-        /// @dev Minimum amount of native currency to add as liquidity.
+        /// @dev Minimum amount of native token to add as liquidity.
         uint256 amountNativeTokenMin;
         /// @dev The address to direct the LP tokens to.
         address receiver;
@@ -103,6 +103,7 @@ contract MonadexV1Types {
     }
 
     /// @notice Allows removal of native currency liquidity from Monadex pools using a permit.
+    /// Packing parameters in a struct to avoid stack too deep errors.
     struct RemoveLiquidityNativeWithPermit {
         /// @dev Address of token.
         address token;
@@ -127,34 +128,28 @@ contract MonadexV1Types {
         bytes32 s;
     }
 
-    /// @notice Purchase tickets with a multiplier value during a swap.
+    /// @notice Purchase tickets during a swap on supported pools.
     struct PurchaseTickets {
-        /// @dev True, if the user wants to pruchase tickets, false otherwise.
+        /// @dev True if the user wants to pruchase tickets, false otherwise.
         bool purchaseTickets;
-        /// @dev The multiplier to apply to the ticket purchase. The higher the multiplier,
-        /// the higher fees is taken, and more raffle tickets are obtained.
-        Multipliers multiplier;
+        /// @dev The fraction of swap amount that should be used to purchase raffle
+        /// tickets.
+        Fraction fractionOfSwapAmount;
         /// @dev Slippage protection for ticket purchase.
         uint256 minimumTicketsToReceive;
+        /// @dev The receiver of the raffle tickets.
+        address raffleTicketReceiver;
     }
 
-    /// @notice The Pyth price feed config for the raffle contract.
+    /// @notice The Pyth price feed config for raffle.
     struct PriceFeedConfig {
         /// @dev The token/usd price feed id.
         bytes32 priceFeedId;
-        /// @dev The max age before a price feed can be considered stale.
+        /// @dev The max window after which the price feed will be considered stale.
         uint256 noOlderThan;
     }
 
-    /// @notice Multipliers can be selected for raffle ticket purchase. Each multiplier is
-    /// associated with a percentage.
-    enum Multipliers {
-        Multiplier1,
-        Multiplier2,
-        Multiplier3
-    }
-
-    /// @notice Details of a token launched on MonadexV1Campaigns.
+    /// @notice Details of a token launched on `MonadexV1Campaigns`.
     struct TokenDetails {
         /// @dev The token name.
         string name;
@@ -164,14 +159,14 @@ contract MonadexV1Types {
         address creator;
         /// @dev Tracks the amount of tokens held by the bonding curve.
         uint256 tokenReserve;
-        /// @dev Tracks the amount of native currency held by the bonding curve plus
+        /// @dev Tracks the amount of native token held by the bonding curve plus
         /// the initial virtual amount.
         uint256 nativeReserve;
-        /// @dev The initial virtual native currency amount used to set the initial
+        /// @dev The initial virtual native token amount used to set the initial
         /// price of a token.
         uint256 virtualNativeReserve;
-        /// @dev The target native currency amount to reach before listing the token
-        /// on Monadex. This includes the initial virtual native currency amount.
+        /// @dev The target native token amount to reach before listing the token
+        /// on Monadex. This includes the initial virtual native token amount.
         uint256 targetNativeReserve;
         /// @dev The reward (in native wrapped token) to be given to the token creator
         /// once the token is successfully listed on Monadex.

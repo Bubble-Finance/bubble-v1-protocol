@@ -9,7 +9,7 @@ import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 /// @title MonadexV1Library.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice The library holds utility functions to be used by the other contracts.
+/// @notice The library holds utility functions to be used by all other contracts in the protocol.
 library MonadexV1Library {
     /// @dev Constant used for TWAP oracle.
     uint224 internal constant Q112 = 2 ** 112;
@@ -47,13 +47,12 @@ library MonadexV1Library {
         returns (address, address)
     {
         if (_tokenA < _tokenB) return (_tokenA, _tokenB);
-
         return (_tokenB, _tokenA);
     }
 
     /// @notice Gets the pool address given the address of the factory and the
     /// tokens in the pair.
-    /// @param _factory The address of the MonadexV1Factory.
+    /// @param _factory The address of the `MonadexV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return Address of the pool.
@@ -70,7 +69,7 @@ library MonadexV1Library {
     }
 
     /// @notice Gets the reserves of the pool of the given token pair.
-    /// @param _factory The address of the MonadexV1Factory.
+    /// @param _factory The address of the `MonadexV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return Reserve of the first token.
@@ -93,9 +92,8 @@ library MonadexV1Library {
         return (reserveB, reserveA);
     }
 
-    /// @notice Gets the pool fee given the address of the factory and the the tokens in
-    /// the pair.
-    /// @param _factory The address of the MonadexV1Factory.
+    /// @notice Gets the pool fee given the address of the factory and the the token pair.
+    /// @param _factory The address of the `MonadexV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return The fee struct, consisting of numerator and denominator fields.
@@ -111,8 +109,8 @@ library MonadexV1Library {
         return IMonadexV1Factory(_factory).getTokenPairToFee(_tokenA, _tokenB);
     }
 
-    /// @notice Gets the amount of B based on the amount of A and the token reserves for
-    /// liquidity supply action.
+    /// @notice Gets the amount of token B based on the amount of token A and the token
+    /// reserves for liquidity supply action.
     /// @param _amountA The amount of A to supply.
     /// @param _reserveA Token A reserve.
     /// @param _reserveB Token B reserve.
@@ -134,7 +132,7 @@ library MonadexV1Library {
 
     /// @notice Gets the amount that you'll receive in a swap based on the amount you put in,
     /// the token reserves of the pool, and the pool fee.
-    /// @param _amountIn The amount of token to swap for the output token.
+    /// @param _amountIn The amount of input token to swap.
     /// @param _reserveIn The reserves of the input token.
     /// @param _reserveOut The reserves of the output token.
     /// @param _poolFee Fee of the pool.
@@ -188,8 +186,7 @@ library MonadexV1Library {
     /// @notice Gets the amounts that will be obtained at each checkpoint of the swap path.
     /// @param _factory The factory's address.
     /// @param _amountIn The input token amount.
-    /// @param _path An array of token addresses which forms the swap path in case a direct
-    /// path does not exist from input token to output token.
+    /// @param _path An array of token addresses which forms the swap path.
     /// @return An array which holds the output amounts at each checkpoint of the swap path.
     /// The last element in the array is the actual ouput amount you'll receive.
     function getAmountsOut(
@@ -246,21 +243,25 @@ library MonadexV1Library {
         return amounts;
     }
 
-    /// @notice Encodes a uint112 as a UQ112x112.
+    /// @notice Encodes a uint112 as a UQ112x112. Utility function to be used by
+    /// the TWAP oracle.
     /// @param _number The number to encode.
+    /// @return The UQ112x112 encoded number.
     function encode(uint112 _number) internal pure returns (uint224) {
         return uint224(_number) * Q112; // never overflows
     }
 
-    /// @notice Divides a UQ112x112 by a uint112, returning a UQ112x112.
+    /// @notice Divides a UQ112x112 by a uint112, returning a UQ112x112. Utility function to
+    /// be used by the TWAP oracle.
     /// @param _dividend The numerator.
     /// @param _divisor The denominator.
+    /// @return The result of division.
     function uqdiv(uint224 _dividend, uint112 _divisor) internal pure returns (uint224) {
         return _dividend / uint224(_divisor);
     }
 
-    /// @notice Gets the amount to use for purchasing tickets after applying
-    /// the percentage associated with a multiplier.
+    /// @notice Gets the part of the initial amount based on the given
+    /// percentage.
     /// @param _amount The amount of input token.
     /// @param _percentage The percentage of the amount to take.
     /// @return The amount of after applying the percentage.
@@ -301,6 +302,36 @@ library MonadexV1Library {
         return _amount * price / _decimals * _pricePerTicket;
     }
 
+    /// @notice Converts a Pyth price to a uint256 with a target number of decimals.
+    /// @param _price The Pyth price.
+    /// @param _expo The Pyth price exponent.
+    /// @param _targetDecimals The target number of decimals.
+    /// @return The price as a uint256.
+    /// @dev Function will lose precision if targetDecimals is less than the Pyth price decimals.
+    /// This method will truncate any digits that cannot be represented by the targetDecimals.
+    /// e.g. If the price is 0.000123 and the targetDecimals is 2, the result will be 0.
+    function _convertToUint(
+        int64 _price,
+        int32 _expo,
+        uint8 _targetDecimals
+    )
+        public
+        pure
+        returns (uint256)
+    {
+        if (_price < 0 || _expo > 0 || _expo < -255) {
+            revert();
+        }
+
+        uint8 priceDecimals = uint8(uint32(-1 * _expo));
+
+        if (_targetDecimals >= priceDecimals) {
+            return uint256(uint64(_price)) * 10 ** uint32(_targetDecimals - priceDecimals);
+        } else {
+            return uint256(uint64(_price)) / 10 ** uint32(priceDecimals - _targetDecimals);
+        }
+    }
+
     /// @notice Calculates the amount sent by the user for purchasing a token after removing the fee.
     /// @param _amount The native currency amount used for token purchase.
     /// @param _fee The fee levied by MonadexV1Campaigns.
@@ -332,35 +363,5 @@ library MonadexV1Library {
         returns (uint256)
     {
         return _reserveOut * _amountIn / _amountIn + _reserveIn;
-    }
-
-    /// @notice Converts a Pyth price to a uint256 with a target number of decimals.
-    /// @param _price The Pyth price.
-    /// @param _expo The Pyth price exponent.
-    /// @param _targetDecimals The target number of decimals.
-    /// @return The price as a uint256.
-    /// @dev Function will lose precision if targetDecimals is less than the Pyth price decimals.
-    /// This method will truncate any digits that cannot be represented by the targetDecimals.
-    /// e.g. If the price is 0.000123 and the targetDecimals is 2, the result will be 0.
-    function _convertToUint(
-        int64 _price,
-        int32 _expo,
-        uint8 _targetDecimals
-    )
-        public
-        pure
-        returns (uint256)
-    {
-        if (_price < 0 || _expo > 0 || _expo < -255) {
-            revert();
-        }
-
-        uint8 priceDecimals = uint8(uint32(-1 * _expo));
-
-        if (_targetDecimals >= priceDecimals) {
-            return uint256(uint64(_price)) * 10 ** uint32(_targetDecimals - priceDecimals);
-        } else {
-            return uint256(uint64(_price)) / 10 ** uint32(priceDecimals - _targetDecimals);
-        }
     }
 }

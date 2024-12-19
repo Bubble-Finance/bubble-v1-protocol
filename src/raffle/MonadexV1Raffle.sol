@@ -24,13 +24,13 @@ import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 
 import { ERC20 } from "@solmate/tokens/ERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 import { IEntropy } from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import { IEntropyConsumer } from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+
+import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
@@ -41,8 +41,9 @@ import { MonadexV1RafflePriceCalculator } from "./MonadexV1RafflePriceCalculator
 /// @author Monadex Labs -- mgnfy-view.
 /// @notice The raffle contract allows users to purchase tickets during swaps from the router,
 /// enter the weekly draw by burning their tickets, and have a chance at winning from a large
-/// prize pool. This contract will be deployed separately, and then the ownership will be transferred
-/// to the router.
+/// prize pool. This contract will be deployed separately, and then registered in the router.
+/// Raffle will be owned by the protocol team multisig in the initial stages, and by the Monadex
+/// DAO later on.
 contract MonadexV1Raffle is
     ERC20,
     Ownable,
@@ -77,8 +78,6 @@ contract MonadexV1Raffle is
     /// @dev 3 winners from tier 3 receive equal prize amount each, but lesser than the prize amount
     /// given to tier 2 winners.
     uint256 private constant WINNERS_IN_TIER3 = 3;
-    /// @dev The maximum number of multipliers available to be applied during ticket purchase.
-    uint256 private constant MAX_MULTIPLIERS = 3;
     /// @dev We use ranges of a fixed size to register users for draw.
     /// Imagine a number line extending in one direction with fixed size intervals of 50.
     /// We begin at 0.
@@ -93,7 +92,7 @@ contract MonadexV1Raffle is
     /// @dev We need to store the router's address to ensure that purchases are made from the router
     /// only.
     address private s_router;
-    /// @dev Stores the UNIX timestamp of the time when the last draw was made.
+    /// @dev Stores the UNIX timestamp (in seconds) of the time when the last draw was made.
     uint256 private s_lastTimestamp;
     /// @dev Users will only be able to purchase tickets if they conduct swaps
     /// on pools with supported tokens.
@@ -112,15 +111,6 @@ contract MonadexV1Raffle is
     /// @dev Tracks the currrent range for the week's registrations.
     /// The next registration will be put in this range.
     uint256 private s_currentRangeEnd;
-    /// @dev Each multiplier is associated with a percentage.
-    /// Applying a multiplier on an amount is the portion of that amount which
-    /// will be used for purchasing tickets.
-    /// The larger the multiplier, the more tickets you get.
-    /// We stick to 3 multipliers, and the percentages associated with each cannot
-    /// be changed after deployment.
-    /// For example, if you apply multiplier 2 with an associated percentage of 2% on amount 10_000
-    /// the amount of 200 will be used to purchase tickets.
-    MonadexV1Types.Fraction[MAX_MULTIPLIERS] private s_multipliersToPercentages;
     /// @dev The percentage of the total amount that the winner gets for a given tier.
     /// This applies for all supported tokens.
     /// For example, winner in tier 1 gets 45% of amounts collected in token A, token B, ... and so on.
@@ -140,18 +130,12 @@ contract MonadexV1Raffle is
 
     event RouterAddressSet(address indexed router);
     event TicketsPurchased(
-        address indexed by,
-        address token,
-        uint256 amount,
-        address indexed receiver,
-        uint256 indexed ticketsMinted
+        address token, uint256 amount, address indexed receiver, uint256 indexed ticketsMinted
     );
     event Registered(address indexed user, uint256 indexed ticketsBurned);
     event RandomNumberRequested(uint64 indexed sequenceNumber);
     event WinnersPicked(address[MAX_WINNERS] indexed winners);
-    event WinningsClaimed(
-        address indexed winner, address indexed token, uint256 amount, address indexed receiver
-    );
+    event WinningsClaimed(address indexed winner, address indexed token, uint256 amount);
     event TokenSupported(
         address indexed token, MonadexV1Types.PriceFeedConfig indexed pythPriceFeedConfig
     );
@@ -205,27 +189,29 @@ contract MonadexV1Raffle is
     ///////////////////
 
     /// @notice Initializes the raffle state. Raffle begins as soon as this contract is deployed.
-    /// @param _supportedTokens Tokens using which raffle tickets can be purchased.
     /// @param _pythPriceFeedContract The pyth price feed contract address.
+    /// @param _pricePerTicket The price
+    /// @param _supportedTokens Tokens using which raffle tickets can be purchased.
     /// @param _priceFeedConfigs The token/USD price feed config associated with each supported token.
     /// @param _entropyContract The pyth entropy contract.
     /// @param _entropyProvider The pyth entropy provider contract.
-    /// @param _multipliersToPercentages The percentages associated with multipliers.
     /// @param _winningPortions The portion each winner receives in each tier (index 0 -> tier 1,
     /// index 1 and 2 -> tier 2, index 3, 4, 5 -> tier 3).
+    /// @param _minimumParticipants The minimum number of participant registration required before the
+    /// draw can be made.
     constructor(
-        address[] memory _supportedTokens,
         address _pythPriceFeedContract,
+        uint256 _pricePerTicket,
+        address[] memory _supportedTokens,
         MonadexV1Types.PriceFeedConfig[] memory _priceFeedConfigs,
         address _entropyContract,
         address _entropyProvider,
-        MonadexV1Types.Fraction[MAX_MULTIPLIERS] memory _multipliersToPercentages,
         MonadexV1Types.Fraction[MAX_TIERS] memory _winningPortions,
         uint256 _minimumParticipants
     )
-        MonadexV1RafflePriceCalculator(_pythPriceFeedContract)
+        MonadexV1RafflePriceCalculator(_pricePerTicket, _pythPriceFeedContract)
         MonadexV1RaffleEntropy(_entropyContract, _entropyProvider)
-        ERC20("MonadexV1RaffleTicket", "MDXRT", 18)
+        ERC20("Monadex V1 Raffle Ticket", "MDXRT", 18)
         Ownable(msg.sender)
     {
         if (_supportedTokens.length != _priceFeedConfigs.length) {
@@ -237,10 +223,6 @@ contract MonadexV1Raffle is
             s_supportedTokens.push(_supportedTokens[count]);
             s_isSupportedToken[_supportedTokens[count]] = true;
             s_tokenToPriceFeedConfig[_supportedTokens[count]] = _priceFeedConfigs[count];
-        }
-
-        for (uint256 count = 0; count < MAX_MULTIPLIERS; ++count) {
-            s_multipliersToPercentages[count] = _multipliersToPercentages[count];
         }
 
         for (uint256 count = 0; count < MAX_TIERS; ++count) {
@@ -269,19 +251,15 @@ contract MonadexV1Raffle is
     }
 
     /// @notice Allows users to purchase raffle tickets for the given token amount. Purchasing
-    /// tickets is only possible from the router during swaps. Tickets should be purchasable
-    /// at a constant price of 5$.
-    /// @param _swapper The swapper who wants to purchase tickets during a swap.
-    /// @param _token The token which was swapped for another token.
-    /// @param _amount The amount of token that was used for swapping.
-    /// @param _multiplier The multiplier to apply to the ticket purchase.
+    /// tickets is only possible from the router during swaps. The router first transfers the token
+    /// amount from the user, and then calls this function.
+    /// @param _token The token used for the swap.
+    /// @param _amount The amount of tokens to purchase raffle tickets with.
     /// @param _receiver The receiver of tickets.
     /// @return The amount of tickets purchased.
     function purchaseTickets(
-        address _swapper,
         address _token,
         uint256 _amount,
-        MonadexV1Types.Multipliers _multiplier,
         address _receiver
     )
         external
@@ -289,14 +267,12 @@ contract MonadexV1Raffle is
         notZero(_amount)
         returns (uint256)
     {
-        if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 ticketsToMint = previewPurchase(_token, _amount, _multiplier);
+        uint256 ticketsToMint = previewPurchase(_token, _amount);
         if (ticketsToMint == 0) revert MonadexV1Raffle__ZeroTickets();
 
-        IERC20(_token).safeTransferFrom(_swapper, address(this), _amount);
         _mint(_receiver, ticketsToMint);
 
-        emit TicketsPurchased(_swapper, _token, _amount, _receiver, ticketsToMint);
+        emit TicketsPurchased(_token, _amount, _receiver, ticketsToMint);
 
         return ticketsToMint;
     }
@@ -308,32 +284,34 @@ contract MonadexV1Raffle is
     /// as the parameter. Users registering with more tickets will have a higher chance of winning
     /// their cut of each tier (it's possible to be the winner in more than one tier for a single user)
     /// because they will occupy a larger range on the number line.
-    /// Users having a large number of tickets can register themselves by splitting their amounts
-    /// and registering in separate transactions.
+    /// Users having a large number of tickets can split their amounts
+    /// and register in separate transactions.
+    /// Off-chain bots can be used to pay for gas and auto-register users as well.
+    /// @param _user The user to register.
     /// @param _amount The amount of tickets to register with.
     /// @return The actual amount of tickets burned.
-    function register(uint256 _amount) external notZero(_amount) returns (uint256) {
-        if (!isRegistrationOpen() || s_currentSequenceNumber != uint64(0)) {
+    function register(address _user, uint256 _amount) external notZero(_amount) returns (uint256) {
+        if (!isRegistrationOpen() || s_currentSequenceNumber != 0) {
             revert MonadexV1Raffle__NotOpenForRegistration();
         }
         uint256 slotsToOccupy = _amount / RANGE_SIZE;
         if (slotsToOccupy == 0) revert MonadexV1Raffle__NotEnoughTickets();
 
-        uint256 balance = balanceOf[msg.sender];
+        uint256 balance = balanceOf[_user];
         uint256 ticketsToBurn = slotsToOccupy * RANGE_SIZE;
         if (balance < ticketsToBurn) {
             revert MonadexV1Raffle__NotEnoughBalance(ticketsToBurn, balance);
         }
 
         uint256 currentRangeEnd = s_currentRangeEnd;
-        for (uint256 count = 0; count < slotsToOccupy; ++count) {
-            s_ranges[currentRangeEnd] = msg.sender;
+        for (uint256 count; count < slotsToOccupy; ++count) {
+            s_ranges[currentRangeEnd] = _user;
             currentRangeEnd += RANGE_SIZE;
         }
         s_currentRangeEnd = currentRangeEnd;
-        _burn(msg.sender, ticketsToBurn);
+        _burn(_user, ticketsToBurn);
 
-        emit Registered(msg.sender, ticketsToBurn);
+        emit Registered(_user, ticketsToBurn);
 
         return ticketsToBurn;
     }
@@ -371,7 +349,7 @@ contract MonadexV1Raffle is
     /// @notice Draws winners in different tiers and allocates rewards to them after the random
     /// number has been supplied.
     function drawWinnersAndAllocateRewards() external {
-        if (!hasRegistrationPeriodEnded() || s_currentRandomNumber == bytes32(0)) {
+        if (!hasRegistrationPeriodEnded() || s_currentRandomNumber == 0) {
             revert MonadexV1Raffle__DrawNotAllowedYet();
         }
 
@@ -382,8 +360,8 @@ contract MonadexV1Raffle is
 
         s_currentRangeEnd = 0;
         s_lastTimestamp = block.timestamp;
-        s_currentSequenceNumber = uint64(0);
-        s_currentRandomNumber = bytes32(0);
+        s_currentSequenceNumber = 0;
+        s_currentRandomNumber = 0;
 
         _allocateRewards(winners);
 
@@ -391,18 +369,19 @@ contract MonadexV1Raffle is
     }
 
     /// @notice Allows winners of previous raffle draws to claim their winnings for supported tokens.
+    /// Bots can be used to claim winnings on behalf of other users.
+    /// @param _user The user whose winnings are to be claimed.
     /// @param _token The address of the token to claim winning amount from.
-    /// @param _receiver The receiver of the winning amount.
     /// @return The claimed winning amount.
-    function claimWinnings(address _token, address _receiver) external returns (uint256) {
+    function claimWinnings(address _user, address _token) external returns (uint256) {
         if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 winnings = s_winnings[msg.sender][_token];
+        uint256 winnings = s_winnings[_user][_token];
         if (winnings == 0) revert MonadexV1Raffle__ZeroWinnings();
 
-        s_winnings[msg.sender][_token] = 0;
-        IERC20(_token).safeTransfer(_receiver, winnings);
+        s_winnings[_user][_token] = 0;
+        IERC20(_token).safeTransfer(_user, winnings);
 
-        emit WinningsClaimed(msg.sender, _token, winnings, _receiver);
+        emit WinningsClaimed(_user, _token, winnings);
 
         return winnings;
     }
@@ -410,7 +389,7 @@ contract MonadexV1Raffle is
     /// @notice Support new tokens for raffle. Protocol team/governance must take care while
     /// supporting new tokens to ensure it doesn't have weird quirks or behaviour.
     /// @param _token The token to support.
-    /// @param _pythPriceFeedConfig The _token/USD price feed config.
+    /// @param _pythPriceFeedConfig The token/USD price feed config.
     function supportToken(
         address _token,
         MonadexV1Types.PriceFeedConfig memory _pythPriceFeedConfig
@@ -430,7 +409,7 @@ contract MonadexV1Raffle is
         emit TokenSupported(_token, _pythPriceFeedConfig);
     }
 
-    /// @notice Allows the protocol team (in early stages) or governance to remove support for a
+    /// @notice Allows the protocol team (in early stages) or governance (later on) to remove support for a
     /// given token.
     /// @param _token The token to remove from raffle.
     function removeToken(address _token) external onlyOwner {
@@ -448,7 +427,7 @@ contract MonadexV1Raffle is
         }
         s_supportedTokens.pop();
         s_tokenToPriceFeedConfig[_token] =
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: bytes32(0), noOlderThan: 0 });
+            MonadexV1Types.PriceFeedConfig({ priceFeedId: 0, noOlderThan: 0 });
 
         emit TokenRemoved(_token);
     }
@@ -566,25 +545,6 @@ contract MonadexV1Raffle is
         return s_currentRangeEnd;
     }
 
-    /// @notice Gets the percentage of fee taken for each multiplier.
-    /// @param _multiplier The multiplier.
-    /// @return A fee struct, with numerator and denominator fields.
-    function getMultiplierToPercentage(
-        MonadexV1Types.Multipliers _multiplier
-    )
-        public
-        view
-        returns (MonadexV1Types.Fraction memory)
-    {
-        if (_multiplier == MonadexV1Types.Multipliers.Multiplier1) {
-            return s_multipliersToPercentages[0];
-        } else if (_multiplier == MonadexV1Types.Multipliers.Multiplier2) {
-            return s_multipliersToPercentages[1];
-        } else {
-            return s_multipliersToPercentages[2];
-        }
-    }
-
     /// @notice Gets the winning portions in each tier.
     /// @return The winning portions in each tier.
     function getWinningPortions()
@@ -627,12 +587,6 @@ contract MonadexV1Raffle is
         return MAX_TIERS;
     }
 
-    /// @notice Gets the maximum number of multipliers that can be used for purchase.
-    /// @return The maximum number of multipliers.
-    function getMaxMultipliers() external pure returns (uint256) {
-        return MAX_MULTIPLIERS;
-    }
-
     /// @notice Gets the range size.
     /// @return The range size.
     function getRangeSize() external pure returns (uint256) {
@@ -645,24 +599,12 @@ contract MonadexV1Raffle is
         return s_minimumParticipants;
     }
 
-    /// @notice Gets the amount of tickets to mint based on the given amount and multiplier.
+    /// @notice Gets the amount of tickets to mint based on the given token amount.
     /// @param _token The token used for purchasing tickets.
     /// @param _amount The token amount to use for ticket purchase.
-    /// @param _multiplier The multiplier to apply to the token amount.
     /// @return The number of tickets to purchase.
-    function previewPurchase(
-        address _token,
-        uint256 _amount,
-        MonadexV1Types.Multipliers _multiplier
-    )
-        public
-        view
-        returns (uint256)
-    {
-        uint256 amountAfterMultiplierApplied = MonadexV1Library
-            .calculateAmountAfterApplyingPercentage(_amount, getMultiplierToPercentage(_multiplier));
-
-        return _getTicketsToMint(_token, amountAfterMultiplierApplied);
+    function previewPurchase(address _token, uint256 _amount) public view returns (uint256) {
+        return _getTicketsToMint(_token, _amount);
     }
 
     /// @notice Checks if the registration period is open.

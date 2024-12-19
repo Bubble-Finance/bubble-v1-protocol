@@ -139,7 +139,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     ///////////////////
 
     /// @notice Sets the factory address, and the LP token metadata.
-    constructor() ERC20("Monadex LP Token", "MDXLP", 18) {
+    constructor() ERC20("Monadex V1 LP Token", "MDXLP", 18) {
         i_factory = msg.sender;
     }
 
