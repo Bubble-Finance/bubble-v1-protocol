@@ -132,24 +132,38 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        // 2.
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: true,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         // 3. swap
         vm.startPrank(swapper1);
-        DAI.approve(address(s_router), ADD_10K);
-        DAI.approve(address(s_raffle), ADD_10K);
+        // @audit-high : check these numbers
+        DAI.approve(address(s_router), ADD_10K * 2);
+        // DAI.approve(address(s_raffle), 20000e18);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper1, block.timestamp, purchaseTickets
         );
+
         vm.stopPrank();
 
         // 4. Checks:
-        assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K - ADD_10K);
-        // console.log("tickets balance: ", ERC20(s_raffle).balanceOf(swapper1));
+        /// @audit-high assertion failed
+        // I have to check the percentage and where they go
+        assertEq(DAI.balanceOf(swapper1), (balance_swapper1_DAI - ADD_10K - 20e18));
+        console.log("tickets balance: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
     function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
@@ -180,24 +194,34 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        // 2. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: true,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         // 3. SWAP AND PURCHASE TICKETS
         vm.startPrank(swapper2);
-        USDT.approve(address(s_router), ADD_10K);
-        USDT.approve(address(s_raffle), ADD_10K);
+        USDT.approve(address(s_router), ADD_10K * 2);
+        // USDT.approve(address(s_raffle), ADD_10K);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper2, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         // 4. Checks
-        /// zzz
-        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
+        /// @audit-high assertion failed
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 20e18);
         console.log("tickets balances: ", ERC20(s_raffle).balanceOf(swapper1));
     }
 
@@ -229,16 +253,26 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        // 2. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: true,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         // 3. swap
         vm.startPrank(swapper2);
-        USDT.approve(address(s_router), ADD_10K);
-        USDT.approve(address(s_raffle), ADD_10K);
+        USDT.approve(address(s_router), ADD_10K * 2);
+        // USDT.approve(address(s_raffle), ADD_10K);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper2, block.timestamp, purchaseTickets
         );
@@ -246,7 +280,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // 4. Checks
         /// zzz
-        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - ADD_10K);
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 20e18);
         console.log("tickets swapper1: ", ERC20(s_raffle).balanceOf(swapper1) / 1e32);
         console.log("tickets swapper2: ", ERC20(s_raffle).balanceOf(swapper2) / 1e32);
     }

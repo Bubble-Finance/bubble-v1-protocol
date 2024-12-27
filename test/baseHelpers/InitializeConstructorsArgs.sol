@@ -122,6 +122,8 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     uint256 public constant WINNING_PORTTIONS_2 = 20;
     uint256 public constant WINNING_PORTTIONS_3 = 5;
 
+    uint256 public constant s_pricePerTicket = 1;
+
     function initializeRaffleConstructorArgs() public {
         // ADDING  s_wNative AS AUTHORISED TOKEN //
         s_supportedTokens.push(s_wNative);

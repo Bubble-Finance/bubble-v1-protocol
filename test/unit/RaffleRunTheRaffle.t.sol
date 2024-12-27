@@ -44,14 +44,6 @@ import { ASuperTest } from "test/unit/ASuperTest.t.sol";
 
 contract RaffleRunTheRaffle is Test, Deployer, ASuperTest {
     // --------------------------------
-    //    CONS
-    // --------------------------------
-    // NOTE: Multipliers are: 0.5%, 1%, 2%
-    MonadexV1Types.Multipliers public multiplier1 = MonadexV1Types.Multipliers.Multiplier1;
-    MonadexV1Types.Multipliers public multiplier2 = MonadexV1Types.Multipliers.Multiplier2;
-    MonadexV1Types.Multipliers public multiplier3 = MonadexV1Types.Multipliers.Multiplier2;
-
-    // --------------------------------
     //    initializeRouterAddress()
     // --------------------------------
     function testFail_changingTheRouterAddress() public {
@@ -79,7 +71,15 @@ contract RaffleRunTheRaffle is Test, Deployer, ASuperTest {
         s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
         s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
 
-        s_raffle.purchaseTickets(swapper1, address(DAI), 10000, multiplier1, swapper1);
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        s_raffle.purchaseTickets(address(DAI), 10000, swapper1);
 
         vm.stopPrank();
     }
@@ -90,14 +90,14 @@ contract RaffleRunTheRaffle is Test, Deployer, ASuperTest {
     function testFail_userWithNoTicketsWillRevert() public {
         vm.warp(block.timestamp + 6 days);
         vm.prank(swapper1);
-        s_raffle.register(100);
+        s_raffle.register(swapper1, 100);
     }
 
     function test_userRegister1000Tickets() public {
         test_swapUsingExistingPoolsFromTheSuperTest();
         vm.warp(block.timestamp + 6 days);
         vm.prank(swapper1);
-        uint256 ticketsToBurn = s_raffle.register(1000e18);
+        uint256 ticketsToBurn = s_raffle.register(swapper1, 1000e18);
         assertEq(ticketsToBurn, 1000e18);
     }
 

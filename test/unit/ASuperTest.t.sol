@@ -266,49 +266,53 @@ contract ASuperTest is Test, FactoryDeployPool {
         path3[0] = address(wETH);
         path3[1] = address(SHIB);
 
-        // 3. Purchase tickets = true
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        // 2. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: true,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         // 4. SWAPS IN POOL DAI / WETH
         vm.startPrank(swapper1);
-        DAI.approve(address(s_router), ADD_1K);
-        DAI.approve(address(s_raffle), ADD_1K);
+        DAI.approve(address(s_router), ADD_1K * 2);
         s_router.swapExactTokensForTokens(
             ADD_1K, 1, path1, swapper1, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper2);
-        DAI.approve(address(s_router), ADD_2K);
-        DAI.approve(address(s_raffle), ADD_2K);
+        DAI.approve(address(s_router), ADD_2K * 2);
         s_router.swapExactTokensForTokens(
             ADD_2K, 1, path1, swapper2, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper3);
-        DAI.approve(address(s_router), ADD_3K);
-        DAI.approve(address(s_raffle), ADD_3K);
+        DAI.approve(address(s_router), ADD_3K * 2);
         s_router.swapExactTokensForTokens(
             ADD_3K, 1, path1, swapper3, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper4);
-        DAI.approve(address(s_router), ADD_5K);
-        DAI.approve(address(s_raffle), ADD_5K);
+        DAI.approve(address(s_router), ADD_5K * 2);
         s_router.swapExactTokensForTokens(
             ADD_5K, 1, path1, swapper4, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper5);
-        DAI.approve(address(s_router), ADD_10K);
-        DAI.approve(address(s_raffle), ADD_10K);
+        DAI.approve(address(s_router), ADD_10K * 2);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path1, swapper5, block.timestamp, purchaseTickets
         );
@@ -323,40 +327,35 @@ contract ASuperTest is Test, FactoryDeployPool {
 
         // 5. SWAPS IN POOL USDT / WBTC
         vm.startPrank(swapper6);
-        USDT.approve(address(s_router), ADD_1K);
-        USDT.approve(address(s_raffle), ADD_1K);
+        USDT.approve(address(s_router), ADD_1K * 2);
         s_router.swapExactTokensForTokens(
             ADD_1K, 1, path2, swapper6, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper7);
-        USDT.approve(address(s_router), ADD_2K);
-        USDT.approve(address(s_raffle), ADD_2K);
+        USDT.approve(address(s_router), ADD_2K * 2);
         s_router.swapExactTokensForTokens(
             ADD_2K, 1, path2, swapper7, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper8);
-        USDT.approve(address(s_router), ADD_3K);
-        USDT.approve(address(s_raffle), ADD_3K);
+        USDT.approve(address(s_router), ADD_3K * 2);
         s_router.swapExactTokensForTokens(
             ADD_3K, 1, path2, swapper8, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper9);
-        USDT.approve(address(s_router), ADD_5K);
-        USDT.approve(address(s_raffle), ADD_5K);
+        USDT.approve(address(s_router), ADD_5K * 2);
         s_router.swapExactTokensForTokens(
             ADD_5K, 1, path2, swapper9, block.timestamp, purchaseTickets
         );
         vm.stopPrank();
 
         vm.startPrank(swapper10);
-        USDT.approve(address(s_router), ADD_10K);
-        USDT.approve(address(s_raffle), ADD_10K);
+        USDT.approve(address(s_router), ADD_10K * 2);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path2, swapper10, block.timestamp, purchaseTickets
         );
@@ -371,14 +370,12 @@ contract ASuperTest is Test, FactoryDeployPool {
         // 6. SWAPS IN POOL WETH / SHIB
         // @audit-note I fail to register swap in path3 >>> REVIEW!!!!
         vm.startPrank(swapper11);
-        USDT.approve(address(s_router), ADD_3K);
-        USDT.approve(address(s_raffle), ADD_3K);
+        USDT.approve(address(s_router), ADD_3K * 2);
         s_router.swapExactTokensForTokens(
             ADD_3K, 1, path2, swapper11, block.timestamp, purchaseTickets
         );
 
-        USDT.approve(address(s_router), ADD_2K);
-        USDT.approve(address(s_raffle), ADD_2K);
+        USDT.approve(address(s_router), ADD_2K * 2);
         s_router.swapExactTokensForTokens(
             ADD_2K, 1, path2, swapper12, block.timestamp, purchaseTickets
         );
@@ -399,28 +396,28 @@ contract ASuperTest is Test, FactoryDeployPool {
         console.log("");
         console.log("");
         vm.prank(swapper1);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper1, 1000e18);
         vm.prank(swapper2);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper2, 1000e18);
         vm.prank(swapper3);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper3, 1000e18);
         vm.prank(swapper4);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper4, 1000e18);
         vm.prank(swapper5);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper5, 1000e18);
         vm.prank(swapper6);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper6, 1000e18);
         vm.prank(swapper7);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper7, 1000e18);
         vm.prank(swapper8);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper8, 1000e18);
         vm.prank(swapper9);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper9, 1000e18);
         vm.prank(swapper10);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper10, 1000e18);
         vm.prank(swapper11);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper11, 1000e18);
         vm.prank(swapper12);
-        s_raffle.register(1000e18);
+        s_raffle.register(swapper12, 1000e18);
     }
 }

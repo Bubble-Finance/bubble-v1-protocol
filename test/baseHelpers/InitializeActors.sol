@@ -99,7 +99,7 @@ contract InitializeActors is Test, InitializeTokens {
         actors.push(blackHat);
     }
 
-    function InitializeBaseUsers() public {
+    function initializeBaseUsers() public {
         addActorsTotheArray();
 
         // 1. Add ERC20 funds

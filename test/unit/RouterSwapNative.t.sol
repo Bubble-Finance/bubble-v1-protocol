@@ -50,11 +50,20 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[0] = s_wNative;
         path[1] = address(DAI);
 
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
         // 2. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: false,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         vm.startPrank(swapper1);
@@ -80,11 +89,20 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[0] = address(DAI);
         path[1] = s_wNative;
 
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
         // 2. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
             purchaseTickets: false,
-            multiplier: MonadexV1Types.Multipliers.Multiplier1,
-            minimumTicketsToReceive: 0
+            fractionOfSwapAmount: fractionTiers[1],
+            minimumTicketsToReceive: 0,
+            raffleTicketReceiver: address(swapper1)
         });
 
         vm.startPrank(swapper1);
