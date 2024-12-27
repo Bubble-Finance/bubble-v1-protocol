@@ -299,7 +299,7 @@ library MonadexV1Library {
             revert MonadexV1Library__ExcessiveConfidence();
         }
 
-        return _amount * price / _decimals * _pricePerTicket;
+        return (_amount * price) / (10 ** _decimals * _pricePerTicket);
     }
 
     /// @notice Converts a Pyth price to a uint256 with a target number of decimals.
@@ -344,7 +344,7 @@ library MonadexV1Library {
         pure
         returns (uint256)
     {
-        return _fee.denominator * _amount / _fee.denominator + _fee.numerator;
+        return (_fee.denominator * _amount) / (_fee.denominator + _fee.numerator);
     }
 
     /// @notice Gets the amount of tokens to send to buyer/seller on campaigns based
@@ -362,6 +362,6 @@ library MonadexV1Library {
         pure
         returns (uint256)
     {
-        return _reserveOut * _amountIn / _amountIn + _reserveIn;
+        return (_reserveOut * _amountIn) / (_amountIn + _reserveIn);
     }
 }
