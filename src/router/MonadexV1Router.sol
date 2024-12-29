@@ -36,9 +36,6 @@ import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 
-import {console} from "forge-std/console.sol";
-
-
 /**
  * @title MonadexV1Router.
  * @author Monadex Labs -- mgnfy-view.
@@ -260,7 +257,6 @@ contract MonadexV1Router is IMonadexV1Router {
     {
         uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
         if (amounts[amounts.length - 1] < _amountOutMin) {
-            console.log("MonadexV1Router__InsufficientOutputAmount");
             revert MonadexV1Router__InsufficientOutputAmount(
                 amounts[amounts.length - 1], _amountOutMin
             );
@@ -268,16 +264,13 @@ contract MonadexV1Router is IMonadexV1Router {
         IERC20(_path[0]).safeTransferFrom(
             msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
-        console.log("Transfered!");
 
         _swap(amounts, _path, _receiver);
 
-        console.log("Swapped!");
 
 
         uint256 tickets = 0;
         if (_purchaseTickets.purchaseTickets) {
-            console.log("Purchasing Raffle tickets...");
             tickets = _purchaseRaffleTickets(
                 _purchaseTickets.multiplier,
                 _path,
@@ -285,7 +278,6 @@ contract MonadexV1Router is IMonadexV1Router {
                 _purchaseTickets.minimumTicketsToReceive,
                 _receiver
             );
-            console.log("Purchased Raffle Tickets");
 
         }
 
