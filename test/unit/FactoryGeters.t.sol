@@ -55,14 +55,15 @@ contract FactoryGeters is Test, Deployer {
 
     function test_getProtocolFee() external {
         vm.prank(LP1);
-        MonadexV1Types.Fee memory pFee = s_factory.getProtocolFee();
+        MonadexV1Types.Fraction memory pFee = s_factory.getProtocolFee();
         assertEq(pFee.numerator, 1);
         assertEq(pFee.denominator, 5);
     }
 
     function test_getTokenPairToFee() external {
         vm.prank(LP1);
-        MonadexV1Types.Fee memory TPF = s_factory.getTokenPairToFee(address(DAI), address(wETH));
+        MonadexV1Types.Fraction memory TPF =
+            s_factory.getTokenPairToFee(address(DAI), address(wETH));
         assertEq(TPF.numerator, 3);
     }
 
@@ -70,19 +71,20 @@ contract FactoryGeters is Test, Deployer {
         vm.prank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 5);
         vm.prank(LP1);
-        MonadexV1Types.Fee memory TPF = s_factory.getTokenPairToFee(address(DAI), address(wETH));
+        MonadexV1Types.Fraction memory TPF =
+            s_factory.getTokenPairToFee(address(DAI), address(wETH));
         assertEq(TPF.numerator, 5);
     }
 
     function test_getFeeForAllFeeTiers() external view {
-        MonadexV1Types.Fee[5] memory AFT = s_factory.getFeeForAllFeeTiers();
-        MonadexV1Types.Fee memory aft0 = AFT[0];
+        MonadexV1Types.Fraction[5] memory AFT = s_factory.getFeeForAllFeeTiers();
+        MonadexV1Types.Fraction memory aft0 = AFT[0];
         assertEq(aft0.numerator, 1);
         assertEq(aft0.denominator, 1000);
     }
 
     function test_getFeeForTier() external view {
-        MonadexV1Types.Fee memory FFT = s_factory.getFeeForTier(5);
+        MonadexV1Types.Fraction memory FFT = s_factory.getFeeForTier(5);
         assertEq(FFT.numerator, 5);
     }
 

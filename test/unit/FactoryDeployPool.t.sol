@@ -136,7 +136,7 @@ contract FactoryDeployPool is Test, Deployer {
         address newPool = s_factory.deployPool(address(DAI), address(wETH));
     }
 
-    function test_deployMultiplePools() external {
+    function test_deployMultiplePools() public {
         vm.startPrank(LP1);
         address[] memory tokens = new address[](4);
         tokens[0] = address(wETH);

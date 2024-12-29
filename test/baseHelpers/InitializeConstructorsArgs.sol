@@ -21,6 +21,10 @@ import { InitializeTokens } from "./InitializeTokens.sol";
 
 import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 
+import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
+import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
+
 contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 {
     // -------------------------------------------
     //  Governor Initialize
@@ -39,8 +43,8 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     // -------------------------------------------
     //     Factory Initialize
     // -------------------------------------------
-    MonadexV1Types.Fee public s_protocolFee;
-    MonadexV1Types.Fee[5] public s_feeTiers;
+    MonadexV1Types.Fraction public s_protocolFee;
+    MonadexV1Types.Fraction[5] public s_feeTiers;
 
     // ** Fee Tiers for LPs => swaps
     uint256 public constant NUMERATOR1 = 1;
@@ -55,15 +59,17 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     uint256 public constant PROTOCOL_DENOMINATOR = 5;
 
     function initializeFactoryConstructorArgs() public {
-        s_protocolFee =
-            MonadexV1Types.Fee({ numerator: PROTOCOL_NUMERATOR, denominator: PROTOCOL_DENOMINATOR });
+        s_protocolFee = MonadexV1Types.Fraction({
+            numerator: PROTOCOL_NUMERATOR,
+            denominator: PROTOCOL_DENOMINATOR
+        });
 
-        MonadexV1Types.Fee[5] memory feeTiers = [
-            MonadexV1Types.Fee({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fee({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fee({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fee({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fee({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        MonadexV1Types.Fraction[5] memory feeTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
         ];
 
         for (uint256 count = 0; count < 5; ++count) {
@@ -72,23 +78,54 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     }
 
     // -------------------------------------------
+    //     Oracle Pyth Prices Initialize
+    // -------------------------------------------
+    InitializePythV2 public s_initializePyth;
+    MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
+
+    function initializePythMockAndPrices() public {
+        s_entropyContract = address(s_pythPriceFeedContract);
+
+        s_initializePyth = new InitializePythV2();
+
+        // bytes[] memory updateData = s_initializePyth.createEthUpdate();
+    }
+
+    // -------------------------------------------
+    //     Oracle Pyth Entropy Initialize
+    // -------------------------------------------
+    MockEntropy mock; // provider and entropy;
+    bytes32 userRandomNumber = 0x85f0ce7392d4ff75162f550c8a2679da7b3c39465d126ebae57b4bb126423d3a;
+
+    address public s_entropyContract;
+    address public s_entropyProvider;
+
+    MockEntropyContract mockEntropy;
+
+    function initializeEntropy() public {
+        mock = new MockEntropy(userRandomNumber);
+        // mockEntropy = new MockEntropyContract(address(mock), address(mock)); // not needed
+
+        s_entropyProvider = address(mock);
+        s_entropyContract = address(mock);
+    }
+
+    // -------------------------------------------
     //     Raffle Initialize
     // -------------------------------------------
     address[] public s_supportedTokens;
-    MonadexV1Types.Fee[3] public s_multipliersToPercentages;
-    MonadexV1Types.Fee[3] public s_winningPortions;
+    MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
+    MonadexV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumParticipants;
-
-    // Oracle => Pyth
-    MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
-    address public s_entropyContract;
-    address public s_entropyProvider;
 
     uint256 public constant WINNING_PORTTIONS_1 = 45;
     uint256 public constant WINNING_PORTTIONS_2 = 20;
     uint256 public constant WINNING_PORTTIONS_3 = 5;
 
+    uint256 public constant s_pricePerTicket = 1;
+
     function initializeRaffleConstructorArgs() public {
+        // ADDING  s_wNative AS AUTHORISED TOKEN //
         s_supportedTokens.push(s_wNative);
 
         MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
@@ -96,21 +133,22 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
             noOlderThan: type(uint32).max // This is a dangerous value, make sure to not use it for mainnet
          });
         s_priceFeedConfigs.push(wethConfig);
+        // FINISHED ADDING  s_wNative AS AUTHORISED TOKEN //
 
-        MonadexV1Types.Fee[3] memory multipliersToPercentages = [
-            MonadexV1Types.Fee({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 })
+        MonadexV1Types.Fraction[3] memory multipliersToPercentages = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 })
         ];
 
         for (uint256 count = 0; count < 3; ++count) {
             s_multipliersToPercentages[count] = multipliersToPercentages[count];
         }
 
-        MonadexV1Types.Fee[3] memory winningPortions = [
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fee({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
+        MonadexV1Types.Fraction[3] memory winningPortions = [
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
+            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
         ];
 
         for (uint256 count = 0; count < 3; ++count) {
@@ -124,18 +162,4 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     //     Router Initialize
     // -------------------------------------------
     address s_wNative = address(wMonad);
-
-    // -------------------------------------------
-    //     Oracle Pyth Initialize
-    // -------------------------------------------
-    InitializePythV2 public s_initializePyth;
-
-    function initializePythMockAndPrices() public {
-        s_entropyContract = address(s_pythPriceFeedContract);
-        s_entropyProvider = address(s_pythPriceFeedContract);
-
-        s_initializePyth = new InitializePythV2();
-
-        // bytes[] memory updateData = s_initializePyth.createEthUpdate();
-    }
 }

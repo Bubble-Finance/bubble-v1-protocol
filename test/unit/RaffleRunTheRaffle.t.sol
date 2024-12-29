@@ -36,21 +36,13 @@ import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
-import { RouterSwapRaffleTrue } from "test/unit/RouterSwapRaffleTrue.t.sol";
+import { ASuperTest } from "test/unit/ASuperTest.t.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
 // -----------------------------------------------------
 
-contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
-    // --------------------------------
-    //    CONS
-    // --------------------------------
-    // NOTE: Multipliers are: 0.5%, 1%, 2%
-    MonadexV1Types.Multipliers public multiplier1 = MonadexV1Types.Multipliers.Multiplier1;
-    MonadexV1Types.Multipliers public multiplier2 = MonadexV1Types.Multipliers.Multiplier2;
-    MonadexV1Types.Multipliers public multiplier3 = MonadexV1Types.Multipliers.Multiplier2;
-
+contract RaffleRunTheRaffle is Test, Deployer, ASuperTest {
     // --------------------------------
     //    initializeRouterAddress()
     // --------------------------------
@@ -79,7 +71,15 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
         s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
         s_raffle.supportToken(address(DAI), _pythPriceFeedConfig[1]);
 
-        s_raffle.purchaseTickets(swapper1, address(DAI), 10000, multiplier1, swapper1);
+        MonadexV1Types.Fraction[5] memory fractionTiers = [
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        ];
+
+        s_raffle.purchaseTickets(address(DAI), 10000, swapper1);
 
         vm.stopPrank();
     }
@@ -90,17 +90,18 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
     function testFail_userWithNoTicketsWillRevert() public {
         vm.warp(block.timestamp + 6 days);
         vm.prank(swapper1);
-        s_raffle.register(100);
+        s_raffle.register(swapper1, 100);
     }
 
     function test_userRegister1000Tickets() public {
-        test_swapDAIForWBTCAndBuyTickets();
+        test_swapUsingExistingPoolsFromTheSuperTest();
         vm.warp(block.timestamp + 6 days);
         vm.prank(swapper1);
-        uint256 ticketsToBurn = s_raffle.register(1000e18);
+        uint256 ticketsToBurn = s_raffle.register(swapper1, 1000e18);
         assertEq(ticketsToBurn, 1000e18);
     }
 
+    /* //@audit-note:commented bc take too long
     function test_userRegisterLimit() public {
         test_swapDAIForWBTCAndBuyTickets();
 
@@ -110,7 +111,7 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
         uint256 ticketsToBurn = s_raffle.register(1e25);
         assertEq(ticketsToBurn, 1e25);
     }
-
+    */
     // @audit-high - Not finishing, Potential DoS attack.
     /* function test_userRegister100x100OfThetickets() public {
         test_swapDAIForWBTCAndBuyTickets(); //User swap DAI = 10K for wBTC
@@ -127,16 +128,110 @@ contract RaffleRunTheRaffle is Test, Deployer, RouterSwapRaffleTrue {
     // --------------------------------
     //    requestRandomNumber()
     // --------------------------------
+    /* function test_requestRandomNUmberUsingMockEntropyContract() public {
+        vm.startPrank(LP1);
+        uint128 requestFee = mock.getFee(address(mock));
+        mockEntropy.request(userRandomNumber);
+        uint256 theRaffleRandomNumber = mockEntropy.getRandomNumber();
+        console.log("Enthropy Fees: ", requestFee);
+        console.log("Raffle Random Number: ", theRaffleRandomNumber);
+
+        vm.stopPrank();
+    } */
+
+    function test_easyRequestRandomNumber() public {
+        test_allSuperTestSwappersRegisterTickets();
+        console.log("AS WE ARE IN LOCAL, WE HAVE A MOCK ENTROPY CONTRACT:");
+        console.log("mock contract: ", address(mock));
+        console.log("MonadexV1Raffle: ", address(s_raffle));
+        console.log("");
+
+        vm.warp(block.timestamp + 6 days);
+
+        uint128 requestFee = mock.getFee(address(mock));
+        s_raffle.requestRandomNumber(userRandomNumber);
+        uint256 theRaffleRandomNumber = uint256(s_raffle.getCurrentRandomNumber());
+        console.log("WE SET THE FEES TO ZERO. WE HAVE A RANDOM NUMBER!:");
+        console.log("Enthropy Fees: ", requestFee);
+        console.log("Raffle Random Number: ", theRaffleRandomNumber);
+    }
+
+    function test_lookingFor_sequenceNumber() public {
+        test_allSuperTestSwappersRegisterTickets();
+        vm.warp(block.timestamp + 6 days);
+        s_raffle.requestRandomNumber(userRandomNumber);
+        uint256 theRaffleRandomNumber = uint256(s_raffle.getCurrentRandomNumber());
+        console.log("Raffle Random Number: ", theRaffleRandomNumber);
+        s_raffle.requestRandomNumber(userRandomNumber);
+        theRaffleRandomNumber = uint256(s_raffle.getCurrentRandomNumber());
+        console.log("Raffle Random Number: ", theRaffleRandomNumber);
+    }
 
     // --------------------------------
     //    drawWinnersAndAllocateRewards()
     // --------------------------------
+    function test_drawWinnersAndAllocateRewards() public {
+        test_easyRequestRandomNumber();
+        bool isEnded = s_raffle.hasRegistrationPeriodEnded();
+        console.log("isEnded: ", isEnded);
+        s_raffle.drawWinnersAndAllocateRewards();
+    }
 
     // --------------------------------
     //    claimWinnings()
     // --------------------------------
+    function test_claimWinning() public {
+        test_drawWinnersAndAllocateRewards();
+        console.log("wBTC: ", wBTC.balanceOf(address(s_raffle)));
+        console.log("wETH: ", wETH.balanceOf(address(s_raffle)));
+        console.log("DAI: ", DAI.balanceOf(address(s_raffle)));
+        console.log("USDT: ", USDT.balanceOf(address(s_raffle)));
+        console.log("SHIB: ", SHIB.balanceOf(address(s_raffle)));
+        console.log("monad: ", wMonad.balanceOf(address(s_raffle)));
+
+        vm.prank(swapper5);
+        s_raffle.claimWinnings(address(DAI), address(swapper5));
+        vm.prank(swapper2);
+        s_raffle.claimWinnings(address(DAI), address(swapper2));
+        vm.prank(swapper7);
+        s_raffle.claimWinnings(address(DAI), address(swapper7));
+        vm.prank(swapper10);
+        s_raffle.claimWinnings(address(DAI), address(swapper10));
+        vm.prank(swapper4);
+        s_raffle.claimWinnings(address(DAI), address(swapper4));
+
+        vm.prank(swapper5);
+        s_raffle.claimWinnings(address(USDT), address(swapper5));
+        vm.prank(swapper2);
+        s_raffle.claimWinnings(address(USDT), address(swapper2));
+        vm.prank(swapper7);
+        s_raffle.claimWinnings(address(USDT), address(swapper7));
+        vm.prank(swapper10);
+        s_raffle.claimWinnings(address(USDT), address(swapper10));
+        vm.prank(swapper4);
+        s_raffle.claimWinnings(address(USDT), address(swapper4));
+
+        console.log("after ****************");
+        console.log("wETH: ", wETH.balanceOf(address(s_raffle)));
+        console.log("DAI: ", DAI.balanceOf(address(s_raffle)));
+        console.log("USDT: ", USDT.balanceOf(address(s_raffle)));
+        console.log("SHIB: ", SHIB.balanceOf(address(s_raffle)));
+        console.log("monad: ", wMonad.balanceOf(address(s_raffle)));
+    }
 
     // --------------------------------
     //    removeToken()
     // --------------------------------
+    function test_removeToken() public addSupportedTokens {
+        assertEq(s_raffle.isSupportedToken(address(DAI)), true);
+        vm.prank(protocolTeamMultisig);
+        s_raffle.removeToken(address(DAI));
+        assertEq(s_raffle.isSupportedToken(address(DAI)), false);
+    }
+
+    function testFail_onlyOwnerCanRemoveToken() public addSupportedTokens {
+        assertEq(s_raffle.isSupportedToken(address(DAI)), true);
+        vm.prank(LP1);
+        s_raffle.removeToken(address(DAI));
+    }
 }

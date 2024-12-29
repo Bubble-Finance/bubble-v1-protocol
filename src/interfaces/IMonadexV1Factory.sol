@@ -8,7 +8,7 @@ interface IMonadexV1Factory {
 
     function setProtocolTeamMultisig(address _protocolTeamMultisig) external;
 
-    function setProtocolFee(MonadexV1Types.Fee memory _protocolFee) external;
+    function setProtocolFee(MonadexV1Types.Fraction memory _protocolFee) external;
 
     function setBlackListedToken(address _token, bool _isBlacklisted) external;
 
@@ -20,7 +20,7 @@ interface IMonadexV1Factory {
 
     function getProtocolTeamMultisig() external view returns (address);
 
-    function getProtocolFee() external view returns (MonadexV1Types.Fee memory);
+    function getProtocolFee() external view returns (MonadexV1Types.Fraction memory);
 
     function getTokenPairToFee(
         address _tokenA,
@@ -28,11 +28,16 @@ interface IMonadexV1Factory {
     )
         external
         view
-        returns (MonadexV1Types.Fee memory);
+        returns (MonadexV1Types.Fraction memory);
 
-    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fee[5] memory);
+    function getFeeForAllFeeTiers() external view returns (MonadexV1Types.Fraction[5] memory);
 
-    function getFeeForTier(uint256 _feeTier) external view returns (MonadexV1Types.Fee memory);
+    function getFeeForTier(
+        uint256 _feeTier
+    )
+        external
+        view
+        returns (MonadexV1Types.Fraction memory);
 
     function getAllPools() external view returns (address[] memory);
 

@@ -121,22 +121,22 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     // ----------------------------------
     function test_protocolTeamMultisigSetProtocolFees() external {
         vm.startPrank(protocolTeamMultisig);
-        s_factory.setProtocolFee(MonadexV1Types.Fee({ numerator: 3, denominator: 5 }));
-        MonadexV1Types.Fee memory newFees = s_factory.getProtocolFee();
+        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 3, denominator: 5 }));
+        MonadexV1Types.Fraction memory newFees = s_factory.getProtocolFee();
         assertEq(newFees.numerator, 3);
         assertEq(newFees.denominator, 5);
     }
 
     function testFail_usersCanNotSetProtocolFees() external {
         vm.prank(blackHat);
-        s_factory.setProtocolFee(MonadexV1Types.Fee({ numerator: 1, denominator: 1000 }));
+        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 1, denominator: 1000 }));
     }
 
     function testFail_ownerCanNotSetProtocolFees() external {
         vm.prank(protocolTeamMultisig);
         s_factory.transferOwnership(address(blackHat));
         vm.prank(blackHat);
-        s_factory.setProtocolFee(MonadexV1Types.Fee({ numerator: 1, denominator: 1000 }));
+        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 1, denominator: 1000 }));
     }
 
     // ----------------------------------
@@ -156,7 +156,8 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     function test_setTokenPairFeeNotBetween1and5() external deployNewPool {
         vm.prank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 4);
-        MonadexV1Types.Fee memory feeTier = s_factory.getTokenPairToFee(address(wETH), address(DAI));
+        MonadexV1Types.Fraction memory feeTier =
+            s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 4);
         assertEq(feeTier.denominator, 1000);
     }
@@ -164,7 +165,8 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     function test_ownerTimeLockerCanSetTokenPairFee() external deployNewPool setTimelockerAsOwner {
         vm.prank(address(s_timelock));
         s_factory.setTokenPairFee(address(wETH), address(DAI), 1);
-        MonadexV1Types.Fee memory feeTier = s_factory.getTokenPairToFee(address(wETH), address(DAI));
+        MonadexV1Types.Fraction memory feeTier =
+            s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 1);
         assertEq(feeTier.denominator, 1000);
     }
@@ -173,7 +175,8 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
         vm.startPrank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 4);
         s_factory.setTokenPairFee(address(DAI), address(wETH), 3);
-        MonadexV1Types.Fee memory feeTier = s_factory.getTokenPairToFee(address(wETH), address(DAI));
+        MonadexV1Types.Fraction memory feeTier =
+            s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 3);
         assertEq(feeTier.denominator, 1000);
     }

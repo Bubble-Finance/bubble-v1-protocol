@@ -29,23 +29,19 @@ import {
 import { ERC20Votes } from
     "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-/**
- * @title MDX (Monadex) token.
- * @author Monadex Labs -- Ola hamid.
- * @notice MDX is the governance and utility token of Monadex.
- */
+/// @title MDX (Monadex) token.
+/// @author Monadex Labs -- Ola hamid.
+/// @notice MDX is the governance and utility token of Monadex.
 contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
     ///////////////////
     /// Constructor ///
     ///////////////////
 
-    /**
-     * @notice Sets the owner of the token and mints them the initial supply
-     * during deployment. The owner will distribute the tokens as per the decided
-     * allocation ratios later on.
-     * @param _owner The owner of the token (the protocol team multisig).
-     * @param _initialSupply The market cap.
-     */
+    /// @notice Sets the owner of the token and mints them the initial supply
+    /// during deployment. The owner will distribute the tokens as per the decided
+    /// allocation ratios later on.
+    /// @param _owner The owner of the token (the protocol team multisig).
+    /// @param _initialSupply The market cap.
     constructor(
         address _owner,
         uint256 _initialSupply

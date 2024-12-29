@@ -51,24 +51,29 @@ import { InitializeConstructorsArgs } from "./InitializeConstructorsArgs.sol";
 // ------------------------------------------------------
 
 contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
-    MDX s_mdx;
-    MonadexV1Timelock s_timelock;
-    MonadexV1Governor s_governor;
-
+    // --------------------------------
+    //    Main Contracts: Factory, Raffle, Router
+    // --------------------------------
     MonadexV1Factory s_factory;
 
     MonadexV1Raffle s_raffle;
 
     MonadexV1Router s_router;
 
+    // --------------------------------
+    //    Governor: Not developed yet
+    // --------------------------------
+    MDX s_mdx;
+    MonadexV1Timelock s_timelock;
+    MonadexV1Governor s_governor;
+
     function setUp() external {
-        InitializeBaseUsers();
+        initializeBaseUsers();
         initializeFactoryConstructorArgs();
         initializePythMockAndPrices();
         initializeRaffleConstructorArgs();
 
         vm.startPrank(protocolTeamMultisig);
-
         // --------------------------------
         //    Deploy Governor
         // --------------------------------
@@ -94,12 +99,12 @@ contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
         // --------------------------------
 
         s_raffle = new MonadexV1Raffle(
-            s_supportedTokens,
             address(s_pythPriceFeedContract),
+            s_pricePerTicket,
+            s_supportedTokens,
             s_priceFeedConfigs,
             s_entropyContract,
             s_entropyProvider,
-            s_multipliersToPercentages,
             s_winningPortions,
             s_minimumParticipants
         );
@@ -110,20 +115,6 @@ contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
         s_raffle.initializeRouterAddress(address(s_router));
 
-        // --------------------------------
-        //    Roles and Owners after Deploy
-        // --------------------------------
-        bytes32 proposerRole = s_timelock.PROPOSER_ROLE();
-        bytes32 executorRole = s_timelock.EXECUTOR_ROLE();
-
-        s_timelock.grantRole(proposerRole, address(s_governor));
-        s_timelock.grantRole(executorRole, address(0));
-
-        /**
-         * PENDING *******
-         *     s_factory.transferOwnership(address(s_timelock));
-         *     s_raffle.transferOwnership(address(s_timelock));
-         */
         vm.stopPrank();
     }
 }

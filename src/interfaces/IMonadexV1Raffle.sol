@@ -7,16 +7,14 @@ interface IMonadexV1Raffle {
     function initializeRouterAddress(address _routerAddress) external;
 
     function purchaseTickets(
-        address _swapper,
         address _token,
         uint256 _amount,
-        MonadexV1Types.Multipliers _multiplier,
         address _receiver
     )
         external
         returns (uint256);
 
-    function register(uint256 _amount) external returns (uint256);
+    function register(address _user, uint256 _amount) external returns (uint256);
 
     function requestRandomNumber(bytes32 _userRandomNumber) external payable returns (uint64);
 
@@ -44,14 +42,7 @@ interface IMonadexV1Raffle {
 
     function getCurrentRangeEnd() external view returns (uint256);
 
-    function getMultiplierToPercentage(
-        MonadexV1Types.Multipliers _multiplier
-    )
-        external
-        view
-        returns (MonadexV1Types.Fee memory);
-
-    function getWinningPortions() external view returns (MonadexV1Types.Fee[3] memory);
+    function getWinningPortions() external view returns (MonadexV1Types.Fraction[3] memory);
 
     function getWinnings(address _user, address _token) external view returns (uint256);
 
@@ -63,20 +54,11 @@ interface IMonadexV1Raffle {
 
     function getMaxTiers() external pure returns (uint256);
 
-    function getMaxMultipliers() external pure returns (uint256);
-
     function getRangeSize() external view returns (uint256);
 
     function getMinimumParticipantsForRaffle() external view returns (uint256);
 
-    function previewPurchase(
-        address _token,
-        uint256 _amount,
-        MonadexV1Types.Multipliers _multiplier
-    )
-        external
-        view
-        returns (uint256);
+    function previewPurchase(address _token, uint256 _amount) external view returns (uint256);
 
     function isRegistrationOpen() external view returns (bool);
 

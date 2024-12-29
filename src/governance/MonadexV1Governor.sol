@@ -37,11 +37,9 @@ import { GovernorVotes } from
 import { GovernorVotesQuorumFraction } from
     "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
-/**
- * @title MonadexV1Governor.
- * @author Monadex Labs -- Ola hamid.
- * @notice Facilitates on-chain governance with voting and timelock control.
- */
+/// @title MonadexV1Governor.
+/// @author Monadex Labs -- Ola hamid.
+/// @notice Facilitates on-chain governance with voting and timelock control.
 contract MonadexV1Governor is
     Governor,
     GovernorSettings,
@@ -54,15 +52,13 @@ contract MonadexV1Governor is
     /// Constructor ///
     ///////////////////
 
-    /**
-     * @notice Initializes the Governor. Fully configurable during deployment.
-     * @param _token The token to vote with. This will be the $MDX token.
-     * @param _timelock The timelock which will add a delay before executing proposals.
-     * @param _initialVotingDelay The delay after which votes can be cast.
-     * @param _initialVotingPeriod The duration for which the voting will last.
-     * @param _initialProposalThreshold The minimum amount of $MDX you should have to propose.
-     * @param _quorum The minimum percentage of voters that should be involved in the voting.
-     */
+    /// @notice Initializes the Governor. Fully configurable during deployment.
+    /// @param _token The token to vote with. This will be the $MDX token.
+    /// @param _timelock The timelock which will add a delay before executing proposals.
+    /// @param _initialVotingDelay The delay after which votes can be cast.
+    /// @param _initialVotingPeriod The duration for which the voting will last.
+    /// @param _initialProposalThreshold The minimum amount of $MDX you should have to propose.
+    /// @param _quorum The minimum percentage of voters that should be involved in the voting.
     constructor(
         IVotes _token,
         TimelockController _timelock,

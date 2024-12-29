@@ -31,29 +31,20 @@ import { IMonadexV1RafflePriceCalculator } from "../interfaces/IMonadexV1RaffleP
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
-/**
- * @title MonadexV1RafflePriceCalculator.
- * @author Monadex Labs -- mgnfy-view.
- * @notice This contract calculates the amount of tickets to mint for a given token
- * amount using Pyth price feeds.
- */
+/// @title MonadexV1RafflePriceCalculator.
+/// @author Monadex Labs -- mgnfy-view.
+/// @notice This contract calculates the amount of tickets to mint for a given token
+/// amount using Pyth price feeds.
 abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalculator {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
 
-    /**
-     * @dev The price of each raffle ticket is $1.
-     */
-    uint256 internal constant PRICE_PER_TICKET = 1;
-
-    /**
-     * @dev This is the contract we query to get the price of each supported token in USD.
-     */
+    /// @dev The price of each raffle ticket.
+    uint256 internal s_pricePerTicket;
+    /// @dev This is the contract we query to get the price of each supported token in USD.
     address internal immutable i_pyth;
-    /**
-     * @dev Each supported token has a corresponding token/USD price feed Id.
-     */
+    /// @dev Each supported token has a corresponding token/USD price feed Id.
     mapping(address token => MonadexV1Types.PriceFeedConfig config) internal
         s_tokenToPriceFeedConfig;
 
@@ -61,11 +52,10 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
     /// Constructor ///
     ///////////////////
 
-    /**
-     * @notice Initializes the Pyth contract with the Pyth price feed contract address.
-     * @param _pythPriceFeedContract The address of the contract to query the prices for tokens.
-     */
-    constructor(address _pythPriceFeedContract) {
+    /// @notice Initializes the Pyth contract with the Pyth price feed contract address.
+    /// @param _pythPriceFeedContract The address of the contract to query the prices for tokens.
+    constructor(uint256 _pricePerTicket, address _pythPriceFeedContract) {
+        s_pricePerTicket = _pricePerTicket;
         i_pyth = _pythPriceFeedContract;
     }
 
@@ -73,47 +63,39 @@ abstract contract MonadexV1RafflePriceCalculator is IMonadexV1RafflePriceCalcula
     /// Internal Function ///
     /////////////////////////
 
-    /**
-     * @notice Gets the tickets to mint for a given token amount. Pyth price feeds are used to
-     * obtain the total value of the token amount in USD.
-     * @param _token The token address.
-     * @param _amount The token amount.
-     * @return The amount of tickets to mint.
-     */
+    /// @notice Gets the tickets to mint for a given token amount. Pyth price feeds are used to
+    /// obtain the total value of the token amount in USD.
+    /// @param _token The token address.
+    /// @param _amount The token amount.
+    /// @return The amount of tickets to mint.
     function _getTicketsToMint(address _token, uint256 _amount) internal view returns (uint256) {
         MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
         PythStructs.Price memory price =
             IPyth(i_pyth).getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
         uint256 tokenDecimals = IERC20Metadata(_token).decimals();
         return
-            MonadexV1Library.calculateTicketsToMint(_amount, price, PRICE_PER_TICKET, tokenDecimals);
+            MonadexV1Library.calculateTicketsToMint(_amount, price, s_pricePerTicket, tokenDecimals);
     }
 
     //////////////////////////////
     /// View and Pure Function ///
     //////////////////////////////
 
-    /**
-     * @notice Gets the price of a ticket in dollars.
-     * @return The ticket price in dollars, with 0 decimal precision.
-     */
-    function getPricePerTicket() external pure returns (uint256) {
-        return PRICE_PER_TICKET;
+    /// @notice Gets the price of a ticket in dollars.
+    /// @return The ticket price in dollars, with 0 decimal precision.
+    function getPricePerTicket() external view returns (uint256) {
+        return s_pricePerTicket;
     }
 
-    /**
-     * @notice Gets the address of the pyth price feed contract.
-     * @return Address of the pyth price feed contract.
-     */
+    /// @notice Gets the address of the pyth price feed contract.
+    /// @return Address of the pyth price feed contract.
     function getPythPriceFeedContractAddress() external view returns (address) {
         return i_pyth;
     }
 
-    /**
-     * @notice Gets the token/USD price feed config for a given token.
-     * @param _token The token's address.
-     * @return The price feed config for the given token.
-     */
+    /// @notice Gets the token/USD price feed config for a given token.
+    /// @param _token The token's address.
+    /// @return The price feed config for the given token.
     function getPythPriceFeedConfigForToken(
         address _token
     )

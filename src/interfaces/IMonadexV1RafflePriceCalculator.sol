@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 interface IMonadexV1RafflePriceCalculator {
-    function getPricePerTicket() external pure returns (uint256);
+    function getPricePerTicket() external view returns (uint256);
 
     function getPythPriceFeedContractAddress() external view returns (address);
 
