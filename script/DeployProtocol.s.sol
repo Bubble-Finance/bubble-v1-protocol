@@ -33,6 +33,7 @@ contract DeployProtocol is Script {
     MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
     MonadexV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumParticipants;
+    uint256 public s_pricePerTicket;
 
     // Router constructor args
     address public s_wNative;
@@ -66,16 +67,18 @@ contract DeployProtocol is Script {
 
         vm.startBroadcast();
         s_factory = new MonadexV1Factory(s_protocolTeamMultisig, s_protocolFee, s_feeTiers);
+
         s_raffle = new MonadexV1Raffle(
-            s_supportedTokens,
             s_pythPriceFeedContract,
+            s_pricePerTicket,
+            s_supportedTokens,
             s_priceFeedConfigs,
             s_entropyContract,
             s_entropyProvider,
-            s_multipliersToPercentages,
             s_winningPortions,
             s_minimumParticipants
         );
+
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
         s_raffle.initializeRouterAddress(address(s_router));
 
