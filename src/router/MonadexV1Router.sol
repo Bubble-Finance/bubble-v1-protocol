@@ -1,22 +1,3 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
@@ -37,8 +18,8 @@ import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 /// @title MonadexV1Router.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice The router contract acts as a convenient interface to interact with Monadex pools.
-/// It performs essential safety checks, and is also the only way to purchase raffle tickets.
+/// @notice The router contract acts as an entrypoint to interact with Monadex pools.
+/// It performs essential safety checks, and is also the only way to enter the weekly raffle.
 contract MonadexV1Router is IMonadexV1Router {
     using SafeERC20 for IERC20;
 
@@ -46,9 +27,9 @@ contract MonadexV1Router is IMonadexV1Router {
     /// State Variables ///
     ///////////////////////
 
-    /// @dev Address of the `MonadexV1Factory`.
+    /// @dev Address of `MonadexV1Factory`.
     address private immutable i_factory;
-    /// @dev Address of the raffle contract.
+    /// @dev Address of `MonadexV1Raffle`.
     address private immutable i_raffle;
     /// @dev Address of the wrapped native token.
     address private immutable i_wNative;
@@ -57,7 +38,7 @@ contract MonadexV1Router is IMonadexV1Router {
     /// Errors ///
     //////////////
 
-    error MonadexV1Router__DeadlinePasssed(uint256 deadline);
+    error MonadexV1Router__DeadlinePasssed(uint256 givenDeadline, uint256 currentTimestamp);
     error MonadexV1Router__TransferFailed();
     error MonadexV1Router__PermitFailed();
     error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
@@ -66,16 +47,15 @@ contract MonadexV1Router is IMonadexV1Router {
     error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
     error MonadexV1Router__InvalidPath();
     error MonadexV1Router__TokenNotSupportedByRaffle();
-    error MonadexV1Router__InsufficientTicketAmountReceived(
-        uint256 ticketsReceived, uint256 minimumTicketsToReceive
-    );
 
     /////////////////
     /// Modifiers ///
     /////////////////
 
     modifier beforeDeadline(uint256 _deadline) {
-        if (_deadline < block.timestamp) revert MonadexV1Router__DeadlinePasssed(_deadline);
+        if (_deadline < block.timestamp) {
+            revert MonadexV1Router__DeadlinePasssed(_deadline, block.timestamp);
+        }
         _;
     }
 
@@ -84,8 +64,8 @@ contract MonadexV1Router is IMonadexV1Router {
     ///////////////////
 
     /// @notice Initializes the factory, raffle and wrapped native token addresses.
-    /// @param _factory The MonadexV1Factory address.
-    /// @param _raffle The MonadexV1Raffle address.
+    /// @param _factory The `MonadexV1Factory` address.
+    /// @param _raffle The `MonadexV1Raffle` address.
     /// @param _wNative The address of the wrapped native token.
     constructor(address _factory, address _raffle, address _wNative) {
         i_factory = _factory;
@@ -101,7 +81,7 @@ contract MonadexV1Router is IMonadexV1Router {
     /// @param _addLiquidityParams The parameters required to add liquidity.
     /// @return Amount of token A added.
     /// @return Amount of token B added.
-    /// @return Amount of LP token received.
+    /// @return Amount of LP tokens received.
     function addLiquidity(
         MonadexV1Types.AddLiquidity calldata _addLiquidityParams
     )
@@ -130,8 +110,8 @@ contract MonadexV1Router is IMonadexV1Router {
     /// @notice Allows supplying native token as liquidity to Monadex pools with safety checks.
     /// @param _addLiquidityNativeParams The parameters required to add liquidity in native currency.
     /// @return Amount of token added.
-    /// @return Amount of native currency added.
-    /// @return Amount of LP token received.
+    /// @return Amount of native token added.
+    /// @return Amount of LP tokens received.
     function addLiquidityNative(
         MonadexV1Types.AddLiquidityNative calldata _addLiquidityNativeParams
     )
@@ -227,22 +207,24 @@ contract MonadexV1Router is IMonadexV1Router {
     }
 
     /// @notice Swaps an exact amount of input token for any amount of output token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountIn The amount of input token to swap.
     /// @param _amountOutMin The minimum amount of output token to receive.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets Details about raffle ticket purchase during the swap.
+    /// @param _raffle Details about entering the weekly raffle during the swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapExactTokensForTokens(
         uint256 _amountIn,
         uint256 _amountOutMin,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
@@ -259,37 +241,35 @@ contract MonadexV1Router is IMonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     /// @notice Swaps any amount of input token for exact amount of output token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountOut The amount of output token to receive.
     /// @param _amountInMax The maximum amount of input token to use for the swap.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets The parameters for raffle ticket purchase during the swap.
+    /// @param _raffle The parameters for raffle ticket purchase during the swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapTokensForExactTokens(
         uint256 _amountOut,
         uint256 _amountInMax,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
@@ -304,35 +284,33 @@ contract MonadexV1Router is IMonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     /// @notice Swaps an exact amount of native token for any amount of output token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountOutMin The minimum amount of output token to receive.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets The parameters for raffle ticket purchase during swap.
+    /// @param _raffle The parameters for raffle ticket purchase during swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapExactNativeForTokens(
         uint256 _amountOutMin,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         payable
@@ -352,37 +330,35 @@ contract MonadexV1Router is IMonadexV1Router {
         );
         _swap(amounts, _path, _receiver);
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     /// @notice Swaps any amount of input token for exact amount of native token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountOut The amount of native token to receive.
     /// @param _amountInMax The maximum amount of input token to use for the swap.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets The parameters for ticket purchase during swap.
+    /// @param _raffle The parameters for ticket purchase during swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapTokensForExactNative(
         uint256 _amountOut,
         uint256 _amountInMax,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
@@ -401,37 +377,35 @@ contract MonadexV1Router is IMonadexV1Router {
         (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
         if (!success) revert MonadexV1Router__TransferFailed();
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     /// @notice Swaps an exact amount of input token for any amount of native token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountIn The amount of input token to swap.
     /// @param _amountOutMin The minimum amount of native currency to receive.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets The parameters for raffle ticket purchase during swap.
+    /// @param _raffle The parameters for raffle ticket purchase during swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapExactTokensForNative(
         uint256 _amountIn,
         uint256 _amountOutMin,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
@@ -452,35 +426,33 @@ contract MonadexV1Router is IMonadexV1Router {
         (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
         if (!success) revert MonadexV1Router__TransferFailed();
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     /// @notice Swaps any amount of native token for exact amount of output token
-    /// such that the safety checks pass.
+    /// such that the safety checks pass. Also enables the swapper to enter the weekly
+    /// raffle and receive the raffle Nft.
+    /// @dev If the swapper doesn't enter the raffle, the returned Nft tokenId is 0.
     /// @param _amountOut The amount of output token to receive.
     /// @param _path An array of token addresses which forms the swap path.
     /// @param _receiver The address to direct the output token amount to.
     /// @param _deadline The UNIX timestamp (in seconds) before which the swap should be conducted.
-    /// @param _purchaseTickets The parameters for ticket purchase during swap.
+    /// @param _raffle The parameters for ticket purchase during swap.
     /// @return The amounts obtained at each checkpoint of the swap path.
-    /// @return The amount of raffle tickets obtained.
+    /// @return The raffle Nft tokenId received.
     function swapNativeForExactTokens(
         uint256 _amountOut,
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         payable
@@ -502,18 +474,14 @@ contract MonadexV1Router is IMonadexV1Router {
             if (!success) revert MonadexV1Router__TransferFailed();
         }
 
-        uint256 tickets;
-        if (_purchaseTickets.purchaseTickets) {
-            tickets = _purchaseRaffleTickets(
-                _path,
-                amounts,
-                _purchaseTickets.fractionOfSwapAmount,
-                _purchaseTickets.minimumTicketsToReceive,
-                _purchaseTickets.raffleTicketReceiver
+        uint256 nftId;
+        if (_raffle.enter) {
+            nftId = _enterRaffle(
+                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver
             );
         }
 
-        return (amounts, tickets);
+        return (amounts, nftId);
     }
 
     ////////////////////////
@@ -680,45 +648,36 @@ contract MonadexV1Router is IMonadexV1Router {
     /// @param _path The swap path.
     /// @param _amounts The amount of input/output token received at each checkpoint of the swap path.
     /// @param _fraction The fraction that should be applied to the swap amount to purchase tickets.
-    /// @param _minimumTicketsToReceive The minimum number of tickets to receive.
     /// @param _receiver The address of the receiver of raffle tickets.
-    /// @return The amount of raffle tickets received.
-    function _purchaseRaffleTickets(
+    /// @return The raffle nft id minted.
+    function _enterRaffle(
         address[] memory _path,
         uint256[] memory _amounts,
         MonadexV1Types.Fraction memory _fraction,
-        uint256 _minimumTicketsToReceive,
         address _receiver
     )
         internal
         returns (uint256)
     {
-        uint256 ticketsReceived;
+        uint256 nftId;
         if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
             uint256 amountForRaffle =
                 MonadexV1Library.calculateAmountAfterApplyingPercentage(_amounts[0], _fraction);
             IERC20(_path[0]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
-            ticketsReceived =
-                IMonadexV1Raffle(i_raffle).purchaseTickets(_path[0], amountForRaffle, _receiver);
+            nftId = IMonadexV1Raffle(i_raffle).enterRaffle(_path[0], amountForRaffle, _receiver);
         } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
             uint256 amountForRaffle = MonadexV1Library.calculateAmountAfterApplyingPercentage(
                 _amounts[_amounts.length - 1], _fraction
             );
             IERC20(_path[_path.length - 1]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
-            ticketsReceived = IMonadexV1Raffle(i_raffle).purchaseTickets(
+            nftId = IMonadexV1Raffle(i_raffle).enterRaffle(
                 _path[_path.length - 1], _amounts[_amounts.length - 1], _receiver
             );
         } else {
             revert MonadexV1Router__TokenNotSupportedByRaffle();
         }
 
-        if (ticketsReceived < _minimumTicketsToReceive) {
-            revert MonadexV1Router__InsufficientTicketAmountReceived(
-                ticketsReceived, _minimumTicketsToReceive
-            );
-        }
-
-        return ticketsReceived;
+        return nftId;
     }
 
     ///////////////////////////////

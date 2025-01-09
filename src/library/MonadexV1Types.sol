@@ -128,25 +128,39 @@ contract MonadexV1Types {
         bytes32 s;
     }
 
-    /// @notice Purchase tickets during a swap on supported pools.
-    struct PurchaseTickets {
-        /// @dev True if the user wants to pruchase tickets, false otherwise.
-        bool purchaseTickets;
-        /// @dev The fraction of swap amount that should be used to purchase raffle
-        /// tickets.
-        Fraction fractionOfSwapAmount;
-        /// @dev Slippage protection for ticket purchase.
-        uint256 minimumTicketsToReceive;
-        /// @dev The receiver of the raffle tickets.
-        address raffleTicketReceiver;
-    }
-
     /// @notice The Pyth price feed config for raffle.
     struct PriceFeedConfig {
         /// @dev The token/usd price feed id.
         bytes32 priceFeedId;
         /// @dev The max window after which the price feed will be considered stale.
         uint256 noOlderThan;
+    }
+
+    /// @notice Enter raffle during a swap on supported pools.
+    struct Raffle {
+        /// @dev True if the user wants to enter raffle, false otherwise.
+        bool enter;
+        /// @dev The fraction of swap amount that should be used to enter raffle.
+        Fraction fractionOfSwapAmount;
+        /// @dev The receiver of the raffle nft.
+        address raffleNftReceiver;
+    }
+
+    /// @notice Raffle winning tiers.
+    enum Tiers {
+        TIER1,
+        TIER2,
+        TIER3
+    }
+
+    /// @notice Raffle winnings claim struct to avoid stack too deep error.
+    struct RaffleClaim {
+        /// @dev The tier to claim winnings in.
+        Tiers tier;
+        /// @dev The epoch to claim winnings from.
+        uint256 epoch;
+        /// @dev The raffle Nft tokenId to claim winnings on behalf of.
+        uint256 tokenId;
     }
 
     /// @notice Details of a token launched on `MonadexV1Campaigns`.

@@ -280,26 +280,26 @@ library MonadexV1Library {
     /// from Pyth price feed, and the ticket price.
     /// @param _amount The amount used to purchase tickets.
     /// @param _pythPrice The price struct obtained from Pyth.
-    /// @param _pricePerTicket The price per ticket (in dollars).
+    /// @param _targetDecimals The target decimals to put the price into.
     /// @return The amount of tickets to mint.
-    function calculateTicketsToMint(
+    function totalValueInUsd(
         uint256 _amount,
         PythStructs.Price memory _pythPrice,
-        uint256 _pricePerTicket,
+        uint8 _targetDecimals,
         uint256 _decimals
     )
         internal
         pure
         returns (uint256)
     {
-        uint8 targetDecimals = 18;
-        uint256 price = _convertToUint(_pythPrice.price, _pythPrice.expo, targetDecimals);
-        uint256 confidence = _convertToUint(int64(_pythPrice.conf), _pythPrice.expo, targetDecimals);
+        uint256 price = _convertToUint(_pythPrice.price, _pythPrice.expo, _targetDecimals);
+        uint256 confidence =
+            _convertToUint(int64(_pythPrice.conf), _pythPrice.expo, _targetDecimals);
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
             revert MonadexV1Library__ExcessiveConfidence();
         }
 
-        return (_amount * price) / (10 ** _decimals * _pricePerTicket);
+        return (_amount * price) / (10 ** _decimals);
     }
 
     /// @notice Converts a Pyth price to a uint256 with a target number of decimals.

@@ -35,7 +35,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -46,7 +46,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -56,7 +56,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         payable
@@ -68,7 +68,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _enter
     )
         external
         returns (uint256[] memory, uint256);
@@ -79,7 +79,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -89,7 +89,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.PurchaseTickets memory _purchaseTickets
+        MonadexV1Types.Raffle memory _raffle
     )
         external
         payable

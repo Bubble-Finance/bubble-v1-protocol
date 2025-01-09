@@ -1,623 +1,662 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
-import { ERC20 } from "@solmate/tokens/ERC20.sol";
-import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IEntropy } from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import { IEntropyConsumer } from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+
+import { Ownable } from "@openzeppelin/access/Ownable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC721 } from "@openzeppelin/token/ERC721/ERC721.sol";
+import { EnumerableSet } from "@openzeppelin/utils/structs/EnumerableSet.sol";
+import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 
 import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
 
 import { MonadexV1Library } from "../library/MonadexV1Library.sol";
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
-import { MonadexV1RaffleEntropy } from "./MonadexV1RaffleEntropy.sol";
-import { MonadexV1RafflePriceCalculator } from "./MonadexV1RafflePriceCalculator.sol";
 
 /// @title MonadexV1Raffle.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice The raffle contract allows users to purchase tickets during swaps from the router,
-/// enter the weekly draw by burning their tickets, and have a chance at winning from a large
-/// prize pool. This contract will be deployed separately, and then registered in the router.
-/// Raffle will be owned by the protocol team multisig in the initial stages, and by the Monadex
-/// DAO later on.
-contract MonadexV1Raffle is
-    ERC20,
-    Ownable,
-    MonadexV1RafflePriceCalculator,
-    MonadexV1RaffleEntropy,
-    IMonadexV1Raffle
-{
+/// @notice Raffle allows users to swap and pay additional fees on supported pools
+/// to be eligible for the weekly draw.
+contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle {
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.UintSet;
 
-    ///////////////////////
-    /// State Variables ///
-    ///////////////////////
+    /// @dev The duration for which one raffle epoch lasts.
+    uint256 private constant EPOCH_DURATION = 1 weeks;
+    /// @dev The total number of tiers in which winners will be picked.
+    uint8 private constant TIERS = 3;
+    /// @dev The total number of winners to pick in tier 1.
+    uint8 private constant WINNERS_IN_TIER_1 = 1;
+    /// @dev The total number of winners to pick in tier 2.
+    uint8 private constant WINNERS_IN_TIER_2 = 2;
+    /// @dev The total number of winners to pick in tier 3.
+    uint8 private constant WINNERS_IN_TIER_3 = 3;
+    /// @dev Target decimals to represent the Pyth prices in.
+    uint8 private constant TARGET_DECIMALS = 6;
+    /// @dev Seed 1 for generating another random number from the source random number.
+    string private constant SEED_1 = "Molandak";
+    /// @dev Seed 2 for generating another random number from the source random number.
+    string private constant SEED_2 = "Chog";
+    /// @dev Seed 3 for generating another random number from the source random number.
+    string private constant SEED_3 = "Moyaki";
+    /// @dev Seed 4 for generating another random number from the source random number.
+    string private constant SEED_4 = "Mon-Turtle";
+    /// @dev The address of the `MonadexV1Router`.
+    address private immutable i_monadexV1Router;
+    /// @dev This is the contract we query to get the price of each supported token in USD.
+    address private immutable i_pyth;
+    /// @dev Supported tokens for entering raffle. Pools with these tokens are indirectly supported
+    /// for raffle.
+    EnumerableSet.AddressSet private s_supportedTokens;
+    /// @dev Each supported token has a corresponding token/USD price feed Id.
+    mapping(address token => MonadexV1Types.PriceFeedConfig config) private s_tokenToPriceFeedConfig;
+    /// @dev The Pyth contract which we'll use to request random numbers from.
+    address private immutable i_entropy;
+    /// @dev We can use different entropy providers to request random numbers from.
+    address private immutable i_entropyProvider;
+    /// @dev This is the sequence number for which Pyth will supply a random number
+    /// for a given week's draw.
+    /// After each draw, the sequence number is set to 0 for the next week.
+    uint64 private s_currentSequenceNumber;
+    /// @dev The current epoch. The first epoch is 1, not zero.
+    uint256 private s_epoch;
+    /// @dev The next Nft tokenId to mint as a receipt for raffle entry.
+    uint256 private s_nextTokenId;
+    /// @dev The timestamp when the last epoch ended.
+    uint256 private s_lastDrawTimestamp;
+    /// @dev The minimum number of Nfts to be minted in each epoch. This ensures that there are enough
+    /// entries to select winners in all tiers.
+    uint256 private s_minimumNftsToBeMintedEachEpoch;
+    /// @dev Tracks the Nfts minted for a user in each epoch.
+    mapping(address user => mapping(uint256 epoch => EnumerableSet.UintSet nfts)) private
+        s_userNftsEachEpoch;
+    /// @dev The total number of Nfts minted in each epoch.
+    mapping(uint256 epoch => uint256 nftsMinted) private s_nftsMintedEachEpoch;
+    /// @dev The range associated with each raffle Nft entry. The larger the range, the greater
+    /// the chance of winning.
+    mapping(uint256 tokenId => uint256[] range) private s_nftToRange;
+    /// @dev The ending point of the last range for the epoch.
+    mapping(uint256 epoch => uint256 endingPoint) private s_epochToEndingPoint;
+    /// @dev The total token amounts collected in each epoch.
+    mapping(uint256 epoch => mapping(address token => uint256 amount)) private
+        s_epochToTokenAmountsCollected;
+    /// @dev The random numbers supplied by Pyth in each epoch.
+    mapping(uint256 epoch => uint256[] randomNumbers) private s_epochToRandomNumbers;
+    /// @dev Tracks whether a user has claimed winnings from a tier in a given epoch. Prevents replays.
+    mapping(
+        address user => mapping(uint256 epoch => mapping(MonadexV1Types.Tiers tier => bool claimed))
+    ) private s_hasUserClaimedEpochTierWinnings;
+    /// @dev The winning portions of the total collected amount in each tier.
+    /// For example, the winning portions may be like:
+    /// 55% of total collected amount for 1 winner in tier 1.
+    /// 15% of total collected amount for 2 winners in tier 2.
+    /// 5% of total collected amount for 3 winners in tier 3.
+    MonadexV1Types.Fraction[TIERS] private s_winningPortions;
 
-    /// @dev The duration for which the raffle will continue.
-    /// Any registrations won't be accepted during this period.
-    uint256 private constant RAFFLE_DURATION = 6 days;
-    /// @dev The registration period begins right after the raffle duration,
-    /// and lasts for a day.
-    /// During this period, users can register themselves for the weekly draw.
-    uint256 private constant REGISTRATION_PERIOD = 1 days;
-    /// @dev The maximum number of winners to draw for the raffle.
-    uint256 private constant MAX_WINNERS = 6;
-    /// @dev Tiers are layers in which winners will be drawn.
-    /// There are a maximum of 3 tiers.
-    uint256 private constant MAX_TIERS = 3;
-    /// @dev One winner is drawn in tier 1 and receives a large prize amount.
-    uint256 private constant WINNERS_IN_TIER1 = 1;
-    /// @dev 2 winners are drawn in the second tier, and both of them receive an equal prize amount
-    /// which is lesser than the amount given to the tier 1 winner, but greater than the amount
-    /// given to tier 3 winners.
-    uint256 private constant WINNERS_IN_TIER2 = 2;
-    /// @dev 3 winners from tier 3 receive equal prize amount each, but lesser than the prize amount
-    /// given to tier 2 winners.
-    uint256 private constant WINNERS_IN_TIER3 = 3;
-    /// @dev We use ranges of a fixed size to register users for draw.
-    /// Imagine a number line extending in one direction with fixed size intervals of 50.
-    /// We begin at 0.
-    /// If you have 100 tickets, you will be put in  ranges, 0-50 and 50-100.
-    /// If you occupy a lot of ranges, you have more chances of winning.
-    /// A random number is selected and can pick users on any random range.
-    /// You increase your chances of being picked if you occupy a large range.
-    /// The range size is given by: 10 ** token decimals (by default 18).
-    uint256 private constant RANGE_SIZE = 1e18;
-    /// @dev The maximum number of tokens that can be used for raffle.
-    uint256 private constant MAX_SUPPORTED_TOKENS = 5;
-    /// @dev We need to store the router's address to ensure that purchases are made from the router
-    /// only.
-    address private s_router;
-    /// @dev Stores the UNIX timestamp (in seconds) of the time when the last draw was made.
-    uint256 private s_lastTimestamp;
-    /// @dev Users will only be able to purchase tickets if they conduct swaps
-    /// on pools with supported tokens.
-    /// The amounts of these tokens are collected in this contract
-    /// and then given out to winners in different tiers.
-    address[] private s_supportedTokens;
-    /// @dev A mapping of supported tokens for cheaper access.
-    mapping(address token => bool isSupported) private s_isSupportedToken;
-    /// @dev Tracks ranges which are occupied by users.
-    /// For example, range[0] = address("Bob"),
-    /// range[50e18] = address("Bob"),
-    /// range[100e18] = address("Alice").
-    /// Here, Bob occupies ranges 0-50e18 and 50e18-100e18.
-    /// Alice occupies range 100e18-150e18.
-    mapping(uint256 rangeStart => address user) private s_ranges;
-    /// @dev Tracks the currrent range for the week's registrations.
-    /// The next registration will be put in this range.
-    uint256 private s_currentRangeEnd;
-    /// @dev The percentage of the total amount that the winner gets for a given tier.
-    /// This applies for all supported tokens.
-    /// For example, winner in tier 1 gets 45% of amounts collected in token A, token B, ... and so on.
-    /// 2 winners in tier 2 both get 20% of amounts collected in token A, token B, ... and so on.
-    /// 3 winners in tier 3 both get 5% of amounts collected in token A, token B, ... and so on.
-    /// 45% + (2 * 20%) + (3 * 5%) = 100%
-    MonadexV1Types.Fraction[MAX_TIERS] private s_winningPortions;
-    /// @dev We use the pull over push pattern.
-    /// Users can pull their raffle winnings for a given supported token.
-    mapping(address user => mapping(address token => uint256 amount)) private s_winnings;
-    /// @dev The minimum number of registrations required before a draw can be made.
-    uint256 private s_minimumParticipants;
-
-    //////////////
-    /// Events ///
-    //////////////
-
-    event RouterAddressSet(address indexed router);
-    event TicketsPurchased(
-        address token, uint256 amount, address indexed receiver, uint256 indexed ticketsMinted
-    );
-    event Registered(address indexed user, uint256 indexed ticketsBurned);
-    event RandomNumberRequested(uint64 indexed sequenceNumber);
-    event WinnersPicked(address[MAX_WINNERS] indexed winners);
-    event WinningsClaimed(address indexed winner, address indexed token, uint256 amount);
     event TokenSupported(
-        address indexed token, MonadexV1Types.PriceFeedConfig indexed pythPriceFeedConfig
+        address indexed _token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
     );
-    event TokenRemoved(address token);
-    event RangeSizeChanged(uint256 indexed rangeSize);
-    event PriceFeedIDUpdated(
-        address indexed token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
+    event TokenRemoved(address indexed token);
+    event EnteredRaffle(
+        address indexed receiver,
+        address indexed tokenIn,
+        uint256 amount,
+        uint256 indexed nftTokenId,
+        uint256 distance
     );
-
-    //////////////
-    /// Errors ///
-    //////////////
+    event RandomNumberRequested(uint256 indexed currentSequenceNumber);
+    event TierWinningsClaimed(MonadexV1Types.RaffleClaim indexed claim);
+    event EpochEnded(
+        uint256 indexed epoch, uint64 indexed sequenceNumber, bytes32 indexed randomNumber
+    );
+    event WinningPortionsSet(MonadexV1Types.Fraction[TIERS] indexed winningPortions);
+    event MinimumNftsToBeMintedEachEpochSet(uint256 indexed minimumNftsToBeMintedEachEpoch);
 
     error MonadexV1Raffle__NotRouter();
-    error MonadexV1Raffle__InvalidConstructorArgs();
-    error MonadexV1Raffle__RouterAddressAlreadyInitialised(address router);
-    error MonadexV1Raffle__ZeroAmount();
-    error MonadexV1Raffle__TokenNotSupported(address token);
-    error MonadexV1Raffle__ZeroTickets();
-    error MonadexV1Raffle__NotOpenForRegistration();
-    error MonadexV1Raffle__NotEnoughTickets();
-    error MonadexV1Raffle__NotEnoughBalance(uint256 ticketsToBurn, uint256 actualBalance);
-    error MonadexV1Raffle__InsufficientFee();
-    error MonadexV1Raffle__RandomNumberAlreadyRequested(uint64 sequenceNumber);
-    error MonadexV1Raffle__DrawNotAllowedYet();
-    error MonadexV1Raffle__CannotRequestRandomNumberYet();
-    error MonadexV1Raffle__InsufficientEntries(
-        uint256 numberOfParticipants, uint256 minimumParticipantsRequired
-    );
-    error MonadexV1Raffle__ZeroWinnings();
+    error MonadexV1Raffle__AddressZero();
     error MonadexV1Raffle__TokenAlreadySupported(address token);
-    error MonadexV1Raffle__CannotSupportMoreTokens();
-    error MonadexV1Raffle__CannotRemoveTokenYet(address token, uint256 currentBalance);
+    error MonadexV1Raffle__TokenNotSupported(address token);
+    error MonadexV1Raffle__AmountZero();
+    error MonadexV1Raffle__EpochHasNotEndedYet();
+    error MonadexV1Raffle__InsufficientNftsMinted(
+        uint256 nftsMinted, uint256 minimumNftsToBeMintedEachEpoch
+    );
+    error MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(
+        uint256 feeGiven, uint256 expectedFee
+    );
+    error MonadexV1Raffle__RandomNumberAlreadyRequested(uint256 currentSequenceNumber);
+    error MonadexV1Raffle__InvalidTier();
+    error MonadexV1Raffle__AlreadyClaimedTierWinnings(address user, uint256 epoch, uint8 tier);
+    error MonadexV1Raffle__SequenceNumbersDoNotMatch(
+        uint256 sequenceNumber, uint256 currentSequenceNumber
+    );
+    error MonadexV1Raffle__InvalidWinningPortions();
+    error MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
-    /////////////////
-    /// Modifiers ///
-    /////////////////
-
-    modifier notZero(uint256 _value) {
-        if (_value == 0) revert MonadexV1Raffle__ZeroAmount();
+    modifier onlyMonadexV1Router() {
+        if (msg.sender != i_monadexV1Router) {
+            revert MonadexV1Raffle__NotRouter();
+        }
         _;
     }
 
-    modifier onlyRouter(address _router) {
-        if (_router != s_router) revert MonadexV1Raffle__NotRouter();
-        _;
-    }
-
-    ///////////////////
-    /// Constructor ///
-    ///////////////////
-
-    /// @notice Initializes the raffle state. Raffle begins as soon as this contract is deployed.
-    /// @param _pythPriceFeedContract The pyth price feed contract address.
-    /// @param _pricePerTicket The price
-    /// @param _supportedTokens Tokens using which raffle tickets can be purchased.
-    /// @param _priceFeedConfigs The token/USD price feed config associated with each supported token.
-    /// @param _entropyContract The pyth entropy contract.
-    /// @param _entropyProvider The pyth entropy provider contract.
-    /// @param _winningPortions The portion each winner receives in each tier (index 0 -> tier 1,
-    /// index 1 and 2 -> tier 2, index 3, 4, 5 -> tier 3).
-    /// @param _minimumParticipants The minimum number of participant registration required before the
-    /// draw can be made.
+    /// @notice Sets the addresses for external services like Pyth, the `MonadexV1Router`,
+    /// and some required params for raffle.
+    /// @param _mondexV1Router The address of the `MonadexV1Router`.
+    /// @param _pyth The address of the Pyth contract to query prices from.
+    /// @param _entropy The Pyth entropy contract to request random numbers from.
+    /// @param _entropyProvider The entropy provider for requesting random numbers.
+    /// @param _minimumNftsToBeMintedEachEpoch The minimum number of Nfts to be minted in each epoch.
+    /// @param _winningPortions The winning portions for winners in each tier.
     constructor(
-        address _pythPriceFeedContract,
-        uint256 _pricePerTicket,
-        address[] memory _supportedTokens,
-        MonadexV1Types.PriceFeedConfig[] memory _priceFeedConfigs,
-        address _entropyContract,
+        address _mondexV1Router,
+        address _pyth,
+        address _entropy,
         address _entropyProvider,
-        MonadexV1Types.Fraction[MAX_TIERS] memory _winningPortions,
-        uint256 _minimumParticipants
+        uint256 _minimumNftsToBeMintedEachEpoch,
+        MonadexV1Types.Fraction[TIERS] memory _winningPortions
     )
-        MonadexV1RafflePriceCalculator(_pricePerTicket, _pythPriceFeedContract)
-        MonadexV1RaffleEntropy(_entropyContract, _entropyProvider)
-        ERC20("Monadex V1 Raffle Ticket", "MDXRT", 18)
+        ERC721("Monadex V1 Raffle", "MDXR")
         Ownable(msg.sender)
     {
-        if (_supportedTokens.length != _priceFeedConfigs.length) {
-            revert MonadexV1Raffle__InvalidConstructorArgs();
+        if (
+            _mondexV1Router == address(0) || _pyth == address(0) || _entropy == address(0)
+                || _entropyProvider == address(0)
+        ) {
+            revert MonadexV1Raffle__AddressZero();
         }
 
-        uint256 length = _supportedTokens.length;
-        for (uint256 count = 0; count < length; ++count) {
-            s_supportedTokens.push(_supportedTokens[count]);
-            s_isSupportedToken[_supportedTokens[count]] = true;
-            s_tokenToPriceFeedConfig[_supportedTokens[count]] = _priceFeedConfigs[count];
-        }
+        _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
+        _setWinningPortions(_winningPortions);
 
-        for (uint256 count = 0; count < MAX_TIERS; ++count) {
-            s_winningPortions[count] = _winningPortions[count];
-        }
+        i_monadexV1Router = _mondexV1Router;
+        i_pyth = _pyth;
+        i_entropy = _entropy;
+        i_entropyProvider = _entropyProvider;
 
-        s_lastTimestamp = block.timestamp;
-        s_minimumParticipants = _minimumParticipants;
+        s_epoch = 1;
+        s_lastDrawTimestamp = block.timestamp;
     }
 
-    //////////////////////////
-    /// External Functions ///
-    //////////////////////////
-
-    /// @notice Since the router is deployed after the raffle, we need to set the router
-    /// address in a separate transaction. This function can be called only once
-    /// by the owner. The protocol team will set this value during deployment.
-    /// @param _routerAddress The address of the router.
-    function initializeRouterAddress(address _routerAddress) external onlyOwner {
-        if (s_router != address(0)) {
-            revert MonadexV1Raffle__RouterAddressAlreadyInitialised(s_router);
-        }
-        s_router = _routerAddress;
-
-        emit RouterAddressSet(_routerAddress);
-    }
-
-    /// @notice Allows users to purchase raffle tickets for the given token amount. Purchasing
-    /// tickets is only possible from the router during swaps. The router first transfers the token
-    /// amount from the user, and then calls this function.
-    /// @param _token The token used for the swap.
-    /// @param _amount The amount of tokens to purchase raffle tickets with.
-    /// @param _receiver The receiver of tickets.
-    /// @return The amount of tickets purchased.
-    function purchaseTickets(
-        address _token,
-        uint256 _amount,
-        address _receiver
-    )
-        external
-        onlyRouter(msg.sender)
-        notZero(_amount)
-        returns (uint256)
-    {
-        uint256 ticketsToMint = previewPurchase(_token, _amount);
-        if (ticketsToMint == 0) revert MonadexV1Raffle__ZeroTickets();
-
-        _mint(_receiver, ticketsToMint);
-
-        emit TicketsPurchased(_token, _amount, _receiver, ticketsToMint);
-
-        return ticketsToMint;
-    }
-
-    /// @notice After the raffle duration ends, a day long registration period will ensue.
-    /// During this period, users can enter the raffle by burning their tickets. Raffle tickets
-    /// are only burned in multiples of a fixed size (the range size, 1e18).
-    /// So the actual amount of tickets burned may be less than or equal to the amount specified
-    /// as the parameter. Users registering with more tickets will have a higher chance of winning
-    /// their cut of each tier (it's possible to be the winner in more than one tier for a single user)
-    /// because they will occupy a larger range on the number line.
-    /// Users having a large number of tickets can split their amounts
-    /// and register in separate transactions.
-    /// Off-chain bots can be used to pay for gas and auto-register users as well.
-    /// @param _user The user to register.
-    /// @param _amount The amount of tickets to register with.
-    /// @return The actual amount of tickets burned.
-    function register(address _user, uint256 _amount) external notZero(_amount) returns (uint256) {
-        if (!isRegistrationOpen() || s_currentSequenceNumber != 0) {
-            revert MonadexV1Raffle__NotOpenForRegistration();
-        }
-        uint256 slotsToOccupy = _amount / RANGE_SIZE;
-        if (slotsToOccupy == 0) revert MonadexV1Raffle__NotEnoughTickets();
-
-        uint256 balance = balanceOf[_user];
-        uint256 ticketsToBurn = slotsToOccupy * RANGE_SIZE;
-        if (balance < ticketsToBurn) {
-            revert MonadexV1Raffle__NotEnoughBalance(ticketsToBurn, balance);
-        }
-
-        uint256 currentRangeEnd = s_currentRangeEnd;
-        for (uint256 count; count < slotsToOccupy; ++count) {
-            s_ranges[currentRangeEnd] = _user;
-            currentRangeEnd += RANGE_SIZE;
-        }
-        s_currentRangeEnd = currentRangeEnd;
-        _burn(_user, ticketsToBurn);
-
-        emit Registered(_user, ticketsToBurn);
-
-        return ticketsToBurn;
-    }
-
-    /// @notice Requests a random number from Pyth entropy. A sequence number is returned
-    /// which is stored for later verification of the received random number.
-    /// This request can only be made after registration period ends.
-    /// @param _userRandomNumber The user generated random number.
-    function requestRandomNumber(bytes32 _userRandomNumber) external payable returns (uint64) {
-        if (!hasRegistrationPeriodEnded()) {
-            revert MonadexV1Raffle__CannotRequestRandomNumberYet();
-        }
-        uint256 numberOfParticipants = s_currentRangeEnd / RANGE_SIZE;
-        if (numberOfParticipants < s_minimumParticipants) {
-            revert MonadexV1Raffle__InsufficientEntries(numberOfParticipants, s_minimumParticipants);
-        }
-
-        uint256 fee = IEntropy(i_entropy).getFee(i_entropyProvider);
-        if (msg.value < fee) {
-            revert MonadexV1Raffle__InsufficientFee();
-        }
-        if (s_currentSequenceNumber != uint64(0)) {
-            revert MonadexV1Raffle__RandomNumberAlreadyRequested(s_currentSequenceNumber);
-        }
-        uint64 sequenceNumber = IEntropy(i_entropy).requestWithCallback{ value: fee }(
-            i_entropyProvider, _userRandomNumber
-        );
-        s_currentSequenceNumber = sequenceNumber;
-
-        emit RandomNumberRequested(s_currentSequenceNumber);
-
-        return sequenceNumber;
-    }
-
-    /// @notice Draws winners in different tiers and allocates rewards to them after the random
-    /// number has been supplied.
-    function drawWinnersAndAllocateRewards() external {
-        if (!hasRegistrationPeriodEnded() || s_currentRandomNumber == 0) {
-            revert MonadexV1Raffle__DrawNotAllowedYet();
-        }
-
-        address[MAX_WINNERS] memory winners;
-        s_ranges[s_currentRangeEnd] = s_ranges[s_currentRangeEnd - RANGE_SIZE];
-
-        winners = _selectWinners(uint256(s_currentRandomNumber));
-
-        s_currentRangeEnd = 0;
-        s_lastTimestamp = block.timestamp;
-        s_currentSequenceNumber = 0;
-        s_currentRandomNumber = 0;
-
-        _allocateRewards(winners);
-
-        emit WinnersPicked(winners);
-    }
-
-    /// @notice Allows winners of previous raffle draws to claim their winnings for supported tokens.
-    /// Bots can be used to claim winnings on behalf of other users.
-    /// @param _user The user whose winnings are to be claimed.
-    /// @param _token The address of the token to claim winning amount from.
-    /// @return The claimed winning amount.
-    function claimWinnings(address _user, address _token) external returns (uint256) {
-        if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 winnings = s_winnings[_user][_token];
-        if (winnings == 0) revert MonadexV1Raffle__ZeroWinnings();
-
-        s_winnings[_user][_token] = 0;
-        IERC20(_token).safeTransfer(_user, winnings);
-
-        emit WinningsClaimed(_user, _token, winnings);
-
-        return winnings;
-    }
-
-    /// @notice Support new tokens for raffle. Protocol team/governance must take care while
-    /// supporting new tokens to ensure it doesn't have weird quirks or behaviour.
-    /// @param _token The token to support.
-    /// @param _pythPriceFeedConfig The token/USD price feed config.
+    /// @notice Enables the owner to support tokens for raffle.
+    /// @param _token The token address.
+    /// @param _priceFeedConfig The Pyth price feed config.
     function supportToken(
         address _token,
-        MonadexV1Types.PriceFeedConfig memory _pythPriceFeedConfig
+        MonadexV1Types.PriceFeedConfig memory _priceFeedConfig
     )
         external
         onlyOwner
     {
-        if (s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenAlreadySupported(_token);
-        if (s_supportedTokens.length == MAX_SUPPORTED_TOKENS) {
-            revert MonadexV1Raffle__CannotSupportMoreTokens();
+        if (_token == address(0)) revert MonadexV1Raffle__AddressZero();
+        if (s_supportedTokens.contains(_token)) {
+            revert MonadexV1Raffle__TokenAlreadySupported(_token);
         }
 
-        s_isSupportedToken[_token] = true;
-        s_supportedTokens.push(_token);
-        s_tokenToPriceFeedConfig[_token] = _pythPriceFeedConfig;
+        s_supportedTokens.add(_token);
+        s_tokenToPriceFeedConfig[_token] = _priceFeedConfig;
 
-        emit TokenSupported(_token, _pythPriceFeedConfig);
+        emit TokenSupported(_token, _priceFeedConfig);
     }
 
-    /// @notice Allows the protocol team (in early stages) or governance (later on) to remove support for a
-    /// given token.
-    /// @param _token The token to remove from raffle.
+    /// @notice Allows the owner to revoke support from a token for raffle.
+    /// @param _token The token address.
     function removeToken(address _token) external onlyOwner {
-        if (!s_isSupportedToken[_token]) revert MonadexV1Raffle__TokenNotSupported(_token);
-        uint256 balance = IERC20(_token).balanceOf(address(this));
-        if (balance > 0) revert MonadexV1Raffle__CannotRemoveTokenYet(_token, balance);
+        if (_token == address(0)) revert MonadexV1Raffle__AddressZero();
+        if (!s_supportedTokens.contains(_token)) revert MonadexV1Raffle__TokenNotSupported(_token);
 
-        s_isSupportedToken[_token] = false;
-        uint256 length = s_supportedTokens.length;
-        for (uint256 count = 0; count < length; ++count) {
-            if (s_supportedTokens[count] == _token) {
-                s_supportedTokens[count] = s_supportedTokens[length - 1];
-                break;
-            }
-        }
-        s_supportedTokens.pop();
-        s_tokenToPriceFeedConfig[_token] =
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: 0, noOlderThan: 0 });
+        s_supportedTokens.remove(_token);
+        delete s_tokenToPriceFeedConfig[_token];
 
         emit TokenRemoved(_token);
     }
 
-    //////////////////////////
-    /// Internal Functions ///
-    //////////////////////////
+    /// @notice Allows the owner to set winning portions for winners in each tier.
+    /// @param _winningPortions The winning portions for winners in each tier.
+    function setWinningPortions(
+        MonadexV1Types.Fraction[TIERS] memory _winningPortions
+    )
+        external
+        onlyOwner
+    {
+        _setWinningPortions(_winningPortions);
+    }
 
-    /// @notice Selects a random range based on the given random word and the current range end.
-    /// @param _randomWord The random word obtained from Pyth entropy.
-    /// @param _currentRangeEnd The current range end.
-    /// @return The selected range.
-    function _getSelectedRange(
-        uint256 _randomWord,
-        uint256 _currentRangeEnd
+    /// @notice Allows the owner to set the minimum number of Nfts to be minted in each epoch.
+    /// @param _minimumNftsToBeMintedEachEpoch The minimum number of Nfts to be minted in each epoch.
+    function setMinimumNftsToBeMintedEachEpoch(
+        uint256 _minimumNftsToBeMintedEachEpoch
+    )
+        external
+        onlyOwner
+    {
+        _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
+    }
+
+    /// @notice Allows users to enter the weekly raffle during a swap.
+    /// @dev Only callable by the `MonadexV1Router`.
+    /// @param _tokenIn The token used for entering raffle.
+    /// @param _amount The amount of token to be used for entering raffle.
+    /// @param _receiver The recipient of raffle Nft.
+    /// @return The raffle Nft tokenId.
+    function enterRaffle(
+        address _tokenIn,
+        uint256 _amount,
+        address _receiver
+    )
+        external
+        onlyMonadexV1Router
+        returns (uint256)
+    {
+        if (_amount == 0) revert MonadexV1Raffle__AmountZero();
+        if (_receiver == address(0)) revert MonadexV1Raffle__AddressZero();
+        uint256 distance = _convertToUsd(_tokenIn, _amount);
+
+        uint256 epoch = s_epoch;
+        uint256 currentRangeEndingPoint = s_epochToEndingPoint[epoch];
+
+        uint256 tokenId = ++s_nextTokenId;
+        s_userNftsEachEpoch[_receiver][epoch].add(tokenId);
+        s_nftsMintedEachEpoch[s_epoch]++;
+        s_nftToRange[tokenId] = [currentRangeEndingPoint, currentRangeEndingPoint + distance];
+        s_epochToEndingPoint[epoch] += distance;
+        s_epochToTokenAmountsCollected[epoch][_tokenIn] += _amount;
+
+        _safeMint(_receiver, tokenId);
+
+        emit EnteredRaffle(_receiver, _tokenIn, _amount, tokenId, distance);
+
+        return tokenId;
+    }
+
+    /// @notice Once the epoch has ended and the raffle has enough entries, anyone can request random
+    /// numbers from Pyth to end the epoch.
+    /// @param _userRandomNumber The seed random number supplied by the caller.
+    /// @return The sequence number of the request.
+    function requestRandomNumber(bytes32 _userRandomNumber) external payable returns (uint64) {
+        uint256 epoch = s_epoch;
+
+        if (block.timestamp - s_lastDrawTimestamp < EPOCH_DURATION) {
+            revert MonadexV1Raffle__EpochHasNotEndedYet();
+        }
+        if (s_nftsMintedEachEpoch[epoch] < s_minimumNftsToBeMintedEachEpoch) {
+            revert MonadexV1Raffle__InsufficientNftsMinted(
+                s_nftsMintedEachEpoch[epoch], s_minimumNftsToBeMintedEachEpoch
+            );
+        }
+
+        uint256 fee = IEntropy(i_entropy).getFee(i_entropyProvider);
+        if (msg.value < fee) {
+            revert MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(msg.value, fee);
+        }
+        if (s_currentSequenceNumber != uint64(0)) {
+            revert MonadexV1Raffle__RandomNumberAlreadyRequested(s_currentSequenceNumber);
+        }
+        uint64 currentSequenceNumber = IEntropy(i_entropy).requestWithCallback{ value: fee }(
+            i_entropyProvider, _userRandomNumber
+        );
+        s_currentSequenceNumber = currentSequenceNumber;
+
+        emit RandomNumberRequested(currentSequenceNumber);
+
+        return currentSequenceNumber;
+    }
+
+    /// @notice Allows anyone to claim the raffle tier winnings for a given epoch on behalf of valid winners.
+    /// @param _claim The claim details.
+    function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external {
+        address owner = ownerOf(_claim.tokenId);
+
+        if (_claim.tier < MonadexV1Types.Tiers.TIER1 || _claim.tier > MonadexV1Types.Tiers.TIER3) {
+            revert MonadexV1Raffle__InvalidTier();
+        }
+        if (_claim.epoch == 0 || _claim.tokenId == 0) revert MonadexV1Raffle__AmountZero();
+        if (s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][uint8(_claim.tier)]) {
+            revert MonadexV1Raffle__AlreadyClaimedTierWinnings(
+                owner, _claim.epoch, uint8(_claim.tier)
+            );
+        }
+
+        uint256 epochRangeEndingPoint = s_epochToEndingPoint[_claim.epoch];
+        uint256[] memory nftToRange = s_nftToRange[_claim.tokenId];
+        uint256[] memory epochToRandomNumbers = s_epochToRandomNumbers[_claim.epoch];
+
+        address[] memory tokens = s_supportedTokens.values();
+        uint256 length = tokens.length;
+        uint256[] memory tokenBalances = new uint256[](length);
+
+        for (uint256 i; i < length; ++i) {
+            tokenBalances[i] = s_epochToTokenAmountsCollected[_claim.epoch][tokens[i]];
+        }
+
+        (uint256 start, uint256 end) = _mapTierToRandomNumbersArrayIndices(_claim.tier);
+        MonadexV1Types.Fraction memory winningPortion =
+            s_winningPortions[uint8(MonadexV1Types.Tiers.TIER3)];
+
+        s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][uint8(_claim.tier)] = true;
+
+        for (uint256 i = start; i < end; ++i) {
+            uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;
+            if (hitPoint >= nftToRange[0] && hitPoint < nftToRange[1]) {
+                for (uint256 j; j < length; ++j) {
+                    uint256 tokenBalance = tokenBalances[j];
+                    uint256 winningAmount =
+                        (tokenBalance * winningPortion.numerator) / winningPortion.denominator;
+                    if (winningAmount > 0) IERC20(tokens[j]).safeTransfer(owner, winningAmount);
+                }
+            }
+        }
+
+        emit TierWinningsClaimed(_claim);
+    }
+
+    /// @notice Allows the owner to set winning portions for winners in each tier.
+    /// @param _winningPortions The winning portions for winners in each tier.
+    function _setWinningPortions(
+        MonadexV1Types.Fraction[TIERS] memory _winningPortions
+    )
+        internal
+        onlyOwner
+    {
+        if (
+            _winningPortions.length > TIERS
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].numerator == 0
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator == 0
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator == 0
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator == 0
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator
+                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].denominator
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].denominator
+                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].denominator
+                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].numerator
+                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator
+                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator
+                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator
+        ) revert MonadexV1Raffle__InvalidWinningPortions();
+
+        for (uint256 i; i < TIERS; ++i) {
+            s_winningPortions[i] = _winningPortions[i];
+        }
+
+        emit WinningPortionsSet(_winningPortions);
+    }
+
+    /// @notice Allows the owner to set the minimum number of Nfts to be minted in each epoch.
+    /// @param _minimumNftsToBeMintedEachEpoch The minimum number of Nfts to be minted in each epoch.
+    function _setMinimumNftsToBeMintedEachEpoch(uint256 _minimumNftsToBeMintedEachEpoch) internal {
+        if (
+            _minimumNftsToBeMintedEachEpoch
+                <= WINNERS_IN_TIER_1 + WINNERS_IN_TIER_2 + WINNERS_IN_TIER_3
+        ) revert MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
+
+        s_minimumNftsToBeMintedEachEpoch = _minimumNftsToBeMintedEachEpoch;
+
+        emit MinimumNftsToBeMintedEachEpochSet(_minimumNftsToBeMintedEachEpoch);
+    }
+
+    /// @notice Entropy callback by Pyth which supplies random number for a request.
+    /// @param _sequenceNumber The sequence number for a request.
+    /// @param _randomNumber The supplied random number.
+    function entropyCallback(
+        uint64 _sequenceNumber,
+        address,
+        bytes32 _randomNumber
+    )
+        internal
+        override
+    {
+        if (_sequenceNumber != s_currentSequenceNumber) {
+            revert MonadexV1Raffle__SequenceNumbersDoNotMatch(
+                _sequenceNumber, s_currentSequenceNumber
+            );
+        }
+
+        s_epochToRandomNumbers[s_epoch].push(uint256(_randomNumber));
+        s_epochToRandomNumbers[s_epoch].push(uint256(keccak256(abi.encode(_randomNumber))));
+        s_epochToRandomNumbers[s_epoch].push(
+            uint256(keccak256(abi.encode(_randomNumber, bytes(SEED_1))))
+        );
+        s_epochToRandomNumbers[s_epoch].push(
+            uint256(keccak256(abi.encode(_randomNumber, bytes(SEED_2))))
+        );
+        s_epochToRandomNumbers[s_epoch].push(
+            uint256(keccak256(abi.encode(_randomNumber, bytes(SEED_3))))
+        );
+        s_epochToRandomNumbers[s_epoch].push(
+            uint256(keccak256(abi.encode(_randomNumber, bytes(SEED_4))))
+        );
+        uint256 epoch = s_epoch++;
+        s_lastDrawTimestamp = block.timestamp;
+
+        emit EpochEnded(epoch, _sequenceNumber, _randomNumber);
+    }
+
+    /// @notice Converts the supplied token amount to usd in 18 decimals denomination.
+    /// @param _token The token address.
+    /// @param _amount The amount of token supplied.
+    function _convertToUsd(address _token, uint256 _amount) internal view returns (uint256) {
+        MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
+        PythStructs.Price memory price =
+            IPyth(i_pyth).getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
+        uint256 tokenDecimals = IERC20Metadata(_token).decimals();
+
+        return MonadexV1Library.totalValueInUsd(_amount, price, TARGET_DECIMALS, tokenDecimals);
+    }
+
+    /// @notice Maps the tier to the slice of random numbers to determine winners in the tier.
+    /// @param _tier The tier to draw winners in.
+    /// @return The slice's starting index.
+    /// @return The slice's ending index.
+    function _mapTierToRandomNumbersArrayIndices(
+        MonadexV1Types.Tiers _tier
     )
         internal
         pure
-        returns (uint256)
+        returns (uint256, uint256)
     {
-        // Get the hitpoint. This point lies within a range.
-        // For example, if the current range end is 600 with range size of 50.
-        // the hitpoint may lie within any range, say 55, 89, etc.
-        uint256 hitPoint = _randomWord % (_currentRangeEnd);
-        // Adjust the hitpoint so that it points to the start of the range.
-        // For example, if the hitpoint is 55, then it should point to 50 as the range start.
-        // selectedRange = 55 - (55 % 50) = 50.
-        uint256 selectedRange = hitPoint - (hitPoint % RANGE_SIZE);
-
-        return selectedRange;
+        if (_tier == MonadexV1Types.Tiers.TIER1) return (0, 1);
+        else if (_tier == MonadexV1Types.Tiers.TIER2) return (1, 3);
+        else return (3, 6);
     }
 
-    /// @notice A helper function that selects 6 winners in 3 tiers using a random word.
-    /// @param _randomWord The random word obtained from Pyth entropy.
-    /// @return An array of winners in different tiers.
-    function _selectWinners(uint256 _randomWord) internal returns (address[MAX_WINNERS] memory) {
-        address[MAX_WINNERS] memory winners;
-        uint256 currentRangeEnd = s_currentRangeEnd;
-
-        // After a winner has been picked, we swap out the winner with the last user on the number
-        // line, and decrement the current range end by range size.
-        for (uint256 count = 0; count < MAX_WINNERS; ++count) {
-            uint256 selectedRange = _getSelectedRange(_randomWord, currentRangeEnd);
-            winners[count] = s_ranges[selectedRange];
-            s_ranges[selectedRange] = s_ranges[currentRangeEnd];
-            currentRangeEnd -= RANGE_SIZE;
-        }
-
-        return winners;
+    /// @notice Gets the address of the Pyth entropy contract.
+    /// @return The entropy contract's address.
+    function getEntropy() internal view override returns (address) {
+        return i_entropy;
     }
 
-    /// @notice Allocates tokens as winnings to the raffle winners in different tiers.
-    /// @param _winners The winners drawn.
-    function _allocateRewards(address[MAX_WINNERS] memory _winners) internal {
-        address[] memory supportedTokens = s_supportedTokens;
-        uint256 numberOfSupportedTokens = supportedTokens.length;
-        uint256[] memory tokenBalances = new uint256[](numberOfSupportedTokens);
-        MonadexV1Types.Fraction[MAX_TIERS] memory winningPortions = s_winningPortions;
-        MonadexV1Types.Fraction memory portion;
-
-        for (uint256 count = 0; count < numberOfSupportedTokens; ++count) {
-            tokenBalances[count] = IERC20(supportedTokens[count]).balanceOf(address(this));
-        }
-
-        for (uint256 count = 0; count < MAX_WINNERS; ++count) {
-            if (count == WINNERS_IN_TIER1 - 1) portion = winningPortions[0];
-            else if (count < WINNERS_IN_TIER1 + WINNERS_IN_TIER2) portion = winningPortions[1];
-            else portion = winningPortions[2];
-
-            for (uint256 newCount = 0; newCount < numberOfSupportedTokens; ++newCount) {
-                uint256 tokenBalance = tokenBalances[newCount];
-                s_winnings[_winners[count]][supportedTokens[newCount]] +=
-                    (tokenBalance * portion.numerator) / portion.denominator;
-            }
-        }
+    /// @notice Gets the epoch duration for raffle.
+    /// @return The epoch duration.
+    function getEpochDuration() external pure returns (uint256) {
+        return EPOCH_DURATION;
     }
 
-    ///////////////////////////////
-    /// View and Pure Functions ///
-    ///////////////////////////////
-
-    /// @notice Gets the router's address.
-    /// @return The router's address.
-    function getRouterAddress() external view returns (address) {
-        return s_router;
+    /// @notice Gets the total number of tiers for drawing raffle winners in.
+    /// @return The total number of winners.
+    function getTiers() external pure returns (uint256) {
+        return TIERS;
     }
 
-    /// @notice Gets the UNIX timestamp when the last raffle began.
-    /// @return The last UNIX timestamp.
-    function getLastTimestamp() external view returns (uint256) {
-        return s_lastTimestamp;
+    /// @notice Gets the total number of winners to be selected in tier 1.
+    /// @return The total number of winners to be selected in tier 1.
+    function getWinnersInTier1() external pure returns (uint256) {
+        return WINNERS_IN_TIER_1;
     }
 
-    /// @notice Gets all the supported tokens packed into an array.
-    /// @return An array of supported tokens.
+    /// @notice Gets the total number of winners to be selected in tier 2.
+    /// @return The total number of winners to be selected in tier 2.
+    function getWinnersInTier2() external pure returns (uint256) {
+        return WINNERS_IN_TIER_2;
+    }
+
+    /// @notice Gets the total number of winners to be selected in tier 3.
+    /// @return The total number of winners to be selected in tier 3.
+    function getWinnersInTier3() external pure returns (uint256) {
+        return WINNERS_IN_TIER_3;
+    }
+
+    /// @notice Gets the address of the `MonadexV1Router`.
+    /// @return The `MonadexV1Router` address.
+    function getMonadexV1Router() external view returns (address) {
+        return i_monadexV1Router;
+    }
+
+    /// @notice Gets the Pyth contract address for querying prices.
+    /// @return The Pyth contract address.
+    function getPyth() external view returns (address) {
+        return i_pyth;
+    }
+
+    /// @notice Gets the Pyth entropy contract address.
+    /// @return The Pyth entropy contract address.
+    function getEntropyContract() external view returns (address) {
+        return getEntropy();
+    }
+
+    /// @notice Gets the entropy provider address.
+    /// @return The entropy provider address.
+    function getEntropyProvider() external view returns (address) {
+        return i_entropyProvider;
+    }
+
+    /// @notice Gets the supported tokens for raffle.
+    /// @return The supported tokens for raffle.
     function getSupportedTokens() external view returns (address[] memory) {
-        return s_supportedTokens;
+        return s_supportedTokens.values();
     }
 
-    /// @notice Checks if the specified token is supported or not.
-    /// @param _token The token address to check.
-    function isSupportedToken(address _token) external view returns (bool) {
-        return s_isSupportedToken[_token];
-    }
-
-    /// @notice Gets the user at the start of a given range.
-    /// @param _rangeStart The start of the range.
-    function getUserAtRangeStart(uint256 _rangeStart) external view returns (address) {
-        return s_ranges[_rangeStart];
-    }
-
-    /// @notice Gets the end of the current range.
-    /// @return The current range's end.
-    function getCurrentRangeEnd() external view returns (uint256) {
-        return s_currentRangeEnd;
-    }
-
-    /// @notice Gets the winning portions in each tier.
-    /// @return The winning portions in each tier.
-    function getWinningPortions()
+    /// @notice Gets the price feed config for a given token.
+    /// @param _token The token address.
+    function getTokenPriceFeedConfig(
+        address _token
+    )
         external
         view
-        returns (MonadexV1Types.Fraction[MAX_TIERS] memory)
+        returns (MonadexV1Types.PriceFeedConfig memory)
     {
-        return s_winningPortions;
+        return s_tokenToPriceFeedConfig[_token];
     }
 
-    /// @notice Gets the winnings of a given user for a given token.
+    /// @notice Gets the current sequence number if a random number has been requested.
+    function getCurrentSequenceNumber() external view returns (uint64) {
+        return s_currentSequenceNumber;
+    }
+
+    /// @notice Gets the current epoch number.
+    /// @return The current epoch number.
+    function getCurrentEpoch() external view returns (uint256) {
+        return s_epoch;
+    }
+
+    /// @notice Gets the next raffle Nft tokenId to mint.
+    /// @return The next raffle Nft tokenId to mint.
+    function getNextTokenId() external view returns (uint256) {
+        return s_nextTokenId;
+    }
+
+    /// @notice Gets the timestamp when the last epoch ended.
+    /// @return The timestamp when the last epoch ended.
+    function getLastDrawTimestamp() external view returns (uint256) {
+        return s_lastDrawTimestamp;
+    }
+
+    /// @notice Gets the minimum number of Nfts to be minted for an epoch to end.
+    /// @return The minimum number of Nfts to be minted for an epoch to end.
+    function getMinimumNftsToBeMintedEachEpoch() external view returns (uint256) {
+        return s_minimumNftsToBeMintedEachEpoch;
+    }
+
+    /// @notice Gets the user raffle Nfts minted each epoch.
     /// @param _user The user's address.
-    /// @param _token The supported token.
-    /// @return The user's winnings.
-    function getWinnings(address _user, address _token) external view returns (uint256) {
-        return s_winnings[_user][_token];
+    /// @param _epoch The epoch number.
+    /// @return An array of raffle tokenIds.
+    function getUserNftsEachEpoch(
+        address _user,
+        uint256 _epoch
+    )
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return s_userNftsEachEpoch[_user][_epoch].values();
     }
 
-    /// @notice Gets the raffle duration.
-    /// @return The raffle duration in seconds.
-    function getRaffleDuration() external pure returns (uint256) {
-        return RAFFLE_DURATION;
+    /// @notice Gets the total number of raffl Nfts minted for a given epoch.
+    /// @param _epoch The epoch number.
+    /// @return The total number of raffl Nfts minted for a given epoch.
+    function getNftsMintedEachEpoch(uint256 _epoch) external view returns (uint256) {
+        return s_nftsMintedEachEpoch[_epoch];
     }
 
-    /// @notice Gets the duration of the registration period.
-    /// @return The registration period in seconds.
-    function getRegistrationPeriod() external pure returns (uint256) {
-        return REGISTRATION_PERIOD;
+    /// @notice Gets the range occupied by a raffle Nft in an epoch.
+    /// @param _tokenId The raffle Nft tokenId.
+    /// @return The range occupied by the Nft tokenId.
+    function getNftToRange(uint256 _tokenId) external view returns (uint256[] memory) {
+        return s_nftToRange[_tokenId];
     }
 
-    /// @notice Gets the maximum number of winners that can be drawn.
-    /// @return The maximum number of raffle winners, combining all tiers.
-    function getMaxWinners() external pure returns (uint256) {
-        return MAX_WINNERS;
+    /// @notice Gets the epoch range ending point.
+    /// @param _epoch The epoch number.
+    /// @return The range ending point for a given epoch.
+    function getEpochToRangeEndingPoint(uint256 _epoch) external view returns (uint256) {
+        return s_epochToEndingPoint[_epoch];
     }
 
-    /// @notice Gets the maximum number of tiers in which winners are drawn.
-    /// @return The maximum number of tiers.
-    function getMaxTiers() external pure returns (uint256) {
-        return MAX_TIERS;
+    /// @notice Gets the total amount of a given token collected in an epoch.
+    /// @param _epoch The epoch number.
+    /// @param _token The token address.
+    /// @return The total token amount collected in an epoch.
+    function getTokenAmountCollectedInEpoch(
+        uint256 _epoch,
+        address _token
+    )
+        external
+        view
+        returns (uint256)
+    {
+        return s_epochToTokenAmountsCollected[_epoch][_token];
     }
 
-    /// @notice Gets the range size.
-    /// @return The range size.
-    function getRangeSize() external pure returns (uint256) {
-        return RANGE_SIZE;
+    /// @notice Gets the random numbers supplied by Pyth entropy for a given epoch.
+    /// @param _epoch The epoch number.
+    /// @return An array of random numbers.
+    function getEpochToRandomNumbersSupplied(
+        uint256 _epoch
+    )
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return s_epochToRandomNumbers[_epoch];
     }
 
-    /// @notice Gets the minimum number of participants for a raffle.
-    /// @return The minimum number of participants for a raffle draw.
-    function getMinimumParticipantsForRaffle() external view returns (uint256) {
-        return s_minimumParticipants;
+    /// @notice Checks if a user has claimed winnings from a tier in a given epoch.
+    /// @param _user The user address.
+    /// @param _epoch The epoch number.
+    /// @param _tier The raffle tier.
+    function hasUserClaimedTierWinningsForEpoch(
+        address _user,
+        uint256 _epoch,
+        MonadexV1Types.Tiers _tier
+    )
+        external
+        view
+        returns (bool)
+    {
+        return s_hasUserClaimedEpochTierWinnings[_user][_epoch][_tier];
     }
 
-    /// @notice Gets the amount of tickets to mint based on the given token amount.
-    /// @param _token The token used for purchasing tickets.
-    /// @param _amount The token amount to use for ticket purchase.
-    /// @return The number of tickets to purchase.
-    function previewPurchase(address _token, uint256 _amount) public view returns (uint256) {
-        return _getTicketsToMint(_token, _amount);
-    }
-
-    /// @notice Checks if the registration period is open.
-    /// @return True if the registration period is open, false otherwise.
-    function isRegistrationOpen() public view returns (bool) {
-        if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION) return false;
-        else return true;
-    }
-
-    /// @notice Checks if the registration period has ended or not.
-    /// @return True if registration period has ended, false otherwise.
-    function hasRegistrationPeriodEnded() public view returns (bool) {
-        if (block.timestamp < s_lastTimestamp + RAFFLE_DURATION + REGISTRATION_PERIOD) return false;
-        else return true;
+    /// @notice Checks if a token is supported for raffle.
+    /// @param _token The token address.
+    /// @return A bool indicating whether a token is supported or not.
+    function isSupportedToken(address _token) external view returns (bool) {
+        return s_supportedTokens.contains(_token);
     }
 }
