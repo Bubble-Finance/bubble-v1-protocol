@@ -28,6 +28,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
 
+    ///////////////////////
+    /// State Variables ///
+    ///////////////////////
+
     /// @dev The duration for which one raffle epoch lasts.
     uint256 private constant EPOCH_DURATION = 1 weeks;
     /// @dev The total number of tiers in which winners will be picked.
@@ -100,6 +104,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// 5% of total collected amount for 3 winners in tier 3.
     MonadexV1Types.Fraction[TIERS] private s_winningPortions;
 
+    //////////////
+    /// Events ///
+    //////////////
+
     event MonadexV1RouterSet(address indexed monadexV1Router);
     event TokenSupported(
         address indexed _token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
@@ -119,6 +127,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     );
     event WinningPortionsSet(MonadexV1Types.Fraction[TIERS] indexed winningPortions);
     event MinimumNftsToBeMintedEachEpochSet(uint256 indexed minimumNftsToBeMintedEachEpoch);
+
+    //////////////
+    /// Errors ///
+    //////////////
 
     error MonadexV1Raffle__NotRouter();
     error MonadexV1Raffle__RouterAlreadySet(address monadexV1Router);
@@ -148,6 +160,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         }
         _;
     }
+
+    ///////////////////
+    /// Constructor ///
+    ///////////////////
 
     /// @notice Sets the addresses for external services like Pyth, the `MonadexV1Router`,
     /// and some required params for raffle.
@@ -180,6 +196,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         s_epoch = 1;
         s_lastDrawTimestamp = block.timestamp;
     }
+
+    //////////////////////////
+    /// External Functions ///
+    //////////////////////////
 
     /// @notice Allows the owner to set the `MonadexV1Router` address once.
     /// @param _monadexV1Router The `MonadexV1Router` address.
@@ -365,6 +385,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         emit TierWinningsClaimed(_claim);
     }
 
+    //////////////////////////
+    /// Internal Functions ///
+    //////////////////////////
+
     /// @notice Allows the owner to set winning portions for winners in each tier.
     /// @param _winningPortions The winning portions for winners in each tier.
     function _setWinningPortions(
@@ -445,6 +469,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
 
         emit EpochEnded(epoch, _sequenceNumber, _randomNumber);
     }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
 
     /// @notice Converts the supplied token amount to usd in 18 decimals denomination.
     /// @param _token The token address.
