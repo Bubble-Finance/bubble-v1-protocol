@@ -97,7 +97,7 @@ interface IMonadexV1Raffle {
     function hasUserClaimedTierWinningsForEpoch(
         address _user,
         uint256 _epoch,
-        uint8 _tier
+        MonadexV1Types.Tiers _tier
     )
         external
         view

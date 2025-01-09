@@ -49,7 +49,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @dev Seed 4 for generating another random number from the source random number.
     string private constant SEED_4 = "Mon-Turtle";
     /// @dev The address of the `MonadexV1Router`.
-    address private immutable i_monadexV1Router;
+    address private s_monadexV1Router;
     /// @dev This is the contract we query to get the price of each supported token in USD.
     address private immutable i_pyth;
     /// @dev Supported tokens for entering raffle. Pools with these tokens are indirectly supported
@@ -100,6 +100,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// 5% of total collected amount for 3 winners in tier 3.
     MonadexV1Types.Fraction[TIERS] private s_winningPortions;
 
+    event MonadexV1RouterSet(address indexed monadexV1Router);
     event TokenSupported(
         address indexed _token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
     );
@@ -120,6 +121,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     event MinimumNftsToBeMintedEachEpochSet(uint256 indexed minimumNftsToBeMintedEachEpoch);
 
     error MonadexV1Raffle__NotRouter();
+    error MonadexV1Raffle__RouterAlreadySet(address monadexV1Router);
     error MonadexV1Raffle__AddressZero();
     error MonadexV1Raffle__TokenAlreadySupported(address token);
     error MonadexV1Raffle__TokenNotSupported(address token);
@@ -141,7 +143,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     error MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
     modifier onlyMonadexV1Router() {
-        if (msg.sender != i_monadexV1Router) {
+        if (msg.sender != s_monadexV1Router) {
             revert MonadexV1Raffle__NotRouter();
         }
         _;
@@ -149,14 +151,12 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
 
     /// @notice Sets the addresses for external services like Pyth, the `MonadexV1Router`,
     /// and some required params for raffle.
-    /// @param _mondexV1Router The address of the `MonadexV1Router`.
     /// @param _pyth The address of the Pyth contract to query prices from.
     /// @param _entropy The Pyth entropy contract to request random numbers from.
     /// @param _entropyProvider The entropy provider for requesting random numbers.
     /// @param _minimumNftsToBeMintedEachEpoch The minimum number of Nfts to be minted in each epoch.
     /// @param _winningPortions The winning portions for winners in each tier.
     constructor(
-        address _mondexV1Router,
         address _pyth,
         address _entropy,
         address _entropyProvider,
@@ -166,23 +166,29 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         ERC721("Monadex V1 Raffle", "MDXR")
         Ownable(msg.sender)
     {
-        if (
-            _mondexV1Router == address(0) || _pyth == address(0) || _entropy == address(0)
-                || _entropyProvider == address(0)
-        ) {
+        if (_pyth == address(0) || _entropy == address(0) || _entropyProvider == address(0)) {
             revert MonadexV1Raffle__AddressZero();
         }
 
         _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
         _setWinningPortions(_winningPortions);
 
-        i_monadexV1Router = _mondexV1Router;
         i_pyth = _pyth;
         i_entropy = _entropy;
         i_entropyProvider = _entropyProvider;
 
         s_epoch = 1;
         s_lastDrawTimestamp = block.timestamp;
+    }
+
+    function initializeMonadexV1Router(address _monadexV1Router) external onlyOwner {
+        if (s_monadexV1Router != address(0)) {
+            revert MonadexV1Raffle__RouterAlreadySet(s_monadexV1Router);
+        }
+
+        s_monadexV1Router = _monadexV1Router;
+
+        emit MonadexV1RouterSet(_monadexV1Router);
     }
 
     /// @notice Enables the owner to support tokens for raffle.
@@ -318,7 +324,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
             revert MonadexV1Raffle__InvalidTier();
         }
         if (_claim.epoch == 0 || _claim.tokenId == 0) revert MonadexV1Raffle__AmountZero();
-        if (s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][uint8(_claim.tier)]) {
+        if (s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][_claim.tier]) {
             revert MonadexV1Raffle__AlreadyClaimedTierWinnings(
                 owner, _claim.epoch, uint8(_claim.tier)
             );
@@ -340,7 +346,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         MonadexV1Types.Fraction memory winningPortion =
             s_winningPortions[uint8(MonadexV1Types.Tiers.TIER3)];
 
-        s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][uint8(_claim.tier)] = true;
+        s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][_claim.tier] = true;
 
         for (uint256 i = start; i < end; ++i) {
             uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;
@@ -505,7 +511,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Gets the address of the `MonadexV1Router`.
     /// @return The `MonadexV1Router` address.
     function getMonadexV1Router() external view returns (address) {
-        return i_monadexV1Router;
+        return s_monadexV1Router;
     }
 
     /// @notice Gets the Pyth contract address for querying prices.
