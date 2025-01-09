@@ -25,15 +25,12 @@ contract DeployProtocol is Script {
     MonadexV1Types.Fraction[5] public s_feeTiers;
 
     // Raffle constructor args
-    address[] public s_supportedTokens;
     address public s_pythPriceFeedContract;
     MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
     address public s_entropyContract;
     address public s_entropyProvider;
-    MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
     MonadexV1Types.Fraction[3] public s_winningPortions;
-    uint256 public s_minimumParticipants;
-    uint256 public s_pricePerTicket;
+    uint256 public s_minimumNftsToBeMintedEachEpoch;
 
     // Router constructor args
     address public s_wNative;
@@ -70,17 +67,15 @@ contract DeployProtocol is Script {
 
         s_raffle = new MonadexV1Raffle(
             s_pythPriceFeedContract,
-            s_pricePerTicket,
-            s_supportedTokens,
-            s_priceFeedConfigs,
             s_entropyContract,
             s_entropyProvider,
-            s_winningPortions,
-            s_minimumParticipants
+            s_minimumNftsToBeMintedEachEpoch,
+            s_winningPortions
         );
 
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
-        s_raffle.initializeRouterAddress(address(s_router));
+        s_raffle.initializeMonadexV1Router(address(s_router));
+        s_raffle.supportToken(s_wNative, s_priceFeedConfigs[0]);
 
         s_mdx = new MDX(s_protocolTeamMultisig, s_initialSupply);
         s_timelock = new MonadexV1Timelock(s_minDelay, s_proposers, s_executors);
@@ -126,9 +121,6 @@ contract DeployProtocol is Script {
     }
 
     function _initializeRaffleConstructorArgs() public {
-        // More tokens like USDC, etc can be supported later on
-        s_supportedTokens.push(s_wNative);
-
         s_pythPriceFeedContract = 0xA2aa501b19aff244D90cc15a4Cf739D2725B5729;
 
         MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
@@ -140,15 +132,6 @@ contract DeployProtocol is Script {
         s_entropyContract = address(0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4c);
         s_entropyProvider = address(0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344);
 
-        MonadexV1Types.Fraction[3] memory multipliersToPercentages = [
-            MonadexV1Types.Fraction({ numerator: 1, denominator: 100 }), // Multiplier 1, 1% of swap amount
-            MonadexV1Types.Fraction({ numerator: 2, denominator: 100 }), // Multiplier 2, 2% of swap amount
-            MonadexV1Types.Fraction({ numerator: 4, denominator: 100 }) // Multiplier 3, 4% of swap amount
-        ];
-        for (uint256 count = 0; count < 3; ++count) {
-            s_multipliersToPercentages[count] = multipliersToPercentages[count];
-        }
-
         MonadexV1Types.Fraction[3] memory winningPortions = [
             MonadexV1Types.Fraction({ numerator: 45, denominator: 100 }), // Tier 1, 45% to 1 winner
             MonadexV1Types.Fraction({ numerator: 20, denominator: 100 }), // Tier 2, 20% to 2 winners
@@ -158,7 +141,7 @@ contract DeployProtocol is Script {
             s_winningPortions[count] = winningPortions[count];
         }
 
-        s_minimumParticipants = 10;
+        s_minimumNftsToBeMintedEachEpoch = 10;
     }
 
     function _initializeGovernanceConstructorArgs() internal {

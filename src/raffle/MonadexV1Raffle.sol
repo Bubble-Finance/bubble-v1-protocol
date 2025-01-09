@@ -384,8 +384,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
                 || _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].denominator
                     != _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].denominator
                 || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].numerator
-                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator
-                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator
+                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator * WINNERS_IN_TIER_2
+                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator * WINNERS_IN_TIER_3
                     != _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator
         ) revert MonadexV1Raffle__InvalidWinningPortions();
 
