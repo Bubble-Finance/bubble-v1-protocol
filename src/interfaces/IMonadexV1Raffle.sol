@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
 interface IMonadexV1Raffle {
+    function initializeMonadexV1Router(address _monadexV1Router) external;
+
     function supportToken(
         address _token,
         MonadexV1Types.PriceFeedConfig memory _priceFeedConfig

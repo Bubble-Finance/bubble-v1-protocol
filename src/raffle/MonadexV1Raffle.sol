@@ -181,6 +181,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         s_lastDrawTimestamp = block.timestamp;
     }
 
+    /// @notice Allows the owner to set the `MonadexV1Router` address once.
+    /// @param _monadexV1Router The `MonadexV1Router` address.
     function initializeMonadexV1Router(address _monadexV1Router) external onlyOwner {
         if (s_monadexV1Router != address(0)) {
             revert MonadexV1Raffle__RouterAlreadySet(s_monadexV1Router);
