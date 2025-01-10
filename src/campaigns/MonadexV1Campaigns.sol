@@ -29,15 +29,13 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// State Variables ///
     ///////////////////////
 
-    /// @dev The zero address constant to transfer the ownership of tokens to.
-    address private constant ZERO_ADDRESS = address(0);
     /// @dev The minimum total supply each newly created token should have.
     uint256 private s_minimumTokenTotalSupply;
-    /// @dev The minimum initial virtual native currency amount each token's bonding curve
+    /// @dev The minimum initial virtual native token amount each token's bonding curve
     /// should start with.
-    uint256 private s_minimumVirutalNativeReserve;
-    /// @dev The minimum native currency amount to raise in each binding curve.
-    uint256 private s_minimumNativeAmountToRaise;
+    uint256 private s_minimumVirutalNativeTokenReserve;
+    /// @dev The minimum native token amount to raise in each bonding curve.
+    uint256 private s_minimumNativeTokenAmountToRaise;
     /// @dev The reward in wrapped native token a token creator is eligible for once
     /// a token successfully completes its bonding curve.
     uint256 private s_tokenCreatorReward;
@@ -69,8 +67,8 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     //////////////
 
     event MinimumTokenTotalSupplySet(uint256 indexed newMinimumTokenTotalSupply);
-    event MinimumVirtualNativeReserveSet(uint256 indexed newMinimumVirtualNativeReserve);
-    event MinimumNativeAmountToRaiseSet(uint256 indexed newMinimumNativeAmountToRaise);
+    event MinimumVirtualNativeTokenReserveSet(uint256 indexed newMinimumVirtualNativeReserve);
+    event MinimumNativeTokenAmountToRaiseSet(uint256 indexed newMinimumNativeAmountToRaise);
     event TokenCreatorRewardSet(uint256 indexed newTokenCreatorReward);
     event LiquidityMigrationFeeSet(uint256 indexed newLiquidityMigrationFee);
     event FeeSet(MonadexV1Types.Fraction indexed newFee);
@@ -93,16 +91,17 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     //////////////
 
     error MonadexV1Campaigns__DeadlinePasssed(uint256 deadline);
+    error MonadexV1Campaigns__AmountZero();
+    error MonadexV1Campaigns__AddressZero();
+    error MonadexV1Campaigns__InvalidFee(MonadexV1Types.Fraction fee);
     error MonadexV1Campaigns__InsufficientFeesToCollect(
         uint256 amountToCollect, uint256 accumulatedFees
     );
-    error MonadexV1Campaigns__TransferFailed();
     error MonadexV1Campaigns__InvalidTokenCreationparams(MonadexV1Types.TokenDetails tokenDetails);
     error MonadexV1Campaigns__BondingCurveNotActive();
     error MonadexV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
         uint256 amountOut, uint256 minimumAmountOut
     );
-    error MonadexV1Campaigns__BondingCurveBreached(uint256 target, uint256 currentReserve);
 
     modifier beforeDeadline(uint256 _deadline) {
         if (_deadline < block.timestamp) revert MonadexV1Campaigns__DeadlinePasssed(_deadline);
@@ -115,9 +114,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
     /// @notice Initializes the campaigns contract.
     /// @param _minimumTokenTotalSupply The minimum total supply each newly created token should have.
-    /// @param _minimumVirutalNativeReserve The minimum initial virtual native currency amount each
+    /// @param _minimumVirutalNativeTokenReserve The minimum initial virtual native token amount each
     /// token's bonding curve should start with.
-    /// @param _minimumNativeAmountToRaise The minimum native currency amount to raise in each binding curve.
+    /// @param _minimumNativeTokenAmountToRaise The minimum native token amount to raise in each binding curve.
     /// @param _fee The percentage fee taken by the protocol for each buy/sell amount.
     /// @param _tokenCreatorReward The reward in wrapped native token a token creator is eligible for once
     /// a token successfully completes its bonding curve.
@@ -129,8 +128,8 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// for farming rewards for the MDX token holders.
     constructor(
         uint256 _minimumTokenTotalSupply,
-        uint256 _minimumVirutalNativeReserve,
-        uint256 _minimumNativeAmountToRaise,
+        uint256 _minimumVirutalNativeTokenReserve,
+        uint256 _minimumNativeTokenAmountToRaise,
         MonadexV1Types.Fraction memory _fee,
         uint256 _tokenCreatorReward,
         uint256 _liquidityMigrationFee,
@@ -140,9 +139,17 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     )
         Owned(msg.sender)
     {
+        if (
+            _minimumTokenTotalSupply == 0 || _minimumVirutalNativeTokenReserve == 0
+                || _minimumNativeTokenAmountToRaise == 0
+        ) revert MonadexV1Campaigns__AmountZero();
+        if (_monadexV1Router == address(0) || _wNative == address(0) || _vault == address(0)) {
+            revert MonadexV1Campaigns__AddressZero();
+        }
+
         s_minimumTokenTotalSupply = _minimumTokenTotalSupply;
-        s_minimumVirutalNativeReserve = _minimumVirutalNativeReserve;
-        s_minimumNativeAmountToRaise = _minimumNativeAmountToRaise;
+        s_minimumVirutalNativeTokenReserve = _minimumVirutalNativeTokenReserve;
+        s_minimumNativeTokenAmountToRaise = _minimumNativeTokenAmountToRaise;
         s_fee = _fee;
         s_tokenCreatorReward = _tokenCreatorReward;
         s_liquidityMigrationFee = _liquidityMigrationFee;
@@ -158,36 +165,42 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @notice Allows the owner to set the minimum total supply for each newly created token.
     /// @param _minimumTokenTotalSupply The new minimum total supply for each newly created token.
     function setMinimumTokenTotalSupply(uint256 _minimumTokenTotalSupply) external onlyOwner {
+        if (_minimumTokenTotalSupply == 0) revert MonadexV1Campaigns__AmountZero();
+
         s_minimumTokenTotalSupply = _minimumTokenTotalSupply;
 
         emit MinimumTokenTotalSupplySet(_minimumTokenTotalSupply);
     }
 
-    /// @notice Allows the owner to set the minimum virtual native reserve for each newly created token.
-    /// @param _minimumVirtualNativeReserve The new minimum virtual native reserve.
-    function setMinimumVirtualNativeReserve(
-        uint256 _minimumVirtualNativeReserve
+    /// @notice Allows the owner to set the minimum virtual native token reserve for each newly created token.
+    /// @param _minimumVirtualNativeTokenReserve The new minimum virtual native token reserve.
+    function setMinimumVirtualNativeTokenReserve(
+        uint256 _minimumVirtualNativeTokenReserve
     )
         external
         onlyOwner
     {
-        s_minimumVirutalNativeReserve = _minimumVirtualNativeReserve;
+        if (_minimumVirtualNativeTokenReserve == 0) revert MonadexV1Campaigns__AmountZero();
 
-        emit MinimumVirtualNativeReserveSet(_minimumVirtualNativeReserve);
+        s_minimumVirutalNativeTokenReserve = _minimumVirtualNativeTokenReserve;
+
+        emit MinimumVirtualNativeTokenReserveSet(_minimumVirtualNativeTokenReserve);
     }
 
-    /// @notice Allows the owner to change the minimum native currency amount to raise for
+    /// @notice Allows the owner to change the minimum native token amount to raise for
     /// each newly created token.
-    /// @param _minimumNativeAmountToRaise The new minimum native currency amount to raise.
-    function setMinimumNativeAmountToRaise(
-        uint256 _minimumNativeAmountToRaise
+    /// @param _minimumNativeTokenAmountToRaise The new minimum native token amount to raise.
+    function setMinimumNativeTokenAmountToRaise(
+        uint256 _minimumNativeTokenAmountToRaise
     )
         external
         onlyOwner
     {
-        s_minimumNativeAmountToRaise = _minimumNativeAmountToRaise;
+        if (_minimumNativeTokenAmountToRaise == 0) revert MonadexV1Campaigns__AmountZero();
 
-        emit MinimumNativeAmountToRaiseSet(_minimumNativeAmountToRaise);
+        s_minimumNativeTokenAmountToRaise = _minimumNativeTokenAmountToRaise;
+
+        emit MinimumNativeTokenAmountToRaiseSet(_minimumNativeTokenAmountToRaise);
     }
 
     /// @notice Allows the owner to change the reward the token creator is eligible for when the
@@ -204,11 +217,17 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _liquidityMigrationFee The new fee taken when the token completes its bonding curve.
     function setLiquidityMigrationFee(uint256 _liquidityMigrationFee) external onlyOwner {
         s_liquidityMigrationFee = _liquidityMigrationFee;
+
+        emit LiquidityMigrationFeeSet(_liquidityMigrationFee);
     }
 
     /// @notice Allows the owner to change the fee taken while buying/selling tokens.
     /// @param _fee The new fee while buying/selling tokens.
     function setFee(MonadexV1Types.Fraction memory _fee) external onlyOwner {
+        if (_fee.denominator == 0 || _fee.numerator > _fee.denominator) {
+            revert MonadexV1Campaigns__InvalidFee(_fee);
+        }
+
         s_fee = _fee;
 
         emit FeeSet(_fee);
@@ -218,6 +237,8 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// once a token completes its bonding curve.
     /// @param _vault The new vault address.
     function setVault(address _vault) external onlyOwner {
+        if (_vault == address(0)) revert MonadexV1Campaigns__AddressZero();
+
         s_vault = _vault;
 
         emit VaultSet(_vault);
@@ -227,13 +248,13 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _to The address to which the fee amount is directed to.
     /// @param _amount The amount of native currency to withdraw.
     function collectFees(address _to, uint256 _amount) external onlyOwner {
+        if (_to == address(0)) revert MonadexV1Campaigns__AddressZero();
         if (_amount > s_feeCollected) {
             revert MonadexV1Campaigns__InsufficientFeesToCollect(_amount, s_feeCollected);
         }
-        s_feeCollected -= _amount;
 
-        (bool success,) = payable(_to).call{ value: _amount }("");
-        if (!success) revert MonadexV1Campaigns__TransferFailed();
+        s_feeCollected -= _amount;
+        _safeTransferNativeWithFallback(_to, _amount);
 
         emit FeesCollected(msg.sender, _amount, _to);
     }
@@ -242,9 +263,12 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _tokenDetails The associated token details which includes token metadata
     /// and bonding curve details.
     /// @param _deadline The deadline before which the token should be created.
+    /// @param _initialNativeAmountToBuyWith The native token amount to be used for initial token purchase.
+    /// @return Address of the created token.
     function createToken(
         MonadexV1Types.TokenDetails calldata _tokenDetails,
-        uint256 _deadline
+        uint256 _deadline,
+        uint256 _initialNativeAmountToBuyWith
     )
         external
         payable
@@ -253,10 +277,10 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         if (
             _tokenDetails.creator != msg.sender
                 || _tokenDetails.tokenReserve < s_minimumTokenTotalSupply
-                || _tokenDetails.nativeReserve < s_minimumVirutalNativeReserve
-                || _tokenDetails.virtualNativeReserve != _tokenDetails.nativeReserve
-                || _tokenDetails.targetNativeReserve - _tokenDetails.virtualNativeReserve
-                    < s_minimumNativeAmountToRaise
+                || _tokenDetails.nativeTokenReserve < s_minimumVirutalNativeTokenReserve
+                || _tokenDetails.virtualNativeTokenReserve != _tokenDetails.nativeTokenReserve
+                || _tokenDetails.targetNativeTokenReserve - _tokenDetails.virtualNativeTokenReserve
+                    < s_minimumNativeTokenAmountToRaise
                 || _tokenDetails.tokenCreatorReward != s_tokenCreatorReward
                 || _tokenDetails.liquidityMigrationFee != s_liquidityMigrationFee
                 || _tokenDetails.launched == true
@@ -271,7 +295,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
         emit TokenCreated(address(token), _tokenDetails);
 
-        buyTokens(address(token), 0, _deadline, msg.sender);
+        buyTokens(address(token), _initialNativeAmountToBuyWith, 0, _deadline, msg.sender);
 
         return address(token);
     }
@@ -293,6 +317,11 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         external
         beforeDeadline(_deadline)
     {
+        if (_token == address(0) || _receiver == address(0)) {
+            revert MonadexV1Campaigns__AddressZero();
+        }
+        if (_amount == 0) revert MonadexV1Campaigns__AmountZero();
+
         MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
         if (tokenDetails.launched) revert MonadexV1Campaigns__BondingCurveNotActive();
 
@@ -304,7 +333,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         }
 
         s_feeCollected += fee;
-        s_tokenDetails[_token].nativeReserve -= nativeAmount + fee;
+        s_tokenDetails[_token].nativeTokenReserve -= nativeAmount + fee;
         s_tokenDetails[_token].tokenReserve += _amount;
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -315,12 +344,14 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
     /// @notice Allows a user to buy tokens on an active bonding curve.
     /// @param _token The token to sell.
+    /// @param _nativeTokenAmount The native token amount to use for purchase.
     /// @param _minimumAmountToReceive The minimum amount of tokens to receive
     /// on buying.
     /// @param _deadline The UNIX timestamp before which the tokens should be bought.
     /// @param _receiver The recipient of the token.
     function buyTokens(
         address _token,
+        uint256 _nativeTokenAmount,
         uint256 _minimumAmountToReceive,
         uint256 _deadline,
         address _receiver
@@ -329,30 +360,39 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         payable
         beforeDeadline(_deadline)
     {
+        if (_token == address(0) || _receiver == address(0)) {
+            revert MonadexV1Campaigns__AddressZero();
+        }
+
         MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
         if (tokenDetails.launched) revert MonadexV1Campaigns__BondingCurveNotActive();
-
-        (uint256 tokenAmount, uint256 feeAmount) = previewBuy(_token, msg.value);
+        uint256 nativeTokenAmountToCompleteBondingCurve =
+            getRemainingNativeTokenAmountToCompleteBondingCurve(_token);
+        uint256 refundAmount;
+        bool completeBondingCurve;
+        uint256 tokenAmount;
+        uint256 feeAmount;
+        if (nativeTokenAmountToCompleteBondingCurve <= _nativeTokenAmount) {
+            _nativeTokenAmount = nativeTokenAmountToCompleteBondingCurve;
+            completeBondingCurve = true;
+        }
+        (tokenAmount, feeAmount) = previewBuy(_token, _nativeTokenAmount);
+        refundAmount = msg.value - _nativeTokenAmount - feeAmount;
         if (tokenAmount < _minimumAmountToReceive) {
             revert MonadexV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
                 tokenAmount, _minimumAmountToReceive
             );
         }
-        s_tokenDetails[_token].nativeReserve += msg.value - feeAmount;
+
+        s_feeCollected += feeAmount;
+        s_tokenDetails[_token].nativeTokenReserve += _nativeTokenAmount;
         s_tokenDetails[_token].tokenReserve -= tokenAmount;
         IERC20(_token).safeTransfer(_receiver, tokenAmount);
+        if (refundAmount > 0) _safeTransferNativeWithFallback(msg.sender, refundAmount);
 
         emit TokensBought(msg.sender, _token, tokenAmount, _receiver);
 
-        int256 nativeAmountToCompleteBondingCurve = getRemainingNativeToCompleteBondingCurve(_token);
-        if (nativeAmountToCompleteBondingCurve < 0) {
-            revert MonadexV1Campaigns__BondingCurveBreached(
-                tokenDetails.targetNativeReserve + tokenDetails.tokenCreatorReward
-                    + tokenDetails.liquidityMigrationFee,
-                tokenDetails.nativeReserve
-            );
-        }
-        if (nativeAmountToCompleteBondingCurve == 0) {
+        if (completeBondingCurve) {
             _completeBondingCurve(_token, tokenDetails, _deadline);
         }
     }
@@ -381,8 +421,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
             receiver: s_vault,
             deadline: _deadline
         });
+        IERC20(_token).approve(i_monadexV1Router, _tokenDetails.tokenReserve);
         IMonadexV1Router(i_monadexV1Router).addLiquidityNative{
-            value: _tokenDetails.nativeReserve - _tokenDetails.virtualNativeReserve
+            value: _tokenDetails.nativeTokenReserve - _tokenDetails.virtualNativeTokenReserve
                 - _tokenDetails.tokenCreatorReward - _tokenDetails.liquidityMigrationFee
         }(addLiquidityNativeParams);
 
@@ -391,7 +432,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
         s_tokenDetails[_token].launched = true;
         ILaunch(_token).launch();
-        IOwned(_token).transferOwnership(ZERO_ADDRESS);
+        IOwned(_token).transferOwnership(address(0));
 
         emit BondingCurveCompleted(_token);
     }
@@ -401,7 +442,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _to The address to transfer the native currency/wrapped native tokens to.
     /// @param _amount The amount of native currency/wrapped native tokens to transfer.
     function _safeTransferNativeWithFallback(address _to, uint256 _amount) internal {
-        (bool success,) = _to.call{ value: _amount }("");
+        (bool success,) = payable(_to).call{ value: _amount }("");
         if (!success) {
             IWNative(payable(i_wNative)).deposit{ value: _amount }();
             IERC20(i_wNative).safeTransfer(_to, _amount);
@@ -421,13 +462,13 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @notice Gets the minimum virtual native reserve for any newly launched token.
     /// @return The minimum virtual native reserve.
     function getMinimumVirutalNativeReserve() external view returns (uint256) {
-        return s_minimumVirutalNativeReserve;
+        return s_minimumVirutalNativeTokenReserve;
     }
 
     /// @notice Gets the minimum native amount to raise for any newly launched token.
     /// @return The minimum native amount to raise.
     function getMinimumNativeAmountToRaise() external view returns (uint256) {
-        return s_minimumNativeAmountToRaise;
+        return s_minimumNativeTokenAmountToRaise;
     }
 
     /// @notice Gets the reward a token creator is eligible for when the token successfully
@@ -500,20 +541,18 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         return s_tokenDetails[_token];
     }
 
-    function getRemainingNativeToCompleteBondingCurve(
+    function getRemainingNativeTokenAmountToCompleteBondingCurve(
         address _token
     )
         public
         view
-        returns (int256)
+        returns (uint256)
     {
         MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
         if (tokenDetails.launched) return 0;
 
-        return (
-            int256(tokenDetails.targetNativeReserve) + int256(tokenDetails.tokenCreatorReward)
-                + int256(tokenDetails.liquidityMigrationFee)
-        ) - int256(tokenDetails.nativeReserve);
+        return tokenDetails.targetNativeTokenReserve + tokenDetails.tokenCreatorReward
+            + tokenDetails.liquidityMigrationFee - tokenDetails.nativeTokenReserve;
     }
 
     /// @notice Gets the token amount the user will receive and fee to pay in the buy transaction.
@@ -531,13 +570,13 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     {
         MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
 
-        uint256 nativeAmountAfterFee =
-            MonadexV1Library.calculateBuyAmountAfterFeeForCampaigns(_nativeAmount, s_fee);
+        uint256 feeAmount =
+            MonadexV1Library.calculateAmountAfterApplyingPercentage(_nativeAmount, s_fee);
         uint256 tokenAmount = MonadexV1Library.getAmountOutForCampaigns(
-            nativeAmountAfterFee, tokenDetails.nativeReserve, tokenDetails.tokenReserve
+            _nativeAmount, tokenDetails.nativeTokenReserve, tokenDetails.tokenReserve
         );
 
-        return (tokenAmount, _nativeAmount - nativeAmountAfterFee);
+        return (tokenAmount, feeAmount);
     }
 
     /// @notice Gets the wrapped native token amount the user will receive and the fee to pay on the
@@ -557,7 +596,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
 
         uint256 nativeAmountToSend = MonadexV1Library.getAmountOutForCampaigns(
-            _tokenAmount, tokenDetails.tokenReserve, tokenDetails.nativeReserve
+            _tokenAmount, tokenDetails.tokenReserve, tokenDetails.nativeTokenReserve
         );
         uint256 fee =
             MonadexV1Library.calculateAmountAfterApplyingPercentage(nativeAmountToSend, s_fee);

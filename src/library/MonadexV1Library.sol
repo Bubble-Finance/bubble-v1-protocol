@@ -332,21 +332,6 @@ library MonadexV1Library {
         }
     }
 
-    /// @notice Calculates the amount sent by the user for purchasing a token after removing the fee.
-    /// @param _amount The native currency amount used for token purchase.
-    /// @param _fee The fee levied by MonadexV1Campaigns.
-    /// @return The actual amount sent by the user for token purchase on campaigns.
-    function calculateBuyAmountAfterFeeForCampaigns(
-        uint256 _amount,
-        MonadexV1Types.Fraction memory _fee
-    )
-        internal
-        pure
-        returns (uint256)
-    {
-        return (_fee.denominator * _amount) / (_fee.denominator + _fee.numerator);
-    }
-
     /// @notice Gets the amount of tokens to send to buyer/seller on campaigns based
     /// on input amount, input reserve, and the output reserve.
     /// @param _amountIn The input amount.

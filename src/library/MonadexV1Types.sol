@@ -175,13 +175,13 @@ contract MonadexV1Types {
         uint256 tokenReserve;
         /// @dev Tracks the amount of native token held by the bonding curve plus
         /// the initial virtual amount.
-        uint256 nativeReserve;
+        uint256 nativeTokenReserve;
         /// @dev The initial virtual native token amount used to set the initial
         /// price of a token.
-        uint256 virtualNativeReserve;
+        uint256 virtualNativeTokenReserve;
         /// @dev The target native token amount to reach before listing the token
         /// on Monadex. This includes the initial virtual native token amount.
-        uint256 targetNativeReserve;
+        uint256 targetNativeTokenReserve;
         /// @dev The reward (in native wrapped token) to be given to the token creator
         /// once the token is successfully listed on Monadex.
         uint256 tokenCreatorReward;
