@@ -41,7 +41,6 @@ contract RouterSwapERC20Tokens is Test, Deployer, RouterAddLiquidity {
     // ----------------------------------
     //    swapExactTokensForTokens()
     // ----------------------------------
-
     function test_swap10K_DAIForwBTC() public {
         // 1. Lets add some cash to the pool:
         test_secondSupplyAddDAI_WBTC();
@@ -54,50 +53,40 @@ contract RouterSwapERC20Tokens is Test, Deployer, RouterAddLiquidity {
         uint256 balance_pool_DAI = DAI.balanceOf(pool);
         uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
 
-        console.log("**  test_swap10K_DAIForwBTC() **");
-        console.log("initial user balance DAI: ", balance_swapper1_DAI / 1e18); // 1000000e18
-        console.log("initial user user wBTC: ", balance_swapper1_wBTC / 1e18); // 1000000e18
-        console.log("initial pool user DAI: ", balance_pool_DAI / 1e18); // 300Ke18
-        console.log("initial pool user wBTC: ", balance_pool_wBTC / 1e18); // 60Ke18
-
         /**
          * SWAP START *
          */
-        // 1. Calculate path:
+        // 3. Calculate path:
         address[] memory path = new address[](2);
         path[0] = address(DAI);
         path[1] = address(wBTC);
 
+        // 4. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        // 2. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
-            purchaseTickets: false,
+        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+            enter: false,
             fractionOfSwapAmount: fractionTiers[1],
-            minimumTicketsToReceive: 0,
-            raffleTicketReceiver: address(swapper1)
+            raffleNftReceiver: address(swapper1)
         });
 
-        // 3. swap
+        // 5. swap
         vm.startPrank(swapper1);
         DAI.approve(address(s_router), ADD_10K);
         s_router.swapExactTokensForTokens(
-            ADD_10K, 1, path, swapper1, block.timestamp, purchaseTickets
+            ADD_10K, 1, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
-        // 4. check the swap, not the formula yet @audit-note
-        console.log("");
+        // 6. check the swap, not the formula yet @audit-note
         console.log("final balance user DAI: ", DAI.balanceOf(swapper1) / 1e18); // 990000e18
         console.log("final balance user wBTC: ", wBTC.balanceOf(swapper1) / 1e18); // 1001929e18
-        console.log("");
-        console.log("");
         assertEq(DAI.balanceOf(swapper1), balance_swapper1_DAI - ADD_10K);
     }
 
@@ -116,34 +105,27 @@ contract RouterSwapERC20Tokens is Test, Deployer, RouterAddLiquidity {
         uint256 balance_pool_DAI = DAI.balanceOf(pool);
         uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
 
-        console.log("**  test_swapwBTCToObtain10K_DAI() **");
-        console.log("initial user balance DAI: ", balance_swapper1_DAI / 1e18); // 1000000e18
-        console.log("initial user user wBTC: ", balance_swapper1_wBTC / 1e18); // 1000000e18
-        console.log("initial pool user DAI: ", balance_pool_DAI / 1e18); // 300Ke18
-        console.log("initial pool user wBTC: ", balance_pool_wBTC / 1e18); // 60Ke18
-
         /**
          * SWAP START *
          */
-        // 1. Calculate path:
+        // 3. Calculate path:
         address[] memory path = new address[](2);
         path[0] = address(wBTC);
         path[1] = address(DAI);
 
+        // 4. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        // 2. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
-            purchaseTickets: false,
-            fractionOfSwapAmount: fractionTiers[1],
-            minimumTicketsToReceive: 0,
-            raffleTicketReceiver: address(swapper1)
+        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+            enter: false,
+            fractionOfSwapAmount: fractionTiers[2],
+            raffleNftReceiver: address(swapper1)
         });
 
         // 3. swap
@@ -156,11 +138,11 @@ contract RouterSwapERC20Tokens is Test, Deployer, RouterAddLiquidity {
         vm.startPrank(swapper1);
         wBTC.approve(address(s_router), ADD_50K);
         s_router.swapTokensForExactTokens(
-            600e18, ADD_50K, path, swapper1, block.timestamp, purchaseTickets
+            600e18, ADD_50K, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
-        // 4. check the swap, not the formula yet @audit-note
+        // 5. check the swap, not the formula yet @audit-note
         console.log("");
         console.log("final balance user DAI: ", DAI.balanceOf(swapper1) / 1e18); // 1000600e18
         console.log("final balance user wBTC: ", wBTC.balanceOf(swapper1) / 1e18); // 959919

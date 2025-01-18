@@ -1,23 +1,7 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.24;
 
-// ----------------------------------
-//  CONTRACT: Deployer
-//  1. Deploy Governor.
-//     @audit-note Governor is currently under development and has no effect on the protocol.
-//  2. Deploy Factory.
-//  3. Deploy Raffle.
-//     @audit-note Raffle should be deployed before Router.
-//  4. Deploy Router.
-//  5. Roles and Owners after Deploy.
-//     @audit-note For future use, when Governor is deployed.
-// ----------------------------------
-
-// ----------------------------------
-//    Foundry Contracts Imports
-// ----------------------------------
-
-import { Test, console } from "./../../lib/forge-std/src/Test.sol";
+import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
 //    Monadex Contracts Imports
@@ -26,31 +10,34 @@ import { Test, console } from "./../../lib/forge-std/src/Test.sol";
 // 1. Libraries
 import { MonadexV1Types } from "./../../src/library/MonadexV1Types.sol";
 
-// 2. Governor
+// 2. Factory
+import { MonadexV1Factory } from "./../../src/core/MonadexV1Factory.sol";
+
+// 3. Raffle
+import { MonadexV1Raffle } from "./../../src/raffle/MonadexV1Raffle.sol";
+
+// 4. Router
+import { MonadexV1Router } from "./../../src/router/MonadexV1Router.sol";
+
+// 5. Governor
 import { MDX } from "./../../src/governance/MDX.sol";
 import { MonadexV1Governor } from "./../../src/governance/MonadexV1Governor.sol";
 import { MonadexV1Timelock } from "./../../src/governance/MonadexV1Timelock.sol";
-
-// 3. Factory
-import { MonadexV1Factory } from "./../../src/core/MonadexV1Factory.sol";
-
-// 4. Raffle
-import { MonadexV1Raffle } from "./../../src/raffle/MonadexV1Raffle.sol";
-
-// 5. Router
-import { MonadexV1Router } from "./../../src/router/MonadexV1Router.sol";
 
 // --------------------------------
 //    Helpers Contracts Imports
 // --------------------------------
 import { InitializeActors } from "./InitializeActors.sol";
-import { InitializeConstructorsArgs } from "./InitializeConstructorsArgs.sol";
+import { InitializeConstructorArgs } from "test/baseHelpers/InitializeConstructorArgs.sol";
 
-// ------------------------------------------------------
-//    Contract for testing and debugging
-// ------------------------------------------------------
+contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
+    // --------------------------------
+    //    Governor: Not developed yet
+    // --------------------------------
+    MDX s_mdx;
+    MonadexV1Timelock s_timelock;
+    MonadexV1Governor s_governor;
 
-contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
     // --------------------------------
     //    Main Contracts: Factory, Raffle, Router
     // --------------------------------
@@ -60,20 +47,14 @@ contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
 
     MonadexV1Router s_router;
 
-    // --------------------------------
-    //    Governor: Not developed yet
-    // --------------------------------
-    MDX s_mdx;
-    MonadexV1Timelock s_timelock;
-    MonadexV1Governor s_governor;
-
-    function setUp() external {
+    function setUp() public {
         initializeBaseUsers();
         initializeFactoryConstructorArgs();
         initializePythMockAndPrices();
         initializeRaffleConstructorArgs();
 
         vm.startPrank(protocolTeamMultisig);
+
         // --------------------------------
         //    Deploy Governor
         // --------------------------------
@@ -100,20 +81,18 @@ contract Deployer is Test, InitializeActors, InitializeConstructorsArgs {
 
         s_raffle = new MonadexV1Raffle(
             address(s_pythPriceFeedContract),
-            s_pricePerTicket,
-            s_supportedTokens,
-            s_priceFeedConfigs,
             s_entropyContract,
-            s_entropyProvider,
-            s_winningPortions,
-            s_minimumParticipants
+            s_entropyContract,
+            s_minimumNftsToBeMintedEachEpoch,
+            s_winningPortions
         );
 
         // --------------------------------
         //    Deploy Router
         // --------------------------------
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
-        s_raffle.initializeRouterAddress(address(s_router));
+        s_raffle.initializeMonadexV1Router(address(s_router));
+        s_raffle.supportToken(s_wNative, s_priceFeedConfigs[0]);
 
         vm.stopPrank();
     }

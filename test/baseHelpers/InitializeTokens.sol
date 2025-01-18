@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
 //  1. Deploy Tokens to be used on TESTS.
 //  2. TokenMock: Standard contract for tokens wETH, wBTC, USDT, DAI, SHIB
 //  3. WNative: Standard contract for wrapped Native (Monad)
-//  4. DangerousToken: Crazy conntract that will try to stole the user funds.
+//  4. DangerousToken: Crazy contract that will try to stole the user funds.
 // ----------------------------------
 
 // ----------------------------------

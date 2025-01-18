@@ -8,14 +8,14 @@ pragma solidity ^0.8.24;
 //  3. LP: Liquidity Pool users.
 //  4. Swappers: Swap and Raffle users.
 //  5. Stockers: Governor users
-//  ** Every user has 1M of every token included native Monad.
+//  ** Every user has 1M of every token included native Monad. **
 // ----------------------------------
 
 // ----------------------------------
 //    Foundry Contracts Imports
 // ----------------------------------
 
-import { Test, console } from "./../../lib/forge-std/src/Test.sol";
+import { Test, console2 } from "./../../lib/forge-std/src/Test.sol";
 
 import { InitializeTokens } from "./InitializeTokens.sol";
 

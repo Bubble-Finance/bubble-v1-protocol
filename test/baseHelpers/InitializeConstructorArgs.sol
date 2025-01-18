@@ -3,9 +3,7 @@ pragma solidity ^0.8.24;
 
 // ----------------------------------
 //  CONTRACT: InitializeConstructorsArgs
-//  1. Governor Initialize.
-//     @audit-note Governor is currently under development and has no effect on the protocol.
-//  2. Factory Initialize.
+//  1. Factory Initialize.
 //  3. Raffle Initialize.
 //     @audit-note contract InitializeOracle is a mock contract of pyth protocol.
 //                 every pyth function go there.
@@ -14,10 +12,11 @@ pragma solidity ^0.8.24;
 //  4. Router Initialize.
 // ----------------------------------
 
-import { Test, console } from "./../../lib/forge-std/src/Test.sol";
-import { MonadexV1Types } from "./../../src/library/MonadexV1Types.sol";
+import { console } from "lib/forge-std/src/console.sol";
 
-import { InitializeTokens } from "./InitializeTokens.sol";
+import { InitializeTokens } from "test/baseHelpers/InitializeTokens.sol";
+
+import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 
 import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 
@@ -25,7 +24,7 @@ import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
 import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
 
-contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 {
+contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
     //  Governor Initialize
     // -------------------------------------------
@@ -98,7 +97,6 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
     bytes32 userRandomNumber = 0x85f0ce7392d4ff75162f550c8a2679da7b3c39465d126ebae57b4bb126423d3a;
 
     address public s_entropyContract;
-    address public s_entropyProvider;
 
     MockEntropyContract mockEntropy;
 
@@ -106,44 +104,25 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
         mock = new MockEntropy(userRandomNumber);
         // mockEntropy = new MockEntropyContract(address(mock), address(mock)); // not needed
 
-        s_entropyProvider = address(mock);
         s_entropyContract = address(mock);
     }
 
     // -------------------------------------------
     //     Raffle Initialize
     // -------------------------------------------
-    address[] public s_supportedTokens;
-    MonadexV1Types.Fraction[3] public s_multipliersToPercentages;
     MonadexV1Types.Fraction[3] public s_winningPortions;
-    uint256 public s_minimumParticipants;
+    uint256 public s_minimumNftsToBeMintedEachEpoch = 10;
 
     uint256 public constant WINNING_PORTTIONS_1 = 45;
     uint256 public constant WINNING_PORTTIONS_2 = 20;
     uint256 public constant WINNING_PORTTIONS_3 = 5;
 
-    uint256 public constant s_pricePerTicket = 1;
-
     function initializeRaffleConstructorArgs() public {
-        // ADDING  s_wNative AS AUTHORISED TOKEN //
-        s_supportedTokens.push(s_wNative);
-
         MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
             priceFeedId: 0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6,
             noOlderThan: type(uint32).max // This is a dangerous value, make sure to not use it for mainnet
          });
         s_priceFeedConfigs.push(wethConfig);
-        // FINISHED ADDING  s_wNative AS AUTHORISED TOKEN //
-
-        MonadexV1Types.Fraction[3] memory multipliersToPercentages = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 })
-        ];
-
-        for (uint256 count = 0; count < 3; ++count) {
-            s_multipliersToPercentages[count] = multipliersToPercentages[count];
-        }
 
         MonadexV1Types.Fraction[3] memory winningPortions = [
             MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
@@ -154,8 +133,6 @@ contract InitializeConstructorsArgs is Test, InitializeTokens, InitializePythV2 
         for (uint256 count = 0; count < 3; ++count) {
             s_winningPortions[count] = winningPortions[count];
         }
-
-        s_minimumParticipants = 10;
     }
 
     // -------------------------------------------

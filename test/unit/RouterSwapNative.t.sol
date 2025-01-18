@@ -50,26 +50,25 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[0] = s_wNative;
         path[1] = address(DAI);
 
+        // 4. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        // 2. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
-            purchaseTickets: false,
-            fractionOfSwapAmount: fractionTiers[1],
-            minimumTicketsToReceive: 0,
-            raffleTicketReceiver: address(swapper1)
+        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+            enter: false,
+            fractionOfSwapAmount: fractionTiers[2],
+            raffleNftReceiver: address(swapper1)
         });
 
         vm.startPrank(swapper1);
 
         s_router.swapExactNativeForTokens{ value: ADD_10K }(
-            1, path, swapper1, block.timestamp, purchaseTickets
+            1, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
     }
@@ -89,27 +88,26 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[0] = address(DAI);
         path[1] = s_wNative;
 
+        // 4. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        // 2. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
-            purchaseTickets: false,
-            fractionOfSwapAmount: fractionTiers[1],
-            minimumTicketsToReceive: 0,
-            raffleTicketReceiver: address(swapper1)
+        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+            enter: false,
+            fractionOfSwapAmount: fractionTiers[2],
+            raffleNftReceiver: address(swapper1)
         });
 
         vm.startPrank(swapper1);
         console.log("swapper 1: ", swapper1);
         DAI.approve(address(s_router), ADD_10K);
         s_router.swapTokensForExactNative(
-            1 ether, ADD_10K, path, swapper1, block.timestamp, purchaseTickets
+            1 ether, ADD_10K, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
     }

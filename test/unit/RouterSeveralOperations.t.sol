@@ -125,25 +125,23 @@ contract RouterSeveralOperations is Test, Deployer {
         path[1] = address(wBTC);
 
         MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        // 2. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.PurchaseTickets memory purchaseTickets = MonadexV1Types.PurchaseTickets({
-            purchaseTickets: false,
+        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+            enter: false,
             fractionOfSwapAmount: fractionTiers[1],
-            minimumTicketsToReceive: 0,
-            raffleTicketReceiver: address(swapper1)
+            raffleNftReceiver: address(swapper1)
         });
 
         vm.startPrank(swapper1);
         DAI.approve(address(s_router), ADD_10K);
         s_router.swapExactTokensForTokens(
-            ADD_10K, 1, path, swapper1, block.timestamp, purchaseTickets
+            ADD_10K, 1, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
@@ -178,7 +176,7 @@ contract RouterSeveralOperations is Test, Deployer {
         vm.startPrank(swapper3);
         DAI.approve(address(s_router), 9000 ether);
         s_router.swapTokensForExactTokens(
-            5 ether, 9000 ether, path, swapper1, block.timestamp, purchaseTickets
+            5 ether, 9000 ether, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
@@ -205,7 +203,7 @@ contract RouterSeveralOperations is Test, Deployer {
         vm.startPrank(swapper10);
         DAI.approve(address(s_router), ADD_10K);
         s_router.swapExactTokensForTokens(
-            ADD_10K, 1, path, swapper1, block.timestamp, purchaseTickets
+            ADD_10K, 1, path, swapper1, block.timestamp, raffleParameters
         );
         vm.stopPrank();
     }

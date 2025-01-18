@@ -84,7 +84,6 @@ contract RouterRemoveLiquidity is Test, Deployer, RouterAddLiquidity {
     //    removeLiquidityNative()
     // ----------------------------------
 
-    // @audit-check I have to check the balance after the deposit.
     function test_userRemove_50percent_ofOwnNative() public {
         test_initialSupplyAddNative_DAI();
         address poolAddress = s_factory.getTokenPairToPool(address(wMonad), address(DAI));
