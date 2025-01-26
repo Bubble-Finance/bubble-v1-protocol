@@ -466,6 +466,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         );
         uint256 epoch = s_epoch++;
         s_lastDrawTimestamp = block.timestamp;
+        s_currentSequenceNumber = 0;
 
         emit EpochEnded(epoch, _sequenceNumber, _randomNumber);
     }
