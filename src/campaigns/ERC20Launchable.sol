@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
 import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
 import { Owned } from "@solmate/auth/Owned.sol";
@@ -75,7 +75,7 @@ contract ERC20Launchable is ERC20, Owned {
     /// @param _value The amount of tokens to transfer.
     function _update(address _from, address _to, uint256 _value) internal override {
         if (!s_launched) {
-            if (_from != owner || _to != owner) revert ERC20Launchable__NotLaunchedYet();
+            if (_from != owner && _to != owner) revert ERC20Launchable__NotLaunchedYet();
         }
         super._update(_from, _to, _value);
     }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -65,10 +65,6 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     address private immutable i_entropy;
     /// @dev We can use different entropy providers to request random numbers from.
     address private immutable i_entropyProvider;
-    /// @dev This is the sequence number for which Pyth will supply a random number
-    /// for a given week's draw.
-    /// After each draw, the sequence number is set to 0 for the next week.
-    uint64 private s_currentSequenceNumber;
     /// @dev The current epoch. The first epoch is 1, not zero.
     uint256 private s_epoch;
     /// @dev The next Nft tokenId to mint as a receipt for raffle entry.
@@ -120,11 +116,9 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         uint256 indexed nftTokenId,
         uint256 distance
     );
-    event RandomNumberRequested(uint256 indexed currentSequenceNumber);
+    event RandomNumberRequested();
     event TierWinningsClaimed(MonadexV1Types.RaffleClaim indexed claim);
-    event EpochEnded(
-        uint256 indexed epoch, uint64 indexed sequenceNumber, bytes32 indexed randomNumber
-    );
+    event EpochEnded(uint256 indexed epoch, bytes32 indexed randomNumber);
     event WinningPortionsSet(MonadexV1Types.Fraction[TIERS] indexed winningPortions);
     event MinimumNftsToBeMintedEachEpochSet(uint256 indexed minimumNftsToBeMintedEachEpoch);
 
@@ -145,12 +139,9 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     error MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(
         uint256 feeGiven, uint256 expectedFee
     );
-    error MonadexV1Raffle__RandomNumberAlreadyRequested(uint256 currentSequenceNumber);
+    error MonadexV1Raffle__RandomNumberAlreadyRequested();
     error MonadexV1Raffle__InvalidTier();
     error MonadexV1Raffle__AlreadyClaimedTierWinnings(address user, uint256 epoch, uint8 tier);
-    error MonadexV1Raffle__SequenceNumbersDoNotMatch(
-        uint256 sequenceNumber, uint256 currentSequenceNumber
-    );
     error MonadexV1Raffle__InvalidWinningPortions();
     error MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
@@ -307,8 +298,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Once the epoch has ended and the raffle has enough entries, anyone can request random
     /// numbers from Pyth to end the epoch.
     /// @param _userRandomNumber The seed random number supplied by the caller.
-    /// @return The sequence number of the request.
-    function requestRandomNumber(bytes32 _userRandomNumber) external payable returns (uint64) {
+    function requestRandomNumber(bytes32 _userRandomNumber) external payable {
         uint256 epoch = s_epoch;
 
         if (block.timestamp - s_lastDrawTimestamp < EPOCH_DURATION) {
@@ -324,17 +314,9 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         if (msg.value < fee) {
             revert MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(msg.value, fee);
         }
-        if (s_currentSequenceNumber != uint64(0)) {
-            revert MonadexV1Raffle__RandomNumberAlreadyRequested(s_currentSequenceNumber);
-        }
-        uint64 currentSequenceNumber = IEntropy(i_entropy).requestWithCallback{ value: fee }(
-            i_entropyProvider, _userRandomNumber
-        );
-        s_currentSequenceNumber = currentSequenceNumber;
+        IEntropy(i_entropy).requestWithCallback{ value: fee }(i_entropyProvider, _userRandomNumber);
 
-        emit RandomNumberRequested(currentSequenceNumber);
-
-        return currentSequenceNumber;
+        emit RandomNumberRequested();
     }
 
     /// @notice Allows anyone to claim the raffle tier winnings for a given epoch on behalf of valid winners.
@@ -434,22 +416,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     }
 
     /// @notice Entropy callback by Pyth which supplies random number for a request.
-    /// @param _sequenceNumber The sequence number for a request.
     /// @param _randomNumber The supplied random number.
-    function entropyCallback(
-        uint64 _sequenceNumber,
-        address,
-        bytes32 _randomNumber
-    )
-        internal
-        override
-    {
-        if (_sequenceNumber != s_currentSequenceNumber) {
-            revert MonadexV1Raffle__SequenceNumbersDoNotMatch(
-                _sequenceNumber, s_currentSequenceNumber
-            );
-        }
-
+    function entropyCallback(uint64, address, bytes32 _randomNumber) internal override {
         s_epochToRandomNumbers[s_epoch].push(uint256(_randomNumber));
         s_epochToRandomNumbers[s_epoch].push(uint256(keccak256(abi.encode(_randomNumber))));
         s_epochToRandomNumbers[s_epoch].push(
@@ -466,9 +434,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         );
         uint256 epoch = s_epoch++;
         s_lastDrawTimestamp = block.timestamp;
-        s_currentSequenceNumber = 0;
 
-        emit EpochEnded(epoch, _sequenceNumber, _randomNumber);
+        emit EpochEnded(epoch, _randomNumber);
     }
 
     ///////////////////////////////
@@ -579,11 +546,6 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         returns (MonadexV1Types.PriceFeedConfig memory)
     {
         return s_tokenToPriceFeedConfig[_token];
-    }
-
-    /// @notice Gets the current sequence number if a random number has been requested.
-    function getCurrentSequenceNumber() external view returns (uint64) {
-        return s_currentSequenceNumber;
     }
 
     /// @notice Gets the current epoch number.

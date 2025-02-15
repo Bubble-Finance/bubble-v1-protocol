@@ -5,7 +5,8 @@ libs = ["lib"]
 remappings = [
     "@pythnetwork=node_modules/@pythnetwork",
     "@solmate=lib/solmate/src",
-    "@openzeppelin=lib/openzeppelin-contracts/contracts"
+    "@openzeppelin=lib/openzeppelin-contracts/contracts",
+    "@atlas=lib/atlas/src/contracts"
 ]
 ignored_error_codes = ["unused-var"]
 

@@ -18,7 +18,7 @@
 //         - view and pure functions
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
 import { TimelockController } from
     "lib/openzeppelin-contracts/contracts/governance/TimelockController.sol";

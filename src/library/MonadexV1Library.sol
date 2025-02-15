@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
 import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
 import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";

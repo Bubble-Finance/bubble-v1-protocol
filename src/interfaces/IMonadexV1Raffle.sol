@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
 import { MonadexV1Types } from "../library/MonadexV1Types.sol";
 
@@ -26,7 +26,7 @@ interface IMonadexV1Raffle {
         external
         returns (uint256);
 
-    function requestRandomNumber(bytes32 _userRandomNumber) external payable returns (uint64);
+    function requestRandomNumber(bytes32 _userRandomNumber) external payable;
 
     function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external;
 
@@ -56,8 +56,6 @@ interface IMonadexV1Raffle {
         external
         view
         returns (MonadexV1Types.PriceFeedConfig memory);
-
-    function getCurrentSequenceNumber() external view returns (uint64);
 
     function getCurrentEpoch() external view returns (uint256);
 
