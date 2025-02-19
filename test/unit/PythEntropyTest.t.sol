@@ -19,22 +19,29 @@ import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
 import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
 // -----------------------------------------------------
 
-contract EntropyTest is Test, Deployer {
-/* function test_addresses() public view {
+contract PythEntropyTest is Test, Deployer {
+    function test_addresses() public view {
         console.log("mock: ", address(mock));
         console.log("initializeEntropy: ", address(mockEntropy));
     }
 
     function test_requestNumber() public {
-        uint128 requestFee = mock.getFee(address(mock));
         mockEntropy.request(userRandomNumber);
         uint256 theRaffleRandomNumber = mockEntropy.getRandomNumber();
-        console.log("Enthropy Fees: ", requestFee);
         console.log("Raffle Random Number: ", theRaffleRandomNumber);
-    } */
+
+        mockEntropy.request(userRandomNumber);
+        uint256 theRaffleRandomNumber2 = mockEntropy.getRandomNumber();
+        console.log("Raffle Random Number: ", theRaffleRandomNumber2);
+
+        mockEntropy.request(userRandomNumber);
+        uint256 theRaffleRandomNumber3 = mockEntropy.getRandomNumber();
+        console.log("Raffle Random Number: ", theRaffleRandomNumber3);
+    }
 }

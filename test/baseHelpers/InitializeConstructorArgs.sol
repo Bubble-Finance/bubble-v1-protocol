@@ -102,7 +102,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
 
     function initializeEntropy() public {
         mock = new MockEntropy(userRandomNumber);
-        // mockEntropy = new MockEntropyContract(address(mock), address(mock)); // not needed
+        mockEntropy = new MockEntropyContract(address(mock), address(mock));
 
         s_entropyContract = address(mock);
     }

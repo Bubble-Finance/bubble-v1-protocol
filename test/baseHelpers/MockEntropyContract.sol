@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 
+import { console } from "lib/forge-std/src/console.sol";
+
 contract MockEntropyContract is IEntropyConsumer {
     IEntropy entropy;
     address provider;
@@ -29,6 +31,7 @@ contract MockEntropyContract is IEntropyConsumer {
 
         uint64 sequenceNumber =
             entropy.requestWithCallback{ value: requestFee }(provider, userRandomNumber);
+        console.log("sequenceNumber: ", sequenceNumber);
     }
 
     function entropyCallback(

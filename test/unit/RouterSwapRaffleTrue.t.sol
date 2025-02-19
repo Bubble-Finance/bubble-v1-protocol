@@ -27,7 +27,7 @@ pragma solidity ^0.8.24;
 //    Foundry Contracts Imports
 // ----------------------------------
 
-import { Test, console } from "lib/forge-std/src/Test.sol";
+import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
 //    Monadex Contracts Imports
@@ -141,16 +141,16 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         ];
 
         MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
-            enter: false,
+            enter: true,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
         });
 
         // 3. swap
         vm.startPrank(swapper1);
-        // @audit-high : check these numbers
-        DAI.approve(address(s_router), ADD_10K * 2);
-        // DAI.approve(address(s_raffle), 20000e18);
+        // Swapper1 are swapping 10K DAI for wBTC
+        // In addition, is using 300 DAI to buy tickets.
+        DAI.approve(address(s_router), ADD_10K + 300e18);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper1, block.timestamp, raffleParameters
         );
@@ -158,9 +158,7 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         vm.stopPrank();
 
         // 4. Checks:
-        /// @audit-high assertion failed
-        // I have to check the percentage and where they go
-        assertEq(DAI.balanceOf(swapper1), (balance_swapper1_DAI - ADD_10K - 20e18));
+        assertEq(DAI.balanceOf(swapper1), (balance_swapper1_DAI - ADD_10K - 300e18));
     }
 
     function test_swapUSDTForWBTCAndBuyTickets() public addSupportedTokens {
@@ -191,7 +189,6 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
-        // 4. User don't want raffle tickets: This is not the objetive of this test
         MonadexV1Types.Fraction[5] memory fractionTiers = [
             MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
             MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
@@ -201,23 +198,21 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         ];
 
         MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
-            enter: false,
-            fractionOfSwapAmount: fractionTiers[2],
+            enter: true,
+            fractionOfSwapAmount: fractionTiers[0],
             raffleNftReceiver: address(swapper1)
         });
 
         // 3. SWAP AND PURCHASE TICKETS
         vm.startPrank(swapper2);
-        USDT.approve(address(s_router), ADD_10K * 2);
-        // USDT.approve(address(s_raffle), ADD_10K);
+        USDT.approve(address(s_router), ADD_10K + 100e18);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper2, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
         // 4. Checks
-        /// @audit-high assertion failed
-        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 20e18);
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 100e18);
     }
 
     function test_checkDecimalsInBuyTickets() public {
@@ -258,22 +253,20 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         ];
 
         MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
-            enter: false,
-            fractionOfSwapAmount: fractionTiers[2],
+            enter: true,
+            fractionOfSwapAmount: fractionTiers[4],
             raffleNftReceiver: address(swapper1)
         });
 
         // 3. swap
         vm.startPrank(swapper2);
-        USDT.approve(address(s_router), ADD_10K * 2);
-        // USDT.approve(address(s_raffle), ADD_10K);
+        USDT.approve(address(s_router), ADD_10K + 500e18);
         s_router.swapExactTokensForTokens(
             ADD_10K, 1, path, swapper2, block.timestamp, raffleParameters
         );
         vm.stopPrank();
 
         // 4. Checks
-        /// zzz
-        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 20e18);
+        assertEq(USDT.balanceOf(swapper2), balance_swapper1_USDT - ADD_10K - 500e18);
     }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.24;
+pragma solidity ^0.8.24;
 
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
@@ -51,6 +51,7 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         initializeBaseUsers();
         initializeFactoryConstructorArgs();
         initializePythMockAndPrices();
+        initializeEntropy();
         initializeRaffleConstructorArgs();
 
         vm.startPrank(protocolTeamMultisig);
