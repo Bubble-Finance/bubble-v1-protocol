@@ -1,33 +1,10 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { ERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {
-    ERC20Permit,
-    Nonces
-} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { ERC20Votes } from
-    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import { Ownable } from "@openzeppelin/access/Ownable.sol";
+import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
+import { ERC20Permit, Nonces } from "@openzeppelin/token/ERC20/extensions/ERC20Permit.sol";
+import { ERC20Votes } from "@openzeppelin/token/ERC20/extensions/ERC20Votes.sol";
 
 /// @title MDX (Monadex) token.
 /// @author Monadex Labs -- Ola hamid.

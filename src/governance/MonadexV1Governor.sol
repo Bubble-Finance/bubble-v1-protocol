@@ -1,41 +1,19 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { IVotes } from
-    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
+import { IVotes } from "@openzeppelin/governance/extensions/GovernorVotes.sol";
 
-import { Governor } from "lib/openzeppelin-contracts/contracts/governance/Governor.sol";
+import { Governor } from "@openzeppelin/governance/Governor.sol";
 import { GovernorCountingSimple } from
-    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorCountingSimple.sol";
-import { GovernorSettings } from
-    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorSettings.sol";
+    "@openzeppelin/governance/extensions/GovernorCountingSimple.sol";
+import { GovernorSettings } from "@openzeppelin/governance/extensions/GovernorSettings.sol";
 import {
     GovernorTimelockControl,
     TimelockController
-} from "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorTimelockControl.sol";
-import { GovernorVotes } from
-    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotes.sol";
+} from "@openzeppelin/governance/extensions/GovernorTimelockControl.sol";
+import { GovernorVotes } from "@openzeppelin/governance/extensions/GovernorVotes.sol";
 import { GovernorVotesQuorumFraction } from
-    "lib/openzeppelin-contracts/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+    "@openzeppelin/governance/extensions/GovernorVotesQuorumFraction.sol";
 
 /// @title MonadexV1Governor.
 /// @author Monadex Labs -- Ola hamid.

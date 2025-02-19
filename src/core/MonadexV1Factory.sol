@@ -1,33 +1,14 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 
-import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
 
-import { MonadexV1Library } from "../library/MonadexV1Library.sol";
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
-import { MonadexV1Pool } from "./MonadexV1Pool.sol";
+import { MonadexV1Pool } from "@src/core/MonadexV1Pool.sol";
+import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Factory.
 /// @author Monadex Labs -- mgnfy-view.
@@ -346,7 +327,7 @@ contract MonadexV1Factory is Ownable, IMonadexV1Factory {
     {
         (_tokenA, _tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
 
-        bytes32 initCodeHash = keccak256(abi.encodePacked(type(MonadexV1Pool).creationCode));
+        bytes32 initCodeHash = keccak256(type(MonadexV1Pool).creationCode);
         address pool = address(
             uint160(
                 uint256(

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 interface IMonadexV1Callee {
     /// @notice Called once the contract receives the requested tokens.

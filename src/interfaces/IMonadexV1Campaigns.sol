@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 interface IMonadexV1Campaigns {
     function setMinimumTokenTotalSupply(uint256 _minimumTokenTotalSupply) external;

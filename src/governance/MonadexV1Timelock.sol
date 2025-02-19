@@ -1,27 +1,7 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { TimelockController } from
-    "lib/openzeppelin-contracts/contracts/governance/TimelockController.sol";
+import { TimelockController } from "@openzeppelin/governance/TimelockController.sol";
 
 /// @title MonadexV1Timelock.
 /// @author Monadex Labs -- Ola hamid.

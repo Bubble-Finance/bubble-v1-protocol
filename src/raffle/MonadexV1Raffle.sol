@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -14,10 +14,10 @@ import { EnumerableSet } from "@openzeppelin/utils/structs/EnumerableSet.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 
-import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
+import { IMonadexV1Raffle } from "@src/interfaces/IMonadexV1Raffle.sol";
 
-import { MonadexV1Library } from "../library/MonadexV1Library.sol";
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
+import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Raffle.
 /// @author Monadex Labs -- mgnfy-view.

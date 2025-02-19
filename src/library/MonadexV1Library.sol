@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
 
-import { MonadexV1Types } from "./MonadexV1Types.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Library.
 /// @author Monadex Labs -- mgnfy-view.

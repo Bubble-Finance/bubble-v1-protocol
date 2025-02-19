@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
 
 import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { Owned } from "@solmate/auth/Owned.sol";
 
-import { ILaunch } from "../interfaces/ILaunch.sol";
-import { IMonadexV1Campaigns } from "../interfaces/IMonadexV1Campaigns.sol";
-import { IMonadexV1Router } from "../interfaces/IMonadexV1Router.sol";
-import { IOwned } from "../interfaces/IOwned.sol";
-import { IWNative } from "../interfaces/IWNative.sol";
-
-import { MonadexV1Library } from "../library/MonadexV1Library.sol";
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
-import { ERC20Launchable } from "./ERC20Launchable.sol";
+import { ERC20Launchable } from "@src/campaigns/ERC20Launchable.sol";
+import { ILaunch } from "@src/interfaces/ILaunch.sol";
+import { IMonadexV1Campaigns } from "@src/interfaces/IMonadexV1Campaigns.sol";
+import { IMonadexV1Router } from "@src/interfaces/IMonadexV1Router.sol";
+import { IOwned } from "@src/interfaces/IOwned.sol";
+import { IWNative } from "@src/interfaces/IWNative.sol";
+import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Campaigns.
 /// @author Monadex Labs -- mgnfy-view.

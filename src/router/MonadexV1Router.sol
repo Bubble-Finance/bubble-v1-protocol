@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IERC20Permit } from
-    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
+import { IERC20Permit } from "@openzeppelin/token/ERC20/extensions/IERC20Permit.sol";
 
-import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
-import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
-import { IMonadexV1Raffle } from "../interfaces/IMonadexV1Raffle.sol";
-import { IMonadexV1Router } from "../interfaces/IMonadexV1Router.sol";
-import { IWNative } from "../interfaces/IWNative.sol";
+import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
+import { IMonadexV1Raffle } from "@src/interfaces/IMonadexV1Raffle.sol";
+import { IMonadexV1Router } from "@src/interfaces/IMonadexV1Router.sol";
+import { IWNative } from "@src/interfaces/IWNative.sol";
 
-import { MonadexV1Library } from "../library/MonadexV1Library.sol";
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
+import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Router.
 /// @author Monadex Labs -- mgnfy-view.
@@ -606,12 +605,14 @@ contract MonadexV1Router is IMonadexV1Router {
                 return (_amountADesired, amountBOptimal);
             } else {
                 uint256 amountAOptimal = MonadexV1Library.quote(_amountBDesired, reserveB, reserveA);
-                if (amountAOptimal <= _amountADesired) {
-                    if (amountAOptimal < _amountAMin) {
-                        revert MonadexV1Router__InsufficientAAmount(amountAOptimal, _amountADesired);
-                    }
-                    return (amountAOptimal, _amountBDesired);
+                if (amountAOptimal > _amountADesired) {
+                    revert MonadexV1Router__InsufficientAAmount(_amountADesired, amountAOptimal);
                 }
+                if (amountAOptimal < _amountAMin) {
+                    revert MonadexV1Router__InsufficientAAmount(amountAOptimal, _amountADesired);
+                }
+
+                return (amountAOptimal, _amountBDesired);
             }
         }
     }

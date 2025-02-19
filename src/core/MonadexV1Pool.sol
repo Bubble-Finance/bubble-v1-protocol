@@ -1,39 +1,18 @@
-// Layout:
-//     - pragma
-//     - imports
-//     - interfaces, libraries, contracts
-//     - type declarations
-//     - state variables
-//     - events
-//     - errors
-//     - modifiers
-//     - functions
-//         - constructor
-//         - receive function (if exists)
-//         - fallback function (if exists)
-//         - external
-//         - public
-//         - internal
-//         - private
-//         - view and pure functions
-
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
-import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from
-    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
 
+import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import { Math } from "@openzeppelin/utils/math/Math.sol";
 import { ERC20 } from "@solmate/tokens/ERC20.sol";
-import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Math } from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import { IMonadexV1Callee } from "../interfaces/IMonadexV1Callee.sol";
-import { IMonadexV1Factory } from "../interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "../interfaces/IMonadexV1Pool.sol";
-
-import { MonadexV1Library } from "../library/MonadexV1Library.sol";
-import { MonadexV1Types } from "../library/MonadexV1Types.sol";
+import { IMonadexV1Callee } from "@src/interfaces/IMonadexV1Callee.sol";
+import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
+import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
+import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
 /// @title MonadexV1Pool.
 /// @author Monadex Labs -- mgnfy-view.
@@ -49,6 +28,9 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
 
     /// @dev Minimum LP tokens minted to dead address to prevent inflation attacks.
     uint256 private constant MINIMUM_LIQUIDITY = 1_000;
+    /// @dev The LP token decimals.
+    uint8 private constant DECIMALS = 18;
+
     /// @dev Address of the factory that deployed this pool.
     address private immutable i_factory;
     /// @dev The first token in the pool.
@@ -68,9 +50,9 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// @dev The timestamp when the TWAP was last updated.
     uint32 private s_blockTimestampLast;
     /// @dev The TWAP of the first token in the pool.
-    uint256 public s_priceACumulativeLast;
+    uint256 private s_priceACumulativeLast;
     /// @dev The TWAP of the second token in the pool.
-    uint256 public s_priceBCumulativeLast;
+    uint256 private s_priceBCumulativeLast;
 
     //////////////
     /// Events ///
@@ -138,8 +120,8 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// Constructor ///
     ///////////////////
 
-    /// @notice Sets the factory address, and the LP token metadata.
-    constructor() ERC20("Monadex V1 LP Token", "MDXLP", 18) {
+    /// @notice Sets the factory address, and the temporary LP token metadata.
+    constructor() ERC20("", "", DECIMALS) {
         i_factory = msg.sender;
     }
 
@@ -148,12 +130,22 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     //////////////////////////
 
     /// @notice This function is called by the Monadex V1 factory right after pool deployment
-    /// to set the token addresses for this pool.
+    /// to set the token addresses for this pool, as well as the LP token name and symbol.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     function initialize(address _tokenA, address _tokenB) external onlyFactory {
         s_tokenA = _tokenA;
         s_tokenB = _tokenB;
+
+        name = string.concat(
+            "Monadex ",
+            IERC20Metadata(_tokenA).name(),
+            " ",
+            IERC20Metadata(_tokenB).name(),
+            " LP Token"
+        );
+        symbol =
+            string.concat("mdx", IERC20Metadata(_tokenA).symbol(), IERC20Metadata(_tokenB).symbol());
 
         emit Initialised(_tokenA, _tokenB);
     }
