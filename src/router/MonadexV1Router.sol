@@ -76,6 +76,8 @@ contract MonadexV1Router is IMonadexV1Router {
     /// External Functions ///
     //////////////////////////
 
+    receive() external payable { }
+
     /// @notice Allows supplying liquidity to Monadex pools with safety checks.
     /// @param _addLiquidityParams The parameters required to add liquidity.
     /// @return Amount of token A added.
