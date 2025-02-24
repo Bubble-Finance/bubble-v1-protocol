@@ -227,8 +227,8 @@ contract V1RaffleTest is Test, Deployer2{
         //2- calculate the total range of the deposited amount
         uint totalNFTRange = s_raffle.getNftsMintedEachEpoch(lastEpouch);
         uint epouchToRange = s_raffle.getEpochToRangeEndingPoint(lastEpouch);
-        uint distance = s_raffle.getDistance();
-        console.log("total distance", distance);
+        //uint distance = s_raffle.getDistance();
+        //console.log("total distance", distance);
         console.log("total NFT Range is", totalNFTRange);
         console.log("epouch to range is", epouchToRange);
         uint randomNumberLength = randomNumbers.length;
@@ -561,34 +561,34 @@ contract V1RaffleTest is Test, Deployer2{
         vm.stopPrank();
     }
     // note uncomment this out, set convertTousd function to public, for unit testing purposes.
-    function testConvertToUsd() public {
+    // function testConvertToUsd() public {
 
-        address getPyth = s_raffle.getPyth();
-        console.log("Pyth address in contract:", getPyth);
-        console.log("Mock address:", address(IpythMock));
-        require (getPyth == address(IpythMock), "Pyth address is not the same as the mock address");
-        bytes32 _USDCPriceFeedId =  0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
-        MonadexV1Types.PriceFeedConfig memory mockConfig2 = MonadexV1Types.PriceFeedConfig({
-            priceFeedId: _USDCPriceFeedId, // Dummy ID for usdc/usd
-            noOlderThan: 300 // 5 minutes
-        });
-        // using usdc of decimal 6
-        IpythMock.setPrice(_USDCPriceFeedId, 1000000, -6, 5000); // Price = 1 USD, Confidence = 0.005 USD
-        verifyPythMock();
-        PythStructs.Price memory storedPrice = IpythMock.getPrice(_USDCPriceFeedId);
-        console.log("Stored price:", int(storedPrice.price));
-        console.log("Stored expo:", int(storedPrice.expo));
+    //     address getPyth = s_raffle.getPyth();
+    //     console.log("Pyth address in contract:", getPyth);
+    //     console.log("Mock address:", address(IpythMock));
+    //     require (getPyth == address(IpythMock), "Pyth address is not the same as the mock address");
+    //     bytes32 _USDCPriceFeedId =  0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
+    //     MonadexV1Types.PriceFeedConfig memory mockConfig2 = MonadexV1Types.PriceFeedConfig({
+    //         priceFeedId: _USDCPriceFeedId, // Dummy ID for usdc/usd
+    //         noOlderThan: 300 // 5 minutes
+    //     });
+    //     // using usdc of decimal 6
+    //     IpythMock.setPrice(_USDCPriceFeedId, 1000000, -6, 5000); // Price = 1 USD, Confidence = 0.005 USD
+    //     verifyPythMock();
+    //     PythStructs.Price memory storedPrice = IpythMock.getPrice(_USDCPriceFeedId);
+    //     console.log("Stored price:", int(storedPrice.price));
+    //     console.log("Stored expo:", int(storedPrice.expo));
     
-        vm.startPrank(protocolTeamMultisig);
-        //s_raffle.setPyth(address(IpythMock));
-        s_raffle.supportToken(address(USDC), mockConfig2);
-        vm.stopPrank();
+    //     vm.startPrank(protocolTeamMultisig);
+    //     //s_raffle.setPyth(address(IpythMock));
+    //     s_raffle.supportToken(address(USDC), mockConfig2);
+    //     vm.stopPrank();
 
-        vm.startPrank(address(s_router));
-        uint256 Fifty_Dollars = 50 * (10 ** 6);
-        uint actualFifty = s_raffle._convertToUsd(address(USDC), Fifty_Dollars );
-        assertEq(actualFifty, Fifty_Dollars);
-    }
+    //     vm.startPrank(address(s_router));
+    //     uint256 Fifty_Dollars = 50 * (10 ** 6);
+    //     uint actualFifty = s_raffle._convertToUsd(address(USDC), Fifty_Dollars );
+    //     assertEq(actualFifty, Fifty_Dollars);
+    // }
     // Add this to your test contract
     function verifyPythMock() public view {
         bytes32 testId = 0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a;
