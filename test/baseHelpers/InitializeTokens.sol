@@ -40,6 +40,7 @@ contract InitializeTokens {
     TokenMock wETH = new TokenMock("wETH token", "wETH", 18); // Pegged to ETH
     TokenMock wBTC = new TokenMock("wBTC  token", "wBTC", 18); // Pegged to BTC
     TokenMock USDT = new TokenMock("USDT token", "USDT", 8); // a 8 decimals stable coin
+    TokenMock USDC = new TokenMock("USDC token", "USDC", 6); // a 8 decimals stable coin
     TokenMock DAI = new TokenMock("DAI token", "DAI", 18); // a 18 decimals stable coin
     TokenMock SHIB = new TokenMock("Shiba token", "SHIB", 18); //a 18 decimals shitty coin
     DangerousToken DANGER = new DangerousToken("Danger token", "DANGER", 18); // really risky token

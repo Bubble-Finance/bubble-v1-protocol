@@ -23,6 +23,10 @@ import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
 import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
+import {IPythMock} from "test/baseHelpers/IPythMock.sol";
+
+import {WNative} from "../utils/WNative.sol";
+import {TestVault} from "../utils/vault.sol";
 
 contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
@@ -57,6 +61,13 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     uint256 public constant PROTOCOL_NUMERATOR = 1;
     uint256 public constant PROTOCOL_DENOMINATOR = 5;
 
+    // campaign initializers
+    uint256 public constant  minimumTotalSupply = 1 ether; // 1 ether
+    uint256 public constant minimumVirtualReserve = 1 ether;
+    uint256 public constant minimumAmountToRaise = 1 ether;
+    uint16 public constant protocolFeeInBasisPoints = 200;
+    uint256 public constant tokenCreatorRewardinBasisPoints = 500;
+
     function initializeFactoryConstructorArgs() public {
         s_protocolFee = MonadexV1Types.Fraction({
             numerator: PROTOCOL_NUMERATOR,
@@ -87,6 +98,8 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
 
         s_initializePyth = new InitializePythV2();
 
+        //s_MockPyth = new IPythMock();
+
         // bytes[] memory updateData = s_initializePyth.createEthUpdate();
     }
 
@@ -98,11 +111,13 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
 
     address public s_entropyContract;
 
+    //IPythMock public s_MockPyth;
+
     MockEntropyContract mockEntropy;
 
     function initializeEntropy() public {
         mock = new MockEntropy(userRandomNumber);
-        mockEntropy = new MockEntropyContract(address(mock), address(mock));
+        // mockEntropy = new MockEntropyContract(address(mock), address(mock)); // not needed
 
         s_entropyContract = address(mock);
     }
@@ -134,6 +149,23 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
             s_winningPortions[count] = winningPortions[count];
         }
     }
+
+     // -------------------------------------------
+    //     ERC20Launchable Initialize
+    // -------------------------------------------
+    MonadexV1Types.Fraction s_fee = MonadexV1Types.Fraction({
+        numerator: 2, // 2% fee (200 basis points)
+        denominator: 100
+    });
+
+    uint256 s_minimumTokenTotalSupply = 1000_000;
+    uint256 s_minimumVirutalNativeReserve = 5 ether; //5e18
+    uint256 s_minimumNativeAmountToRaise = 5 ether; //10e18
+    // uint16 s_feeInBasisPoints = 200;
+    uint256 s_tokenProtocolMitrationFee = 100;
+    uint256 s_tokenCreatorReward = 1e17;
+    WNative s_WNative = new WNative();
+    TestVault s_TestVault = new TestVault();
 
     // -------------------------------------------
     //     Router Initialize

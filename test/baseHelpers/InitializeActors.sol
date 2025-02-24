@@ -66,6 +66,20 @@ contract InitializeActors is Test, InitializeTokens {
     address stacker3 = makeAddr("stacker3");
     address stacker4 = makeAddr("stacker4");
 
+      // creator: creator tokens
+    address public creator1 = makeAddr("team meme");
+    address public creator2 = makeAddr("creator3");
+    address public creator3 = makeAddr("creator3");
+    address public creator4 = makeAddr("creator4");
+    address public creator5 = makeAddr("creator5");
+
+       // funder: fund token
+    address public funder1 = makeAddr("funder1");
+    address public funder2 = makeAddr("funder2");
+    address public funder3 = makeAddr("funder3");
+    address public funder4 = makeAddr("funder4");
+    address public funder5 = makeAddr("funder5");
+
     // BlackHats: Malicious Actor
     address blackHat = makeAddr("blackHat");
 
