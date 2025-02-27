@@ -77,6 +77,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @dev Tracks the Nfts minted for a user in each epoch.
     mapping(address user => mapping(uint256 epoch => EnumerableSet.UintSet nfts)) private
         s_userNftsEachEpoch;
+    /// @dev Maps a tokenId to the epoch it belongs to.
+    mapping(uint256 tokenId => uint256 epoch) private s_tokenIdToEpoch;
     /// @dev The total number of Nfts minted in each epoch.
     mapping(uint256 epoch => uint256 nftsMinted) private s_nftsMintedEachEpoch;
     /// @dev The range associated with each raffle Nft entry. The larger the range, the greater
@@ -93,7 +95,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     mapping(
         uint256 tokenId
             => mapping(uint256 epoch => mapping(MonadexV1Types.Tiers tier => bool claimed))
-    ) private s_hasUserClaimedEpochTierWinnings;
+    ) private s_hasClaimedEpochTierWinnings;
     /// @dev The winning portions of the total collected amount in each tier.
     /// For example, the winning portions may be like:
     /// 55% of total collected amount for 1 winner in tier 1.
@@ -284,6 +286,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
 
         uint256 tokenId = ++s_nextTokenId;
         s_userNftsEachEpoch[_receiver][epoch].add(tokenId);
+        s_tokenIdToEpoch[tokenId] = epoch;
         s_nftsMintedEachEpoch[s_epoch]++;
         s_nftToRange[tokenId] = [currentRangeEndingPoint, currentRangeEndingPoint + distance];
         s_epochToEndingPoint[epoch] += distance;
@@ -323,12 +326,12 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Allows anyone to claim the raffle tier winnings for a given epoch on behalf of valid winners.
     /// @param _claim The claim details.
     function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external {
-        if (s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
+        if (s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
             revert MonadexV1Raffle__AlreadyClaimedTierWinnings(
                 _claim.tokenId, _claim.epoch, uint8(_claim.tier)
             );
         }
-        s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
+        s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
 
         address owner = ownerOf(_claim.tokenId);
         MonadexV1Types.Winnings[] memory winnings = getWinnings(_claim);
@@ -341,6 +344,20 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         }
 
         emit TierWinningsClaimed(_claim);
+    }
+
+    /// @notice Overriding the transferFrom function to update the mapping where the tokenId is tracked per user
+    /// per epoch.
+    /// @param _from The sender.
+    /// @param _to The recipient.
+    /// @param _tokenId The raffle Nft tokenId being transferred.
+    function transferFrom(address _from, address _to, uint256 _tokenId) public override {
+        super.transferFrom(_from, _to, _tokenId);
+
+        uint256 epoch = s_tokenIdToEpoch[_tokenId];
+
+        if (_from != address(0)) s_userNftsEachEpoch[_from][epoch].remove(_tokenId);
+        if (_to != address(0)) s_userNftsEachEpoch[_to][epoch].add(_tokenId);
     }
 
     //////////////////////////
@@ -414,10 +431,6 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         emit EpochEnded(epoch, _randomNumber);
     }
 
-    ///////////////////////////////
-    /// View and Pure Functions ///
-    ///////////////////////////////
-
     /// @notice Converts the supplied token amount to usd in 18 decimals denomination.
     /// @param _token The token address.
     /// @param _amount The amount of token supplied.
@@ -451,6 +464,10 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     function getEntropy() internal view override returns (address) {
         return i_entropy;
     }
+
+    ///////////////////////////////
+    /// View and Pure Functions ///
+    ///////////////////////////////
 
     /// @notice Gets the epoch duration for raffle.
     /// @return The epoch duration.
@@ -563,6 +580,13 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         return s_userNftsEachEpoch[_user][_epoch].values();
     }
 
+    /// @notice Gets the epoch that a tokenId belongs to.
+    /// @param _tokenId The raffle Nft tokenId.
+    /// @return The epoch number.
+    function getTokenIdEpoch(uint256 _tokenId) external view returns (uint256) {
+        return s_tokenIdToEpoch[_tokenId];
+    }
+
     /// @notice Gets the total number of raffl Nfts minted for a given epoch.
     /// @param _epoch The epoch number.
     /// @return The total number of raffl Nfts minted for a given epoch.
@@ -625,7 +649,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         view
         returns (bool)
     {
-        return s_hasUserClaimedEpochTierWinnings[_tokenId][_epoch][_tier];
+        return s_hasClaimedEpochTierWinnings[_tokenId][_epoch][_tier];
     }
 
     /// @notice Checks if a token is supported for raffle.
@@ -672,7 +696,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
             winnings[i].token = tokens[i];
         }
 
-        if (s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
+        if (s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
             return (winnings);
         }
 
