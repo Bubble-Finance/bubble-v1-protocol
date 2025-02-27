@@ -3,40 +3,31 @@ pragma solidity ^0.8.25;
 
 import { Script, console } from "forge-std/Script.sol";
 
-import { FactoryScriptBase } from "./utils/FactoryScriptBase.sol";
 import { RaffleScriptBase } from "./utils/RaffleScriptBase.sol";
 import { RouterScriptBase } from "./utils/RouterScriptBase.sol";
 import { Utils } from "./utils/Utils.sol";
 import { MonadexV1Factory } from "@src/core/MonadexV1Factory.sol";
-import { MonadexV1Pool } from "@src/core/MonadexV1Pool.sol";
+import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 import { MonadexV1Raffle } from "@src/raffle/MonadexV1Raffle.sol";
 import { MonadexV1Router } from "@src/router/MonadexV1Router.sol";
 
-/// @title DeployProtocolWithoutGovernance.
+/// @title SwapOutRaffleAndRouter.
 /// @author Monadex Labs -- mgnfy-view.
-/// @notice This contract allows you to deploy the Monadex V1 protocol with default config
-/// set for Monad testnet. It deploys the protocol components without attaching governance.
-contract DeployProtocolWithoutGovernance is
-    FactoryScriptBase,
-    RaffleScriptBase,
-    RouterScriptBase,
-    Utils,
-    Script
-{
+/// @notice Deploys raffle and router contracts.
+contract SwapOutRaffleAndRouter is RaffleScriptBase, RouterScriptBase, Utils, Script {
     MonadexV1Factory public s_factory;
     MonadexV1Raffle public s_raffle;
     MonadexV1Router public s_router;
 
     function setUp() public {
-        _initializeFactoryConstructorArgs();
-        _initializeRouterConstructorArgs();
+        s_factory = MonadexV1Factory(0xd829C1d3649dBc3fd96d3d22500eF33A46daae46);
+
         _initializeRaffleConstructorArgs();
+        _initializeRouterConstructorArgs();
     }
 
-    function run() public returns (MonadexV1Factory, MonadexV1Raffle, MonadexV1Router) {
+    function run() public returns (MonadexV1Raffle, MonadexV1Router) {
         vm.startBroadcast();
-        s_factory = new MonadexV1Factory(s_protocolTeamMultisig, s_protocolFee, s_feeTiers);
-
         s_raffle = new MonadexV1Raffle(
             s_pythPriceFeedContract,
             s_entropyContract,
@@ -53,9 +44,6 @@ contract DeployProtocolWithoutGovernance is
         s_raffle.supportToken(PEPE, s_priceFeedConfigs[2]);
         vm.stopBroadcast();
 
-        console.logString("Init code hash: ");
-        console.logBytes32(keccak256(abi.encode(type(MonadexV1Pool).creationCode)));
-
-        return (s_factory, s_raffle, s_router);
+        return (s_raffle, s_router);
     }
 }
