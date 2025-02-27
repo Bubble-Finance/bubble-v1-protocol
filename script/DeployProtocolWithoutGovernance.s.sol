@@ -42,7 +42,8 @@ contract DeployProtocolWithoutGovernance is
             s_entropyContract,
             s_entropyProvider,
             s_minimumNftsToBeMintedEachEpoch,
-            s_winningPortions
+            s_winningPortions,
+            s_uri
         );
 
         s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);

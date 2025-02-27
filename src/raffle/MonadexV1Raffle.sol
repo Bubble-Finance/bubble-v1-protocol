@@ -52,6 +52,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     string private constant SEED_3 = "Moyaki";
     /// @dev Seed 4 for generating another random number from the source random number.
     string private constant SEED_4 = "Mon-Turtle";
+    /// @dev The token Uri for all Nfts.
+    string private s_tokenUri;
     /// @dev The address of the `MonadexV1Router`.
     address private s_monadexV1Router;
     /// @dev This is the contract we query to get the price of each supported token in USD.
@@ -171,7 +173,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         address _entropy,
         address _entropyProvider,
         uint256 _minimumNftsToBeMintedEachEpoch,
-        MonadexV1Types.Fraction[TIERS] memory _winningPortions
+        MonadexV1Types.Fraction[TIERS] memory _winningPortions,
+        string memory _tokenUri
     )
         ERC721("Monadex V1 Raffle", "MDXR")
         Ownable(msg.sender)
@@ -186,6 +189,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         i_pyth = _pyth;
         i_entropy = _entropy;
         i_entropyProvider = _entropyProvider;
+        s_tokenUri = _tokenUri;
 
         s_epoch = 1;
         s_lastDrawTimestamp = block.timestamp;
@@ -293,6 +297,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         s_epochToTokenAmountsCollected[epoch][_tokenIn] += _amount;
 
         _safeMint(_receiver, tokenId);
+        // _setTokenURI()
 
         emit EnteredRaffle(_receiver, _tokenIn, _amount, tokenId, distance);
 
@@ -463,6 +468,12 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @return The entropy contract's address.
     function getEntropy() internal view override returns (address) {
         return i_entropy;
+    }
+
+    /// @notice Overriding the base URI function.
+    /// @return The uri string.
+    function _baseURI() internal view override returns (string memory) {
+        return s_tokenUri;
     }
 
     ///////////////////////////////

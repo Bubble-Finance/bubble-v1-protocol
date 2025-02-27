@@ -13,6 +13,7 @@ abstract contract RaffleScriptBase {
     address public s_entropyProvider;
     MonadexV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumNftsToBeMintedEachEpoch;
+    string public s_uri;
 
     function _initializeRaffleConstructorArgs() public {
         // placeholder values, change on each run
@@ -48,5 +49,7 @@ abstract contract RaffleScriptBase {
         }
 
         s_minimumNftsToBeMintedEachEpoch = 10;
+
+        s_uri = "https://placehold.co/400x400?text=RaffleNFT";
     }
 }
