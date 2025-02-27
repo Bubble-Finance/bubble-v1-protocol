@@ -153,6 +153,14 @@ contract MonadexV1Types {
         TIER3
     }
 
+    /// @notice Struct to return the amount of tokens a user has won in a raffle epoch.
+    struct Winnings {
+        /// @dev The token address.
+        address token;
+        /// @dev The token amount.
+        uint256 amount;
+    }
+
     /// @notice Raffle winnings claim struct to avoid stack too deep error.
     struct RaffleClaim {
         /// @dev The tier to claim winnings in.

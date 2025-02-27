@@ -95,7 +95,7 @@ interface IMonadexV1Raffle {
         returns (uint256[] memory);
 
     function hasUserClaimedTierWinningsForEpoch(
-        address _user,
+        uint256 _tokenId,
         uint256 _epoch,
         MonadexV1Types.Tiers _tier
     )
@@ -104,4 +104,13 @@ interface IMonadexV1Raffle {
         returns (bool);
 
     function isSupportedToken(address _token) external view returns (bool);
+
+    function getTimeRemainingUntilNextEpoch() external view returns (uint256);
+
+    function getWinnings(
+        MonadexV1Types.RaffleClaim memory _claim
+    )
+        external
+        view
+        returns (MonadexV1Types.Winnings[] memory);
 }

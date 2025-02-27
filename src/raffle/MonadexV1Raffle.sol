@@ -91,7 +91,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     mapping(uint256 epoch => uint256[] randomNumbers) private s_epochToRandomNumbers;
     /// @dev Tracks whether a user has claimed winnings from a tier in a given epoch. Prevents replays.
     mapping(
-        address user => mapping(uint256 epoch => mapping(MonadexV1Types.Tiers tier => bool claimed))
+        uint256 tokenId
+            => mapping(uint256 epoch => mapping(MonadexV1Types.Tiers tier => bool claimed))
     ) private s_hasUserClaimedEpochTierWinnings;
     /// @dev The winning portions of the total collected amount in each tier.
     /// For example, the winning portions may be like:
@@ -141,7 +142,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     );
     error MonadexV1Raffle__RandomNumberAlreadyRequested();
     error MonadexV1Raffle__InvalidTier();
-    error MonadexV1Raffle__AlreadyClaimedTierWinnings(address user, uint256 epoch, uint8 tier);
+    error MonadexV1Raffle__AlreadyClaimedTierWinnings(uint256 tokenId, uint256 epoch, uint8 tier);
     error MonadexV1Raffle__InvalidWinningPortions();
     error MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
@@ -322,45 +323,20 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Allows anyone to claim the raffle tier winnings for a given epoch on behalf of valid winners.
     /// @param _claim The claim details.
     function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external {
-        address owner = ownerOf(_claim.tokenId);
-
-        if (_claim.tier < MonadexV1Types.Tiers.TIER1 || _claim.tier > MonadexV1Types.Tiers.TIER3) {
-            revert MonadexV1Raffle__InvalidTier();
-        }
-        if (_claim.epoch == 0 || _claim.tokenId == 0) revert MonadexV1Raffle__AmountZero();
-        if (s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][_claim.tier]) {
+        if (s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
             revert MonadexV1Raffle__AlreadyClaimedTierWinnings(
-                owner, _claim.epoch, uint8(_claim.tier)
+                _claim.tokenId, _claim.epoch, uint8(_claim.tier)
             );
         }
+        s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
 
-        uint256 epochRangeEndingPoint = s_epochToEndingPoint[_claim.epoch];
-        uint256[] memory nftToRange = s_nftToRange[_claim.tokenId];
-        uint256[] memory epochToRandomNumbers = s_epochToRandomNumbers[_claim.epoch];
-
-        address[] memory tokens = s_supportedTokens.values();
-        uint256 length = tokens.length;
-        uint256[] memory tokenBalances = new uint256[](length);
+        address owner = ownerOf(_claim.tokenId);
+        MonadexV1Types.Winnings[] memory winnings = getWinnings(_claim);
+        uint256 length = winnings.length;
 
         for (uint256 i; i < length; ++i) {
-            tokenBalances[i] = s_epochToTokenAmountsCollected[_claim.epoch][tokens[i]];
-        }
-
-        (uint256 start, uint256 end) = _mapTierToRandomNumbersArrayIndices(_claim.tier);
-        MonadexV1Types.Fraction memory winningPortion =
-            s_winningPortions[uint8(MonadexV1Types.Tiers.TIER3)];
-
-        s_hasUserClaimedEpochTierWinnings[owner][_claim.epoch][_claim.tier] = true;
-
-        for (uint256 i = start; i < end; ++i) {
-            uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;
-            if (hitPoint >= nftToRange[0] && hitPoint < nftToRange[1]) {
-                for (uint256 j; j < length; ++j) {
-                    uint256 tokenBalance = tokenBalances[j];
-                    uint256 winningAmount =
-                        (tokenBalance * winningPortion.numerator) / winningPortion.denominator;
-                    if (winningAmount > 0) IERC20(tokens[j]).safeTransfer(owner, winningAmount);
-                }
+            if (winnings[i].amount > 0) {
+                IERC20(winnings[i].token).safeTransfer(owner, winnings[i].amount);
             }
         }
 
@@ -637,11 +613,11 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     }
 
     /// @notice Checks if a user has claimed winnings from a tier in a given epoch.
-    /// @param _user The user address.
+    /// @param _tokenId The user's raffle Nft tokenId.
     /// @param _epoch The epoch number.
     /// @param _tier The raffle tier.
     function hasUserClaimedTierWinningsForEpoch(
-        address _user,
+        uint256 _tokenId,
         uint256 _epoch,
         MonadexV1Types.Tiers _tier
     )
@@ -649,7 +625,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         view
         returns (bool)
     {
-        return s_hasUserClaimedEpochTierWinnings[_user][_epoch][_tier];
+        return s_hasUserClaimedEpochTierWinnings[_tokenId][_epoch][_tier];
     }
 
     /// @notice Checks if a token is supported for raffle.
@@ -657,5 +633,65 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @return A bool indicating whether a token is supported or not.
     function isSupportedToken(address _token) external view returns (bool) {
         return s_supportedTokens.contains(_token);
+    }
+
+    /// @notice Gets the time remaining until the next epoch.
+    /// @return The time remaining until the next epoch.
+    function getTimeRemainingUntilNextEpoch() external view returns (uint256) {
+        return EPOCH_DURATION - (block.timestamp - s_lastDrawTimestamp);
+    }
+
+    /// @notice Gets the winning amounts for a user for an epoch.
+    /// @param _claim The claim details.
+    /// @return The winning amounts for an epoch.
+    function getWinnings(
+        MonadexV1Types.RaffleClaim memory _claim
+    )
+        public
+        view
+        returns (MonadexV1Types.Winnings[] memory)
+    {
+        MonadexV1Types.Winnings[] memory winnings;
+
+        if (_claim.tier < MonadexV1Types.Tiers.TIER1 || _claim.tier > MonadexV1Types.Tiers.TIER3) {
+            revert MonadexV1Raffle__InvalidTier();
+        }
+        if (_claim.epoch == 0 || _claim.tokenId == 0) revert MonadexV1Raffle__AmountZero();
+
+        uint256 epochRangeEndingPoint = s_epochToEndingPoint[_claim.epoch];
+        uint256[] memory nftToRange = s_nftToRange[_claim.tokenId];
+        uint256[] memory epochToRandomNumbers = s_epochToRandomNumbers[_claim.epoch];
+
+        address[] memory tokens = s_supportedTokens.values();
+        uint256 length = tokens.length;
+        winnings = new MonadexV1Types.Winnings[](length);
+        uint256[] memory tokenBalances = new uint256[](length);
+
+        for (uint256 i; i < length; ++i) {
+            tokenBalances[i] = s_epochToTokenAmountsCollected[_claim.epoch][tokens[i]];
+            winnings[i].token = tokens[i];
+        }
+
+        if (s_hasUserClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
+            return (winnings);
+        }
+
+        (uint256 start, uint256 end) = _mapTierToRandomNumbersArrayIndices(_claim.tier);
+        MonadexV1Types.Fraction memory winningPortion =
+            s_winningPortions[uint8(MonadexV1Types.Tiers.TIER3)];
+
+        for (uint256 i = start; i < end; ++i) {
+            uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;
+            if (hitPoint >= nftToRange[0] && hitPoint < nftToRange[1]) {
+                for (uint256 j; j < length; ++j) {
+                    uint256 tokenBalance = tokenBalances[j];
+                    uint256 winningAmount =
+                        (tokenBalance * winningPortion.numerator) / winningPortion.denominator;
+                    if (winningAmount > 0) winnings[j].amount += winningAmount;
+                }
+            }
+        }
+
+        return (winnings);
     }
 }
