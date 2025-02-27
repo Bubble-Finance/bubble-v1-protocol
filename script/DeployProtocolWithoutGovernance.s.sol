@@ -73,6 +73,9 @@ contract DeployProtocolWithoutGovernance is Script {
         s_raffle.supportToken(PEPE, s_priceFeedConfigs[2]);
         vm.stopBroadcast();
 
+        console.logString("Init code hash: ");
+        console.logBytes32(keccak256(abi.encode(type(MonadexV1Pool).creationCode)));
+
         return (s_factory, s_raffle, s_router);
     }
 
