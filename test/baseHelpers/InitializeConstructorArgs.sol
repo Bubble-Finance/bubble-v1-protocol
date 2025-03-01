@@ -21,12 +21,13 @@ import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+
+import { IPythMock } from "test/baseHelpers/IPythMock.sol";
 import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
 import { MockEntropyContract } from "test/baseHelpers/MockEntropyContract.sol";
-import {IPythMock} from "test/baseHelpers/IPythMock.sol";
 
-import {WNative} from "../utils/WNative.sol";
-import {TestVault} from "../utils/vault.sol";
+import { WNative } from "../utils/WNative.sol";
+import { TestVault } from "../utils/vault.sol";
 
 contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
@@ -62,7 +63,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     uint256 public constant PROTOCOL_DENOMINATOR = 5;
 
     // campaign initializers
-    uint256 public constant  minimumTotalSupply = 1 ether; // 1 ether
+    uint256 public constant minimumTotalSupply = 1 ether; // 1 ether
     uint256 public constant minimumVirtualReserve = 1 ether;
     uint256 public constant minimumAmountToRaise = 1 ether;
     uint16 public constant protocolFeeInBasisPoints = 200;
@@ -132,6 +133,8 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     uint256 public constant WINNING_PORTTIONS_2 = 20;
     uint256 public constant WINNING_PORTTIONS_3 = 5;
 
+    string public s_uri = "https://placehold.co/400x400?text=RaffleNFT";
+
     function initializeRaffleConstructorArgs() public {
         MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
             priceFeedId: 0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6,
@@ -150,7 +153,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
         }
     }
 
-     // -------------------------------------------
+    // -------------------------------------------
     //     ERC20Launchable Initialize
     // -------------------------------------------
     MonadexV1Types.Fraction s_fee = MonadexV1Types.Fraction({

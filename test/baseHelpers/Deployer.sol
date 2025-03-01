@@ -85,7 +85,8 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
             s_entropyContract,
             s_entropyContract,
             s_minimumNftsToBeMintedEachEpoch,
-            s_winningPortions
+            s_winningPortions,
+            s_uri
         );
 
         // --------------------------------

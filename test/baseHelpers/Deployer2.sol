@@ -24,15 +24,16 @@ import { MDX } from "./../../src/governance/MDX.sol";
 import { MonadexV1Governor } from "./../../src/governance/MonadexV1Governor.sol";
 import { MonadexV1Timelock } from "./../../src/governance/MonadexV1Timelock.sol";
 
-import {MonadexV1Campaigns} from "../../src/campaigns/MonadexV1Campaigns.sol";
+import { MonadexV1Campaigns } from "../../src/campaigns/MonadexV1Campaigns.sol";
 
 // --------------------------------
 //    Helpers Contracts Imports
 // --------------------------------
 import { InitializeActors } from "./InitializeActors.sol";
+
+import { IPythMock } from "test/baseHelpers/IPythMock.sol";
 import { InitializeConstructorArgs } from "test/baseHelpers/InitializeConstructorArgs.sol";
 import { MockEntropy } from "test/baseHelpers/MockEntropy.sol";
-import {IPythMock} from "test/baseHelpers/IPythMock.sol";
 
 contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
     IPythMock IpythMock = new IPythMock();
@@ -52,7 +53,7 @@ contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
 
     MonadexV1Router s_router;
 
-    MonadexV1Campaigns  s_MonadexV1Campaigns;
+    MonadexV1Campaigns s_MonadexV1Campaigns;
 
     MockEntropy mock2; // provider and entropy;
     bytes32 userRandomNumber2 = 0x85f0ce7392d4ff75162f550c8a2679da7b3c39465d126ebae57b4bb126423d3a;
@@ -94,13 +95,13 @@ contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
 
         mock2 = new MockEntropy(userRandomNumber2);
 
-
         s_raffle = new MonadexV1Raffle(
             address(IpythMock),
             address(mock2),
             address(mock2),
             s_minimumNftsToBeMintedEachEpoch,
-            s_winningPortions
+            s_winningPortions,
+            s_uri
         );
         console2.log("s_MockPyth:", address(IpythMock));
 
@@ -116,10 +117,10 @@ contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
         // --------------------------------
 
         s_MonadexV1Campaigns = new MonadexV1Campaigns(
-            s_minimumTokenTotalSupply, 
-            s_minimumVirutalNativeReserve, 
-            s_minimumNativeAmountToRaise, 
-            s_fee, 
+            s_minimumTokenTotalSupply,
+            s_minimumVirutalNativeReserve,
+            s_minimumNativeAmountToRaise,
+            s_fee,
             s_tokenCreatorReward,
             s_tokenProtocolMitrationFee,
             address(s_router),
@@ -128,8 +129,4 @@ contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
         );
         vm.stopPrank();
     }
-
 }
-
-
-

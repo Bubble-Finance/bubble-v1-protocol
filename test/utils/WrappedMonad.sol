@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.24;
 
 // contract: 0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701
 
