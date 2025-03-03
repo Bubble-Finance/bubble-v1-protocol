@@ -276,12 +276,11 @@ library MonadexV1Library {
         return (_amount * _percentage.numerator) / _percentage.denominator;
     }
 
-    /// @notice Calculates the total amount of tickets to mint based on the token amount, the price
-    /// from Pyth price feed, and the ticket price.
-    /// @param _amount The amount used to purchase tickets.
+    /// @notice Calculates the total value of the token amount in usd.
+    /// @param _amount The token amount.
     /// @param _pythPrice The price struct obtained from Pyth.
     /// @param _targetDecimals The target decimals to put the price into.
-    /// @return The amount of tickets to mint.
+    /// @return The total value of the token amount in usd.
     function totalValueInUsd(
         uint256 _amount,
         PythStructs.Price memory _pythPrice,

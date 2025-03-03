@@ -102,7 +102,7 @@ contract MonadexV1Types {
         bytes32 s;
     }
 
-    /// @notice Allows removal of native currency liquidity from Monadex pools using a permit.
+    /// @notice Allows removal of native token liquidity from Monadex pools using a permit.
     /// Packing parameters in a struct to avoid stack too deep errors.
     struct RemoveLiquidityNativeWithPermit {
         /// @dev Address of token.
@@ -111,7 +111,7 @@ contract MonadexV1Types {
         uint256 lpTokensToBurn;
         /// @dev Minimum amount of token to withdraw from pool.
         uint256 amountTokenMin;
-        /// @dev Minimum amount of native currency to withdraw from pool.
+        /// @dev Minimum amount of native token to withdraw from pool.
         uint256 amountNativeMin;
         /// @dev The address to direct the withdrawn tokens to.
         address receiver;
@@ -194,7 +194,7 @@ contract MonadexV1Types {
         /// once the token is successfully listed on Monadex.
         uint256 tokenCreatorReward;
         /// @dev The fee taken by the protcol on each successful listing (in native
-        /// currency).
+        /// token).
         uint256 liquidityMigrationFee;
         /// @dev Tells if the token has completed its bonding curve or not.
         bool launched;

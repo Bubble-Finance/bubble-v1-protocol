@@ -38,12 +38,12 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @dev The reward in wrapped native token a token creator is eligible for once
     /// a token successfully completes its bonding curve.
     uint256 private s_tokenCreatorReward;
-    /// @dev The fee taken in native currency by the protocol once
+    /// @dev The fee taken in native token by the protocol once
     /// a token successfully completes its bonding curve.
     uint256 private s_liquidityMigrationFee;
     /// @dev The percentage fee taken by the protocol for each buy/sell amount.
     MonadexV1Types.Fraction private s_fee;
-    /// @dev The amount of native currency collected in fees by the protocol.
+    /// @dev The amount of native token collected in fees by the protocol.
     uint256 private s_feeCollected;
     /// @dev The address of the MonadexV1Router.
     address private immutable i_monadexV1Router;
@@ -119,7 +119,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _fee The percentage fee taken by the protocol for each buy/sell amount.
     /// @param _tokenCreatorReward The reward in wrapped native token a token creator is eligible for once
     /// a token successfully completes its bonding curve.
-    /// @param _liquidityMigrationFee The fee taken in native currency by the protocol once
+    /// @param _liquidityMigrationFee The fee taken in native token by the protocol once
     /// a token successfully completes its bonding curve.
     /// @param _monadexV1Router The address of the MonadexV1Router.
     /// @param _wNative The address of the wrapped native token.
@@ -243,9 +243,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         emit VaultSet(_vault);
     }
 
-    /// @notice Allows the owner to withdraw fees (in native currency) collected by the protocol.
+    /// @notice Allows the owner to withdraw fees (in native token) collected by the protocol.
     /// @param _to The address to which the fee amount is directed to.
-    /// @param _amount The amount of native currency to withdraw.
+    /// @param _amount The amount of native token to withdraw.
     function collectFees(address _to, uint256 _amount) external onlyOwner {
         if (_to == address(0)) revert MonadexV1Campaigns__AddressZero();
         if (_amount > s_feeCollected) {
@@ -436,10 +436,10 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         emit BondingCurveCompleted(_token);
     }
 
-    /// @notice Transfers native currency to the given user, and if it fails, transfers the wrapped native tokens
+    /// @notice Transfers native token to the given user, and if it fails, transfers the wrapped native tokens
     /// to the user.
-    /// @param _to The address to transfer the native currency/wrapped native tokens to.
-    /// @param _amount The amount of native currency/wrapped native tokens to transfer.
+    /// @param _to The address to transfer the native token/wrapped native tokens to.
+    /// @param _amount The amount of native token/wrapped native tokens to transfer.
     function _safeTransferNativeWithFallback(address _to, uint256 _amount) internal {
         (bool success,) = payable(_to).call{ value: _amount }("");
         if (!success) {
@@ -489,7 +489,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         return s_fee;
     }
 
-    /// @notice Gets the total fee collected by the protocol in native currency.
+    /// @notice Gets the total fee collected by the protocol in native token.
     /// @return The fee collected by the protocol.
     function getFeeCollected() external view returns (uint256) {
         return s_feeCollected;
@@ -556,9 +556,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
     /// @notice Gets the token amount the user will receive and fee to pay in the buy transaction.
     /// @param _token The token address.
-    /// @param _nativeAmount The native currency amount to use for buying tokens.
+    /// @param _nativeAmount The native token amount to use for buying tokens.
     /// @return The token amount to receive.
-    /// @return The fee to be paid in native currency.
+    /// @return The fee to be paid in native token.
     function previewBuy(
         address _token,
         uint256 _nativeAmount
@@ -583,7 +583,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _token The address of the token.
     /// @param _tokenAmount The amount of tokens to sell.
     /// @return The wrapped native amount to receive.
-    /// @return The fee to be paid in native currency.
+    /// @return The fee to be paid in native token.
     function previewSell(
         address _token,
         uint256 _tokenAmount
