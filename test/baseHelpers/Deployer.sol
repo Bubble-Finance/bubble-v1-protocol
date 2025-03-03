@@ -24,6 +24,9 @@ import { MDX } from "./../../src/governance/MDX.sol";
 import { MonadexV1Governor } from "./../../src/governance/MonadexV1Governor.sol";
 import { MonadexV1Timelock } from "./../../src/governance/MonadexV1Timelock.sol";
 
+// 6. FOT
+import { FeeOnTransferToken } from "@test/utils/FeeOnTransferTokenMock.sol";
+
 // --------------------------------
 //    Helpers Contracts Imports
 // --------------------------------
@@ -37,6 +40,7 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
     MDX s_mdx;
     MonadexV1Timelock s_timelock;
     MonadexV1Governor s_governor;
+    FeeOnTransferToken s_fotToken;
 
     // --------------------------------
     //    Main Contracts: Factory, Raffle, Router
@@ -97,5 +101,10 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         s_raffle.supportToken(s_wNative, s_priceFeedConfigs[0]);
 
         vm.stopPrank();
+
+        // -------------------------------------------
+        //     Fee on transfer Initialize
+        // -------------------------------------------
+        s_fotToken = new FeeOnTransferToken("Fee on transfer Token", "FOT", 1_000_000, 100, fot);
     }
 }

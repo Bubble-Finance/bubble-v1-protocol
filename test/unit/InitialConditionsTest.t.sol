@@ -41,7 +41,7 @@ import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
 
 contract InitialConditionsTest is Test, Deployer {
     function test_numberOfUsers() public view {
-        assertEq(actors.length, 25);
+        assertEq(actors.length, 26);
     }
 
     function test_usersERC20Funds() public view {

@@ -66,14 +66,14 @@ contract InitializeActors is Test, InitializeTokens {
     address stacker3 = makeAddr("stacker3");
     address stacker4 = makeAddr("stacker4");
 
-      // creator: creator tokens
+    // creator: creator tokens
     address public creator1 = makeAddr("team meme");
     address public creator2 = makeAddr("creator3");
     address public creator3 = makeAddr("creator3");
     address public creator4 = makeAddr("creator4");
     address public creator5 = makeAddr("creator5");
 
-       // funder: fund token
+    // funder: fund token
     address public funder1 = makeAddr("funder1");
     address public funder2 = makeAddr("funder2");
     address public funder3 = makeAddr("funder3");
@@ -82,6 +82,9 @@ contract InitializeActors is Test, InitializeTokens {
 
     // BlackHats: Malicious Actor
     address blackHat = makeAddr("blackHat");
+
+    // FOT: Fee on transfer contract owner
+    address fot = makeAddr("fot");
 
     address[] public actors;
 
@@ -111,6 +114,7 @@ contract InitializeActors is Test, InitializeTokens {
         actors.push(swapper11);
         actors.push(swapper12);
         actors.push(blackHat);
+        actors.push(fot);
     }
 
     function initializeBaseUsers() public {
