@@ -873,6 +873,10 @@ contract MonadexV1Router is IMonadexV1Router {
         }
     }
 
+    /// @notice A swap helper function to swap out the fee on transfer input token amount for output amount along
+    /// a specific swap path.
+    /// @param _path An array of token addresses which forms the swap path.
+    /// @param _receiver The address to direct the output token amount to.
     function _swapSupportingFeeOnTransferTokens(
         address[] memory _path,
         address _receiver
@@ -935,15 +939,22 @@ contract MonadexV1Router is IMonadexV1Router {
         if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
             uint256 amountForRaffle =
                 MonadexV1Library.calculateAmountAfterApplyingPercentage(_amounts[0], _fraction);
+            uint256 raffleBalanceBefore = IERC20(_path[0]).balanceOf(i_raffle);
             IERC20(_path[0]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
+            amountForRaffle = IERC20(_path[0]).balanceOf(i_raffle) - raffleBalanceBefore;
+
             nftId = IMonadexV1Raffle(i_raffle).enterRaffle(_path[0], amountForRaffle, _receiver);
         } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
             uint256 amountForRaffle = MonadexV1Library.calculateAmountAfterApplyingPercentage(
                 _amounts[_amounts.length - 1], _fraction
             );
+            uint256 raffleBalanceBefore = IERC20(_path[0]).balanceOf(i_raffle);
             IERC20(_path[_path.length - 1]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
+            amountForRaffle =
+                IERC20(_path[_path.length - 1]).balanceOf(i_raffle) - raffleBalanceBefore;
+
             nftId = IMonadexV1Raffle(i_raffle).enterRaffle(
-                _path[_path.length - 1], _amounts[_amounts.length - 1], _receiver
+                _path[_path.length - 1], amountForRaffle, _receiver
             );
         } else {
             revert MonadexV1Router__TokenNotSupportedByRaffle();

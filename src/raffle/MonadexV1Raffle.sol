@@ -336,11 +336,12 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
                 _claim.tokenId, _claim.epoch, uint8(_claim.tier)
             );
         }
-        s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
 
         address owner = ownerOf(_claim.tokenId);
         MonadexV1Types.Winnings[] memory winnings = getWinnings(_claim);
         uint256 length = winnings.length;
+
+        s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
 
         for (uint256 i; i < length; ++i) {
             if (winnings[i].amount > 0) {
@@ -712,8 +713,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         }
 
         (uint256 start, uint256 end) = _mapTierToRandomNumbersArrayIndices(_claim.tier);
-        MonadexV1Types.Fraction memory winningPortion =
-            s_winningPortions[uint8(MonadexV1Types.Tiers.TIER3)];
+        MonadexV1Types.Fraction memory winningPortion = s_winningPortions[uint8(_claim.tier)];
 
         for (uint256 i = start; i < end; ++i) {
             uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;
