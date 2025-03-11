@@ -948,7 +948,7 @@ contract MonadexV1Router is IMonadexV1Router {
             uint256 amountForRaffle = MonadexV1Library.calculateAmountAfterApplyingPercentage(
                 _amounts[_amounts.length - 1], _fraction
             );
-            uint256 raffleBalanceBefore = IERC20(_path[0]).balanceOf(i_raffle);
+            uint256 raffleBalanceBefore = IERC20(_path[_path.length - 1]).balanceOf(i_raffle);
             IERC20(_path[_path.length - 1]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
             amountForRaffle =
                 IERC20(_path[_path.length - 1]).balanceOf(i_raffle) - raffleBalanceBefore;
