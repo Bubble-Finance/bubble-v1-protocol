@@ -224,7 +224,6 @@ contract MonadexV1Router is IMonadexV1Router {
         uint256 _deadline
     )
         public
-        payable
         beforeDeadline(_deadline)
         returns (uint256)
     {
@@ -240,7 +239,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         IERC20(_token).safeTransfer(_receiver, IERC20(_token).balanceOf(address(this)));
         IWNative(payable(i_wNative)).withdraw(amountNative);
-        (bool success,) = payable(msg.sender).call{ value: msg.value - amountNative }("");
+        (bool success,) = payable(msg.sender).call{ value: amountNative }("");
         if (!success) revert MonadexV1Router__TransferFailed();
 
         return amountNative;
@@ -259,6 +258,7 @@ contract MonadexV1Router is IMonadexV1Router {
     /// @param _v The v part of the signature.
     /// @param _r The r part of the signature.
     /// @param _s The s part of the signature.
+    /// @return The amount of native token withdrawn.
     function removeLiquidityNativeWithPermitSupportingFeeOnTransferTokens(
         address _token,
         uint256 _lpTokensToBurn,
@@ -893,7 +893,7 @@ contract MonadexV1Router is IMonadexV1Router {
             {
                 (uint256 reserveA, uint256 reserveB) = pool.getReserves();
                 (uint256 reserveInput, uint256 reserveOutput) =
-                    inputToken == tokenA ? (reserveA, reserveB) : (reserveA, reserveB);
+                    inputToken == tokenA ? (reserveA, reserveB) : (reserveB, reserveA);
                 amountInputToken = IERC20(inputToken).balanceOf(address(pool)) - reserveInput;
                 amountOutputToken = MonadexV1Library.getAmountOut(
                     amountInputToken,

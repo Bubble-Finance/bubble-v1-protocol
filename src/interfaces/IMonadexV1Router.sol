@@ -29,6 +29,32 @@ interface IMonadexV1Router {
         external
         returns (uint256, uint256);
 
+    function removeLiquidityNativeSupportingFeeOnTransferTokens(
+        address _token,
+        uint256 _lpTokensToBurn,
+        uint256 _amountTokenMin,
+        uint256 _amountNativeMin,
+        address _receiver,
+        uint256 _deadline
+    )
+        external
+        returns (uint256);
+
+    function removeLiquidityNativeWithPermitSupportingFeeOnTransferTokens(
+        address _token,
+        uint256 _lpTokensToBurn,
+        uint256 _amountTokenMin,
+        uint256 _amountNativeMin,
+        address _receiver,
+        uint256 _deadline,
+        bool _approveMax,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    )
+        external
+        returns (uint256);
+
     function swapExactTokensForTokens(
         uint256 _amountIn,
         uint256 _amountOutMin,
@@ -94,6 +120,36 @@ interface IMonadexV1Router {
         external
         payable
         returns (uint256[] memory, uint256);
+
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.Raffle memory _raffle
+    )
+        external;
+
+    function swapExactNativeForTokensSupportingFeeOnTransferTokens(
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.Raffle memory _raffle
+    )
+        external
+        payable;
+
+    function swapExactTokensForNativeSupportingFeeOnTransferTokens(
+        uint256 _amountIn,
+        uint256 _amountOutMin,
+        address[] calldata _path,
+        address _receiver,
+        uint256 _deadline,
+        MonadexV1Types.Raffle memory _raffle
+    )
+        external;
 
     function removeLiquidity(
         address _tokenA,
