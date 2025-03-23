@@ -106,6 +106,6 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         //     Fee on transfer Initialize
         // -------------------------------------------
         vm.prank(fot);
-        s_fotToken = new FeeOnTransferToken("Fee on transfer Token", "FOT", 1_000_000, 100, fot);
+        s_fotToken = new FeeOnTransferToken("Fee on transfer Token", "FOT", 1_000_000, 300, fot);
     }
 }

@@ -77,7 +77,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
          * CHECKS:
          */
         assertEq(DAI.balanceOf(poolAddress), ADD_50K);
-        assertEq(s_fotToken.balanceOf(poolAddress), ADD_50K - 500e18);
+        assertEq(s_fotToken.balanceOf(poolAddress), ADD_50K - 1500e18);
         assert(ERC20(poolAddress).balanceOf(fot) != 0);
         assertEq(ERC20(poolAddress).balanceOf(fot), lpTokensMinted);
         assertEq(ERC20(poolAddress).balanceOf(address(1)), 1000);
@@ -87,21 +87,111 @@ contract RouterFeeOnTransfer is Test, Deployer {
         );
     }
 
+    function test_addLiquidityFOTDAI() public {
+        test_createFOTPoolAndAddLiquidityFOTDAI();
+        vm.startPrank(fot);
+        DAI.approve(address(s_router), 14e18);
+        s_fotToken.approve(address(s_router), 3e18);
+
+        // balances before:
+        address poolAddress = s_factory.getTokenPairToPool(address(DAI), address(s_fotToken));
+        console2.log("poolAddress: ", poolAddress);
+
+        uint256 poolBalanceBeforeDAI = DAI.balanceOf(poolAddress);
+        uint256 poolBalanceBeforeFOT = s_fotToken.balanceOf(poolAddress);
+        console2.log("poolBalanceBeforeDAI: ", poolBalanceBeforeDAI);
+        console2.log("poolBalanceBeforeFOT: ", poolBalanceBeforeFOT);
+
+        MonadexV1Types.AddLiquidity memory liquidityFot = MonadexV1Types.AddLiquidity({
+            tokenA: address(s_fotToken),
+            tokenB: address(DAI),
+            amountADesired: 3e18,
+            amountBDesired: 14e18,
+            amountAMin: 1,
+            amountBMin: 1,
+            receiver: fot,
+            deadline: block.timestamp
+        });
+
+        (uint256 amountA, uint256 amountB, uint256 lpTokensMinted) =
+            s_router.addLiquidity(liquidityFot);
+        vm.stopPrank();
+
+        /*
+         * CHECKS:
+         */
+        console2.log("poolBalanceDAI: ", DAI.balanceOf(poolAddress));
+        console2.log("poolBalanceFOT: ", s_fotToken.balanceOf(poolAddress));
+    }
+
     function test_removeLiquidityFOTDAI() public {
         test_createFOTPoolAndAddLiquidityFOTDAI();
+
         address poolAddress = s_factory.getTokenPairToPool(address(DAI), address(s_fotToken));
         uint256 lpTokensUserFot = ERC20(poolAddress).balanceOf(fot);
+
+        console2.log("User Balance DAI 1: ", DAI.balanceOf(fot));
+        console2.log("User Balance FOT 1: ", s_fotToken.balanceOf(fot));
+        console2.log("User Balance LP  1: ", lpTokensUserFot);
+        console2.log("");
+
+        // Remove liquidity:
+
         vm.startPrank(fot);
-        ERC20(poolAddress).approve(address(s_router), lpTokensUserFot);
+        ERC20(poolAddress).approve(address(s_router), lpTokensUserFot / 4);
         s_router.removeLiquidity(
             address(s_fotToken),
             address(DAI),
-            lpTokensUserFot,
+            lpTokensUserFot / 4,
             ADD_10K,
             ADD_10K,
             fot,
             block.timestamp
         );
+
+        console2.log("User Balance DAI 2: ", DAI.balanceOf(fot));
+        console2.log("User Balance FOT 2: ", s_fotToken.balanceOf(fot));
+        console2.log("User Balance LP  2: ", lpTokensUserFot);
+        console2.log("");
+
+        // add liquidity:
+        DAI.approve(address(s_router), 100e18);
+        s_fotToken.approve(address(s_router), 30e18);
+
+        uint256 poolBalanceBeforeDAI = DAI.balanceOf(poolAddress);
+        uint256 poolBalanceBeforeFOT = s_fotToken.balanceOf(poolAddress);
+
+        MonadexV1Types.AddLiquidity memory liquidityFot = MonadexV1Types.AddLiquidity({
+            tokenA: address(s_fotToken),
+            tokenB: address(DAI),
+            amountADesired: 3e18,
+            amountBDesired: 14e18,
+            amountAMin: 1,
+            amountBMin: 1,
+            receiver: fot,
+            deadline: block.timestamp
+        });
+
+        (uint256 amountA, uint256 amountB, uint256 lpTokensMinted) =
+            s_router.addLiquidity(liquidityFot);
+
+        console2.log("User Balance DAI 3: ", DAI.balanceOf(fot));
+        console2.log("User Balance FOT 3: ", s_fotToken.balanceOf(fot));
+        console2.log("User Balance LP  3: ", lpTokensUserFot);
+        console2.log("");
+
+        // Remove second liquidity:
+        lpTokensUserFot = ERC20(poolAddress).balanceOf(fot);
+        ERC20(poolAddress).approve(address(s_router), lpTokensUserFot);
+        s_router.removeLiquidity(
+            address(s_fotToken), address(DAI), lpTokensUserFot, 1, 1, fot, block.timestamp
+        );
+
+        console2.log("User Balance DAI 1: ", DAI.balanceOf(fot));
+        console2.log("User Balance FOT 1: ", s_fotToken.balanceOf(fot));
+        console2.log("User Balance LP  1: ", lpTokensUserFot);
+        console2.log("");
+
         vm.stopPrank();
     }
 
@@ -137,16 +227,34 @@ contract RouterFeeOnTransfer is Test, Deployer {
 
         // 5. swap
         vm.startPrank(fot);
-        s_fotToken.approve(address(s_router), ADD_10K);
         DAI.approve(address(s_router), ADD_10K);
         s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             ADD_10K, 1, path, fot, block.timestamp, raffleParameters
         );
-        vm.stopPrank();
 
         // 6. check the swap:
         console2.log("final balance user DAI: ", DAI.balanceOf(fot) / 1e18);
         console2.log("final balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18);
+
+        // 7. New swap, 100 DAI:
+        DAI.approve(address(s_router), 100e18);
+        s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            100e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("final balance user DAI: ", DAI.balanceOf(fot) / 1e18);
+        console2.log("final balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18);
+
+        // 8. New swap, 1 DAI:
+        DAI.approve(address(s_router), 1e18);
+        s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            1e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("final balance user DAI: ", DAI.balanceOf(fot) / 1e18);
+        console2.log("final balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18);
+
+        vm.stopPrank();
     }
 
     function test_swap10K_FOTForDAI() public {
@@ -192,11 +300,32 @@ contract RouterFeeOnTransfer is Test, Deployer {
         s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             ADD_10K, 1, path, fot, block.timestamp, raffleParameters
         );
-        vm.stopPrank();
 
         // 6. check the swap, not the formula yet @audit-note
-        console2.log("final balance user DAI: ", DAI.balanceOf(fot) / 1e18); // 990000e18
-        console2.log("final balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18); // 1001929e18
+        console2.log("after 10K balance user DAI: ", DAI.balanceOf(fot) / 1e18); // 990000e18
+        console2.log("after 10K balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18); // 1001929e18
+
+        // 7. New swapp 100 FOT
+        vm.startPrank(fot);
+        s_fotToken.approve(address(s_router), 100e18);
+        s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            100e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("after 100 balance user DAI: ", DAI.balanceOf(fot) / 1e18); // 990000e18
+        console2.log("after 100 balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18); // 1001929e18
+
+        // 7. New swapp 1 FOT
+        vm.startPrank(fot);
+        s_fotToken.approve(address(s_router), 1e18);
+        s_router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            1e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("after 1 balance user DAI: ", DAI.balanceOf(fot) / 1e18); // 990000e18
+        console2.log("after 1 balance user FOT: ", s_fotToken.balanceOf(fot) / 1e18); // 1001929e18
+
+        vm.stopPrank();
     }
 
     // ----------------------------------
@@ -226,7 +355,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
          * CHECKS
          */
         assertEq(wMonad.balanceOf(poolAddress), ADD_500K);
-        assertEq(s_fotToken.balanceOf(poolAddress), ADD_500K - 5000e18);
+        assertEq(s_fotToken.balanceOf(poolAddress), ADD_500K - 15000e18);
         assert(ERC20(poolAddress).balanceOf(fot) != 0);
         assertEq(ERC20(poolAddress).balanceOf(fot), lpTokensMinted);
         assertEq(ERC20(poolAddress).balanceOf(address(1)), 1000);
@@ -269,12 +398,31 @@ contract RouterFeeOnTransfer is Test, Deployer {
         s_router.swapExactNativeForTokensSupportingFeeOnTransferTokens{ value: ADD_100K }(
             1, path, swapper1, block.timestamp, raffleParameters
         );
-        vm.stopPrank();
 
         console2.log("***** USER BALANCES AFTER *****");
         console2.log("Native balance: ", fot.balance);
         console2.log("Fot balance: ", s_fotToken.balanceOf(fot));
         console2.log("");
+
+        s_router.swapExactNativeForTokensSupportingFeeOnTransferTokens{ value: 100e18 }(
+            1, path, swapper1, block.timestamp, raffleParameters
+        );
+
+        console2.log("***** USER BALANCES AFTER *****");
+        console2.log("Native balance: ", fot.balance);
+        console2.log("Fot balance: ", s_fotToken.balanceOf(fot));
+        console2.log("");
+
+        s_router.swapExactNativeForTokensSupportingFeeOnTransferTokens{ value: 1e18 }(
+            1, path, swapper1, block.timestamp, raffleParameters
+        );
+
+        console2.log("***** USER BALANCES AFTER *****");
+        console2.log("Native balance: ", fot.balance);
+        console2.log("Fot balance: ", s_fotToken.balanceOf(fot));
+        console2.log("");
+
+        vm.stopPrank();
     }
 
     function test_swapExactTokensForNativeSupportingFeeOnTransferTokens() public {
@@ -316,6 +464,27 @@ contract RouterFeeOnTransfer is Test, Deployer {
         console2.log("Native balance: ", fot.balance);
         console2.log("DAI balance: ", s_fotToken.balanceOf(fot));
         console2.log("");
+
+        s_fotToken.approve(address(s_router), 100e18);
+        s_router.swapExactTokensForNativeSupportingFeeOnTransferTokens(
+            100e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("***** USER BALANCES AFTER *****");
+        console2.log("Native balance: ", fot.balance);
+        console2.log("DAI balance: ", s_fotToken.balanceOf(fot));
+        console2.log("");
+
+        s_fotToken.approve(address(s_router), 1e18);
+        s_router.swapExactTokensForNativeSupportingFeeOnTransferTokens(
+            1e18, 1, path, fot, block.timestamp, raffleParameters
+        );
+
+        console2.log("***** USER BALANCES AFTER *****");
+        console2.log("Native balance: ", fot.balance);
+        console2.log("DAI balance: ", s_fotToken.balanceOf(fot));
+        console2.log("");
+
         vm.stopPrank();
     }
 
@@ -327,17 +496,18 @@ contract RouterFeeOnTransfer is Test, Deployer {
         console2.log("***** USER BALANCES BEFORE *****");
         console2.log("Native balance: ", fot.balance);
         console2.log("DAI balance: ", s_fotToken.balanceOf(fot));
+        console2.log("lpTokensUser: ", lpTokensUser);
+        console2.log("");
+
+        console2.log("***** POOL BALANCES BEFORE *****");
+        console2.log("Native balance: ", wMonad.balanceOf(poolAddress));
+        console2.log("DAI balance: ", s_fotToken.balanceOf(poolAddress));
+        console2.log("");
 
         vm.startPrank(fot);
         ERC20(poolAddress).approve(address(s_router), lpTokensUser);
-        s_router.removeLiquidity(
-            address(wMonad),
-            address(s_fotToken),
-            lpTokensUser,
-            ADD_50K / 8,
-            ADD_50K / 8,
-            LP1,
-            block.timestamp
+        s_router.removeLiquidityNativeSupportingFeeOnTransferTokens(
+            address(s_fotToken), lpTokensUser / 4, 1, 1, fot, block.timestamp
         );
         vm.stopPrank();
 

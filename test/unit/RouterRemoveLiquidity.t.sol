@@ -91,14 +91,8 @@ contract RouterRemoveLiquidity is Test, Deployer, RouterAddLiquidity {
 
         vm.startPrank(LP1);
         ERC20(poolAddress).approve(address(s_router), lpTokensUserLP1);
-        s_router.removeLiquidity(
-            address(wMonad),
-            address(DAI),
-            lpTokensUserLP1,
-            ADD_50K / 8,
-            ADD_50K / 8,
-            LP1,
-            block.timestamp
+        s_router.removeLiquidityNative(
+            address(DAI), lpTokensUserLP1, ADD_50K / 8, ADD_50K / 8, LP1, block.timestamp
         );
         vm.stopPrank();
     }
