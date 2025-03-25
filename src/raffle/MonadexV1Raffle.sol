@@ -114,6 +114,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         address indexed _token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
     );
     event TokenRemoved(address indexed token);
+    event RewardsBoosted(address indexed by, address indexed token, uint256 indexed amount);
     event EnteredRaffle(
         address indexed receiver,
         address indexed tokenIn,
@@ -264,6 +265,18 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         onlyOwner
     {
         _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
+    }
+
+    /// @notice Allows anyone to contribute tokens to the current raffle epoch.
+    /// @param _token The token to contribute.
+    /// @param _amount The amount of tokens to use for the boost.
+    function boostRewards(address _token, uint256 _amount) external {
+        if (!s_supportedTokens.contains(_token)) revert MonadexV1Raffle__TokenNotSupported(_token);
+
+        s_epochToTokenAmountsCollected[s_epoch][_token] += _amount;
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+
+        emit RewardsBoosted(msg.sender, _token, _amount);
     }
 
     /// @notice Allows users to enter the weekly raffle during a swap.

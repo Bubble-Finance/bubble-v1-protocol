@@ -18,6 +18,8 @@ interface IMonadexV1Raffle {
 
     function setMinimumNftsToBeMintedEachEpoch(uint256 _minimumNftsToBeMintedEachEpoch) external;
 
+    function boostRewards(address _token, uint256 _amount) external;
+
     function enterRaffle(
         address _token,
         uint256 _amount,
