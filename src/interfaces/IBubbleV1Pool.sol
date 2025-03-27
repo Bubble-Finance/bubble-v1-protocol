@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-interface IMonadexV1Pool {
+interface IBubbleV1Pool {
     function initialize(address _tokenA, address _tokenB) external;
 
     function addLiquidity(address _receiver) external returns (uint256);
 
     function removeLiquidity(address _receiver) external returns (uint256, uint256);
 
-    function swap(MonadexV1Types.SwapParams memory _swapParams) external;
+    function swap(BubbleV1Types.SwapParams memory _swapParams) external;
 
     function syncBalancesBasedOnReserves(address _receiver) external;
 
@@ -28,9 +28,9 @@ interface IMonadexV1Pool {
 
     function getProtocolTeamMultisig() external view returns (address);
 
-    function getProtocolFee() external view returns (MonadexV1Types.Fraction memory);
+    function getProtocolFee() external view returns (BubbleV1Types.Fraction memory);
 
-    function getPoolFee() external view returns (MonadexV1Types.Fraction memory);
+    function getPoolFee() external view returns (BubbleV1Types.Fraction memory);
 
     function getPoolTokens() external view returns (address, address);
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 /// @title Utils.
-/// @author Monadex Labs -- mgnfy-view.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice Provides general utility config.
 abstract contract Utils {
     address public constant USDC = 0xf817257fed379853cDe0fa4F97AB987181B1E5Ea;

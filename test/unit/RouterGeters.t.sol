@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 8
 //  This test check all the get functions of the Router contract.
 // ----------------------------------
@@ -30,15 +30,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -98,8 +98,8 @@ contract RouterGeters is Test, Deployer {
     // ----------------------------------
 
     function test_calculatePotentialAmountOut() public {
-        MonadexV1Types.Fraction memory _poolFee =
-            MonadexV1Types.Fraction({ numerator: 3, denominator: 1000 });
+        BubbleV1Types.Fraction memory _poolFee =
+            BubbleV1Types.Fraction({ numerator: 3, denominator: 1000 });
 
         vm.prank(LP1);
         uint256 amountOutFunction = s_router.getAmountOut(_amountA, _reserveA, _reserveB, _poolFee);

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-/// @title RouterScriptBase.
-/// @author Monadex Labs -- mgnfy-view.
-/// @notice Provides config for router deployment.
+/// @title CampaignsScriptBase.
+/// @author Bubble Finance -- mgnfy-view.
+/// @notice Provides config for campaigns deployment.
 abstract contract CampaignsScriptBase {
     uint256 public s_minimumTokenTotalSupply;
     uint256 public s_minimumVirutalNativeTokenReserve;
     uint256 public s_minimumNativeTokenAmountToRaise;
-    MonadexV1Types.Fraction public s_fee;
+    BubbleV1Types.Fraction public s_fee;
     uint256 public s_tokenCreatorReward;
     uint256 public s_liquidityMigrationFee;
     address public s_monadexV1Router;
@@ -23,7 +23,7 @@ abstract contract CampaignsScriptBase {
         s_minimumTokenTotalSupply = 1_000 ether;
         s_minimumVirutalNativeTokenReserve = 0.01 ether;
         s_minimumNativeTokenAmountToRaise = 0.1 ether;
-        s_fee = MonadexV1Types.Fraction({ numerator: 1, denominator: 10 });
+        s_fee = BubbleV1Types.Fraction({ numerator: 1, denominator: 10 });
         s_tokenCreatorReward = 0.01 ether;
         s_liquidityMigrationFee = 0.01 ether;
         s_monadexV1Router = address(1);

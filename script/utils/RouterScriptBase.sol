@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 /// @title RouterScriptBase.
-/// @author Monadex Labs -- mgnfy-view.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice Provides config for router deployment.
 abstract contract RouterScriptBase {
     address public s_wNative;

@@ -60,7 +60,7 @@ contract InitializeActors is Test, InitializeTokens {
     address swapper11 = makeAddr("swapper11");
     address swapper12 = makeAddr("swapper12");
 
-    // Staker: Potential staker of Monadex Token (jic)
+    // Staker: Potential staker of Bubble Token (jic)
     address stacker1 = makeAddr("stacker1");
     address stacker2 = makeAddr("stacker2");
     address stacker3 = makeAddr("stacker3");

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
+import { IBubbleV1Factory } from "@src/interfaces/IBubbleV1Factory.sol";
+import { IBubbleV1Pool } from "@src/interfaces/IBubbleV1Pool.sol";
 
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-/// @title MonadexV1Library.
-/// @author Monadex Labs -- mgnfy-view.
+/// @title BubbleV1Library.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice The library holds utility functions to be used by all other contracts in the protocol.
-library MonadexV1Library {
+library BubbleV1Library {
     /// @dev Constant used for TWAP oracle.
     uint224 internal constant Q112 = 2 ** 112;
     /// @dev The confidence should not exceed a certain percentage of the price (in this case, 10%).
@@ -22,12 +22,12 @@ library MonadexV1Library {
     /// Errors ///
     //////////////
 
-    error MonadexV1Library__ReservesZero();
-    error MonadexV1Library__InputAmountZero();
-    error MonadexV1Library__OutputAmountZero();
-    error MonadexV1Library__ZeroAmountIn();
-    error MonadexV1Library__InvalidSwapPath();
-    error MonadexV1Library__ExcessiveConfidence();
+    error BubbleV1Library__ReservesZero();
+    error BubbleV1Library__InputAmountZero();
+    error BubbleV1Library__OutputAmountZero();
+    error BubbleV1Library__ZeroAmountIn();
+    error BubbleV1Library__InvalidSwapPath();
+    error BubbleV1Library__ExcessiveConfidence();
 
     ///////////////////////////////
     /// View and Pure Functions ///
@@ -52,7 +52,7 @@ library MonadexV1Library {
 
     /// @notice Gets the pool address given the address of the factory and the
     /// tokens in the pair.
-    /// @param _factory The address of the `MonadexV1Factory`.
+    /// @param _factory The address of the `BubbleV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return Address of the pool.
@@ -65,11 +65,11 @@ library MonadexV1Library {
         view
         returns (address)
     {
-        return IMonadexV1Factory(_factory).getTokenPairToPool(_tokenA, _tokenB);
+        return IBubbleV1Factory(_factory).getTokenPairToPool(_tokenA, _tokenB);
     }
 
     /// @notice Gets the reserves of the pool of the given token pair.
-    /// @param _factory The address of the `MonadexV1Factory`.
+    /// @param _factory The address of the `BubbleV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return Reserve of the first token.
@@ -83,9 +83,9 @@ library MonadexV1Library {
         view
         returns (uint256, uint256)
     {
-        (address tokenA, address tokenB) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
-        (uint256 reserveA, uint256 reserveB) = IMonadexV1Pool(
-            IMonadexV1Factory(_factory).getTokenPairToPool(tokenA, tokenB)
+        (address tokenA, address tokenB) = BubbleV1Library.sortTokens(_tokenA, _tokenB);
+        (uint256 reserveA, uint256 reserveB) = IBubbleV1Pool(
+            IBubbleV1Factory(_factory).getTokenPairToPool(tokenA, tokenB)
         ).getReserves();
 
         if (_tokenA == tokenA) return (reserveA, reserveB);
@@ -93,7 +93,7 @@ library MonadexV1Library {
     }
 
     /// @notice Gets the pool fee given the address of the factory and the the token pair.
-    /// @param _factory The address of the `MonadexV1Factory`.
+    /// @param _factory The address of the `BubbleV1Factory`.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
     /// @return The fee struct, consisting of numerator and denominator fields.
@@ -104,9 +104,9 @@ library MonadexV1Library {
     )
         internal
         view
-        returns (MonadexV1Types.Fraction memory)
+        returns (BubbleV1Types.Fraction memory)
     {
-        return IMonadexV1Factory(_factory).getTokenPairToFee(_tokenA, _tokenB);
+        return IBubbleV1Factory(_factory).getTokenPairToFee(_tokenA, _tokenB);
     }
 
     /// @notice Gets the amount of token B based on the amount of token A and the token
@@ -124,8 +124,8 @@ library MonadexV1Library {
         pure
         returns (uint256)
     {
-        if (_amountA == 0) revert MonadexV1Library__ZeroAmountIn();
-        if (_reserveA == 0 || _reserveB == 0) revert MonadexV1Library__ReservesZero();
+        if (_amountA == 0) revert BubbleV1Library__ZeroAmountIn();
+        if (_reserveA == 0 || _reserveB == 0) revert BubbleV1Library__ReservesZero();
 
         return (_amountA * _reserveB) / _reserveA;
     }
@@ -141,14 +141,14 @@ library MonadexV1Library {
         uint256 _amountIn,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         internal
         pure
         returns (uint256)
     {
-        if (_amountIn == 0) revert MonadexV1Library__InputAmountZero();
-        if (_reserveIn == 0 && _reserveOut == 0) revert MonadexV1Library__ReservesZero();
+        if (_amountIn == 0) revert BubbleV1Library__InputAmountZero();
+        if (_reserveIn == 0 && _reserveOut == 0) revert BubbleV1Library__ReservesZero();
 
         uint256 amountInAfterFee = _amountIn * (_poolFee.denominator - _poolFee.numerator);
         uint256 numerator = amountInAfterFee * _reserveOut;
@@ -168,14 +168,14 @@ library MonadexV1Library {
         uint256 _amountOut,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         internal
         pure
         returns (uint256)
     {
-        if (_amountOut == 0) revert MonadexV1Library__OutputAmountZero();
-        if (_reserveIn == 0 && _reserveOut == 0) revert MonadexV1Library__ReservesZero();
+        if (_amountOut == 0) revert BubbleV1Library__OutputAmountZero();
+        if (_reserveIn == 0 && _reserveOut == 0) revert BubbleV1Library__ReservesZero();
 
         uint256 numerator = (_reserveIn * _amountOut * _poolFee.denominator);
         uint256 denominator = (_reserveOut - _amountOut) * _poolFee.numerator;
@@ -198,14 +198,14 @@ library MonadexV1Library {
         view
         returns (uint256[] memory)
     {
-        if (_path.length < 2) revert MonadexV1Library__InvalidSwapPath();
+        if (_path.length < 2) revert BubbleV1Library__InvalidSwapPath();
         uint256[] memory amounts = new uint256[](_path.length);
         amounts[0] = _amountIn;
 
         for (uint256 count = 0; count < _path.length - 1; ++count) {
             (uint256 reserveIn, uint256 reserveOut) =
                 getReserves(_factory, _path[count], _path[count + 1]);
-            MonadexV1Types.Fraction memory poolFee =
+            BubbleV1Types.Fraction memory poolFee =
                 getPoolFee(_factory, _path[count], _path[count + 1]);
             amounts[count + 1] = getAmountOut(amounts[count], reserveIn, reserveOut, poolFee);
         }
@@ -228,14 +228,14 @@ library MonadexV1Library {
         view
         returns (uint256[] memory)
     {
-        if (_path.length < 2) revert MonadexV1Library__InvalidSwapPath();
+        if (_path.length < 2) revert BubbleV1Library__InvalidSwapPath();
         uint256[] memory amounts = new uint256[](_path.length);
         amounts[amounts.length - 1] = _amountOut;
 
         for (uint256 count = _path.length - 1; count > 0; --count) {
             (uint256 reserveIn, uint256 reserveOut) =
                 getReserves(_factory, _path[count - 1], _path[count]);
-            MonadexV1Types.Fraction memory poolFee =
+            BubbleV1Types.Fraction memory poolFee =
                 getPoolFee(_factory, _path[count - 1], _path[count]);
             amounts[count - 1] = getAmountIn(amounts[count], reserveIn, reserveOut, poolFee);
         }
@@ -267,7 +267,7 @@ library MonadexV1Library {
     /// @return The amount of after applying the percentage.
     function calculateAmountAfterApplyingPercentage(
         uint256 _amount,
-        MonadexV1Types.Fraction memory _percentage
+        BubbleV1Types.Fraction memory _percentage
     )
         internal
         pure
@@ -295,7 +295,7 @@ library MonadexV1Library {
         uint256 confidence =
             _convertToUint(int64(_pythPrice.conf), _pythPrice.expo, _targetDecimals);
         if (confidence > (price * MAX_ALLOWED_CONFIDENCE_AS_PERCENTAGE_OF_PRICE_IN_BPS) / BPS) {
-            revert MonadexV1Library__ExcessiveConfidence();
+            revert BubbleV1Library__ExcessiveConfidence();
         }
 
         return (_amount * price) / (10 ** _decimals);

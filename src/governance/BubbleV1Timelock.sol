@@ -3,10 +3,10 @@ pragma solidity ^0.8.25;
 
 import { TimelockController } from "@openzeppelin/governance/TimelockController.sol";
 
-/// @title MonadexV1Timelock.
-/// @author Monadex Labs -- Ola hamid.
-/// @notice MonadexV1Timelock manages delayed execution of transactions.
-contract MonadexV1Timelock is TimelockController {
+/// @title BubbleV1Timelock.
+/// @author Bubble Finance -- Ola hamid.
+/// @notice BubbleV1Timelock manages delayed execution of transactions.
+contract BubbleV1Timelock is TimelockController {
     ///////////////////
     /// Constructor ///
     ///////////////////

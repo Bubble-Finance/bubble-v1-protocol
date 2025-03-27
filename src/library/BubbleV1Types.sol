@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-/// @title MonadexV1Types.
-/// @author Monadex Labs -- mgnfy-view.
+/// @title BubbleV1Types.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice All type declarations for the protocol are collected here for convenience.
-contract MonadexV1Types {
+contract BubbleV1Types {
     /// @notice A fraction struct to store fee percentages, etc.
     struct Fraction {
         /// @dev The fraction numerator.
@@ -23,7 +23,7 @@ contract MonadexV1Types {
     }
 
     /// @notice Packing parameters for swapping into a struct to avoid stack
-    /// too deep errors. To be used by the `MonadexV1Pool` contract.
+    /// too deep errors. To be used by the `BubbleV1Pool` contract.
     struct SwapParams {
         /// @dev The amount of token A to send to the receiver.
         uint256 amountAOut;
@@ -75,7 +75,7 @@ contract MonadexV1Types {
         uint256 deadline;
     }
 
-    /// @notice Allows removal of liquidity from Monadex pools using a permit signature.
+    /// @notice Allows removal of liquidity from Bubble pools using a permit signature.
     struct RemoveLiquidityWithPermit {
         /// @dev Address of token A.
         address tokenA;
@@ -102,7 +102,7 @@ contract MonadexV1Types {
         bytes32 s;
     }
 
-    /// @notice Allows removal of native token liquidity from Monadex pools using a permit.
+    /// @notice Allows removal of native token liquidity from Bubble pools using a permit.
     /// Packing parameters in a struct to avoid stack too deep errors.
     struct RemoveLiquidityNativeWithPermit {
         /// @dev Address of token.
@@ -171,7 +171,7 @@ contract MonadexV1Types {
         uint256 tokenId;
     }
 
-    /// @notice Details of a token launched on `MonadexV1Campaigns`.
+    /// @notice Details of a token launched on `BubbleV1Campaigns`.
     struct TokenDetails {
         /// @dev The token name.
         string name;
@@ -188,10 +188,10 @@ contract MonadexV1Types {
         /// price of a token.
         uint256 virtualNativeTokenReserve;
         /// @dev The target native token amount to reach before listing the token
-        /// on Monadex. This includes the initial virtual native token amount.
+        /// on Bubble. This includes the initial virtual native token amount.
         uint256 targetNativeTokenReserve;
         /// @dev The reward (in native wrapped token) to be given to the token creator
-        /// once the token is successfully listed on Monadex.
+        /// once the token is successfully listed on Bubble.
         uint256 tokenCreatorReward;
         /// @dev The fee taken by the protcol on each successful listing (in native
         /// token).

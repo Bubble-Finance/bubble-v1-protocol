@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Factory
+//  CONTRACT: BubbleV1Factory
 //  FUNCTIONS TESTED: 8
 //  This test check all the get functions of the Factory contract.
 // ----------------------------------
@@ -32,15 +32,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -55,15 +55,14 @@ contract FactoryGeters is Test, Deployer {
 
     function test_getProtocolFee() external {
         vm.prank(LP1);
-        MonadexV1Types.Fraction memory pFee = s_factory.getProtocolFee();
+        BubbleV1Types.Fraction memory pFee = s_factory.getProtocolFee();
         assertEq(pFee.numerator, 1);
         assertEq(pFee.denominator, 5);
     }
 
     function test_getTokenPairToFee() external {
         vm.prank(LP1);
-        MonadexV1Types.Fraction memory TPF =
-            s_factory.getTokenPairToFee(address(DAI), address(wETH));
+        BubbleV1Types.Fraction memory TPF = s_factory.getTokenPairToFee(address(DAI), address(wETH));
         assertEq(TPF.numerator, 3);
     }
 
@@ -71,20 +70,19 @@ contract FactoryGeters is Test, Deployer {
         vm.prank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 5);
         vm.prank(LP1);
-        MonadexV1Types.Fraction memory TPF =
-            s_factory.getTokenPairToFee(address(DAI), address(wETH));
+        BubbleV1Types.Fraction memory TPF = s_factory.getTokenPairToFee(address(DAI), address(wETH));
         assertEq(TPF.numerator, 5);
     }
 
     function test_getFeeForAllFeeTiers() external view {
-        MonadexV1Types.Fraction[5] memory AFT = s_factory.getFeeForAllFeeTiers();
-        MonadexV1Types.Fraction memory aft0 = AFT[0];
+        BubbleV1Types.Fraction[5] memory AFT = s_factory.getFeeForAllFeeTiers();
+        BubbleV1Types.Fraction memory aft0 = AFT[0];
         assertEq(aft0.numerator, 1);
         assertEq(aft0.denominator, 1000);
     }
 
     function test_getFeeForTier() external view {
-        MonadexV1Types.Fraction memory FFT = s_factory.getFeeForTier(5);
+        BubbleV1Types.Fraction memory FFT = s_factory.getFeeForTier(5);
         assertEq(FFT.numerator, 5);
     }
 

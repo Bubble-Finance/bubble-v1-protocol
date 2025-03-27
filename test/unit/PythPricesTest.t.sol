@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Factory
+//  CONTRACT: BubbleV1Factory
 //  FUNCTIONS TESTED: 6
 //  This test check all the sets and side features.
 // ----------------------------------
@@ -14,7 +14,7 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -22,8 +22,8 @@ import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
@@ -68,7 +68,7 @@ contract PythPricesTest is Test, Deployer {
         uint256 tokenDecimals = IERC20Metadata(address(DAI)).decimals();
         console2.log("tokenDecimals: ", tokenDecimals);
 
-        uint256 totalValueInUsd = MonadexV1Library.totalValueInUsd(amount, price, 6, tokenDecimals);
+        uint256 totalValueInUsd = BubbleV1Library.totalValueInUsd(amount, price, 6, tokenDecimals);
 
         console2.log("totalValueInUsd: ", totalValueInUsd / 1e6);
 
@@ -76,12 +76,12 @@ contract PythPricesTest is Test, Deployer {
     }
 
     /* function _convertToUsd(address _token, uint256 _amount) internal view returns (uint256) {
-        MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
+        BubbleV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
         PythStructs.Price memory price =
             s_pythPriceFeedContract.getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
         uint256 tokenDecimals = IERC20Metadata(_token).decimals();
         console2.log("tokenDecimals: ", tokenDecimals);
 
-        return MonadexV1Library.totalValueInUsd(_amount, price, 6, tokenDecimals);
+        return BubbleV1Library.totalValueInUsd(_amount, price, 6, tokenDecimals);
     } */
 }

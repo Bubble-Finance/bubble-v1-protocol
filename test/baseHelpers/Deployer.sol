@@ -4,25 +4,26 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 // 1. Libraries
-import { MonadexV1Types } from "./../../src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "./../../src/library/BubbleV1Types.sol";
 
 // 2. Factory
-import { MonadexV1Factory } from "./../../src/core/MonadexV1Factory.sol";
+import { BubbleV1Factory } from "./../../src/core/BubbleV1Factory.sol";
 
 // 3. Raffle
-import { MonadexV1Raffle } from "./../../src/raffle/MonadexV1Raffle.sol";
+import { BubbleV1Raffle } from "./../../src/raffle/BubbleV1Raffle.sol";
 
 // 4. Router
-import { MonadexV1Router } from "./../../src/router/MonadexV1Router.sol";
+import { BubbleV1Router } from "./../../src/router/BubbleV1Router.sol";
 
 // 5. Governor
-import { MDX } from "./../../src/governance/MDX.sol";
-import { MonadexV1Governor } from "./../../src/governance/MonadexV1Governor.sol";
-import { MonadexV1Timelock } from "./../../src/governance/MonadexV1Timelock.sol";
+
+import { BubbleGovernanceToken } from "./../../src/governance/BubbleGovernanceToken.sol";
+import { BubbleV1Governor } from "./../../src/governance/BubbleV1Governor.sol";
+import { BubbleV1Timelock } from "./../../src/governance/BubbleV1Timelock.sol";
 
 // 6. FOT
 import { FeeOnTransferToken } from "@test/utils/FeeOnTransferTokenMock.sol";
@@ -37,19 +38,19 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
     // --------------------------------
     //    Governor: Not developed yet
     // --------------------------------
-    MDX s_mdx;
-    MonadexV1Timelock s_timelock;
-    MonadexV1Governor s_governor;
+    BubbleGovernanceToken s_bubbleGovernanceToken;
+    BubbleV1Timelock s_timelock;
+    BubbleV1Governor s_governor;
     FeeOnTransferToken s_fotToken;
 
     // --------------------------------
     //    Main Contracts: Factory, Raffle, Router
     // --------------------------------
-    MonadexV1Factory s_factory;
+    BubbleV1Factory s_factory;
 
-    MonadexV1Raffle s_raffle;
+    BubbleV1Raffle s_raffle;
 
-    MonadexV1Router s_router;
+    BubbleV1Router s_router;
 
     function setUp() public {
         initializeBaseUsers();
@@ -63,10 +64,10 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         // --------------------------------
         //    Deploy Governor
         // --------------------------------
-        s_mdx = new MDX(protocolTeamMultisig, s_initialSupply);
-        s_timelock = new MonadexV1Timelock(s_minDelay, s_proposers, s_executors);
-        s_governor = new MonadexV1Governor(
-            s_mdx,
+        s_bubbleGovernanceToken = new BubbleGovernanceToken(protocolTeamMultisig, s_initialSupply);
+        s_timelock = new BubbleV1Timelock(s_minDelay, s_proposers, s_executors);
+        s_governor = new BubbleV1Governor(
+            s_bubbleGovernanceToken,
             s_timelock,
             s_initialVotingDelay,
             s_initialVotingPeriod,
@@ -78,13 +79,13 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         //    Deploy Factory
         // --------------------------------
 
-        s_factory = new MonadexV1Factory(protocolTeamMultisig, s_protocolFee, s_feeTiers);
+        s_factory = new BubbleV1Factory(protocolTeamMultisig, s_protocolFee, s_feeTiers);
 
         // --------------------------------
         //    Deploy Raffle
         // --------------------------------
 
-        s_raffle = new MonadexV1Raffle(
+        s_raffle = new BubbleV1Raffle(
             address(s_pythPriceFeedContract),
             s_entropyContract,
             s_entropyContract,
@@ -96,8 +97,8 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
         // --------------------------------
         //    Deploy Router
         // --------------------------------
-        s_router = new MonadexV1Router(address(s_factory), address(s_raffle), s_wNative);
-        s_raffle.initializeMonadexV1Router(address(s_router));
+        s_router = new BubbleV1Router(address(s_factory), address(s_raffle), s_wNative);
+        s_raffle.initializeBubbleV1Router(address(s_router));
         s_raffle.supportToken(s_wNative, s_priceFeedConfigs[0]);
 
         vm.stopPrank();

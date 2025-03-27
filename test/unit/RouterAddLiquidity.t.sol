@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 2
 //  This test check all the get functions of the Router contract.
 // ----------------------------------
@@ -24,15 +24,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -61,7 +61,7 @@ contract RouterAddLiquidity is Test, Deployer {
         DAI.approve(address(s_router), ADD_50K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(DAI),
             amountADesired: ADD_10K,
@@ -97,7 +97,7 @@ contract RouterAddLiquidity is Test, Deployer {
         USDT.approve(address(s_router), ADD_50K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(USDT),
             amountADesired: ADD_10K,
@@ -138,7 +138,7 @@ contract RouterAddLiquidity is Test, Deployer {
         DAI.approve(address(s_router), ADD_500K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP2 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP2 = BubbleV1Types.AddLiquidity({
             tokenA: address(DAI),
             tokenB: address(wBTC),
             amountADesired: ADD_500K,
@@ -172,7 +172,7 @@ contract RouterAddLiquidity is Test, Deployer {
         wBTC.approve(address(s_router), ADD_50K);
         DAI.approve(address(s_router), ADD_500K);
 
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(DAI),
             amountADesired: 0,
@@ -198,7 +198,7 @@ contract RouterAddLiquidity is Test, Deployer {
         wBTC.approve(address(s_router), 1);
         DAI.approve(address(s_router), ADD_500K);
 
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(DAI),
             amountADesired: 1,
@@ -228,7 +228,7 @@ contract RouterAddLiquidity is Test, Deployer {
         vm.startPrank(LP2);
         DAI.approve(address(s_router), ADD_50K);
 
-        MonadexV1Types.AddLiquidityNative memory nativeLP1 = MonadexV1Types.AddLiquidityNative({
+        BubbleV1Types.AddLiquidityNative memory nativeLP1 = BubbleV1Types.AddLiquidityNative({
             token: address(DAI),
             amountTokenDesired: ADD_50K,
             amountTokenMin: 1,
@@ -261,7 +261,7 @@ contract RouterAddLiquidity is Test, Deployer {
         vm.startPrank(LP2);
         DAI.approve(address(s_router), ADD_50K);
 
-        MonadexV1Types.AddLiquidityNative memory nativeLP1 = MonadexV1Types.AddLiquidityNative({
+        BubbleV1Types.AddLiquidityNative memory nativeLP1 = BubbleV1Types.AddLiquidityNative({
             token: address(DAI),
             amountTokenDesired: ADD_50K,
             amountTokenMin: 1,

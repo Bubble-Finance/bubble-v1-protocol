@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-interface IMonadexV1Raffle {
-    function initializeMonadexV1Router(address _monadexV1Router) external;
+interface IBubbleV1Raffle {
+    function initializeBubbleV1Router(address _monadexV1Router) external;
 
     function supportToken(
         address _token,
-        MonadexV1Types.PriceFeedConfig memory _priceFeedConfig
+        BubbleV1Types.PriceFeedConfig memory _priceFeedConfig
     )
         external;
 
     function removeToken(address _token) external;
 
-    function setWinningPortions(MonadexV1Types.Fraction[3] memory _winningPortions) external;
+    function setWinningPortions(BubbleV1Types.Fraction[3] memory _winningPortions) external;
 
     function setMinimumNftsToBeMintedEachEpoch(uint256 _minimumNftsToBeMintedEachEpoch) external;
 
@@ -30,7 +30,7 @@ interface IMonadexV1Raffle {
 
     function requestRandomNumber(bytes32 _userRandomNumber) external payable;
 
-    function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external;
+    function claimTierWinnings(BubbleV1Types.RaffleClaim memory _claim) external;
 
     function getEpochDuration() external pure returns (uint256);
 
@@ -42,7 +42,7 @@ interface IMonadexV1Raffle {
 
     function getWinnersInTier3() external pure returns (uint256);
 
-    function getMonadexV1Router() external view returns (address);
+    function getBubbleV1Router() external view returns (address);
 
     function getPyth() external view returns (address);
 
@@ -57,7 +57,7 @@ interface IMonadexV1Raffle {
     )
         external
         view
-        returns (MonadexV1Types.PriceFeedConfig memory);
+        returns (BubbleV1Types.PriceFeedConfig memory);
 
     function getCurrentEpoch() external view returns (uint256);
 
@@ -99,7 +99,7 @@ interface IMonadexV1Raffle {
     function hasUserClaimedTierWinningsForEpoch(
         uint256 _tokenId,
         uint256 _epoch,
-        MonadexV1Types.Tiers _tier
+        BubbleV1Types.Tiers _tier
     )
         external
         view
@@ -110,9 +110,9 @@ interface IMonadexV1Raffle {
     function getTimeRemainingUntilNextEpoch() external view returns (uint256);
 
     function getWinnings(
-        MonadexV1Types.RaffleClaim memory _claim
+        BubbleV1Types.RaffleClaim memory _claim
     )
         external
         view
-        returns (MonadexV1Types.Winnings[] memory);
+        returns (BubbleV1Types.Winnings[] memory);
 }

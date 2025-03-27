@@ -6,10 +6,10 @@ import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
 import { ERC20Permit, Nonces } from "@openzeppelin/token/ERC20/extensions/ERC20Permit.sol";
 import { ERC20Votes } from "@openzeppelin/token/ERC20/extensions/ERC20Votes.sol";
 
-/// @title MDX (Monadex) token.
-/// @author Monadex Labs -- Ola hamid.
-/// @notice MDX is the governance and utility token of Monadex.
-contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
+/// @title Bubble token.
+/// @author Bubble Finance -- Ola hamid.
+/// @notice Bubble is the governance and utility token of Bubble protocol.
+contract BubbleGovernanceToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     ///////////////////
     /// Constructor ///
     ///////////////////
@@ -23,9 +23,9 @@ contract MDX is ERC20, ERC20Permit, ERC20Votes, Ownable {
         address _owner,
         uint256 _initialSupply
     )
-        ERC20("Monadex", "MDX")
+        ERC20("Bubble", "BUBBLE")
         Ownable(_owner)
-        ERC20Permit("Monadex")
+        ERC20Permit("Bubble")
     {
         _mint(_owner, _initialSupply);
     }

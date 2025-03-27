@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Raffle
+//  CONTRACT: BubbleV1Raffle
 //  FUNCTIONS TESTED: 7
 // ----------------------------------
 
 // ----------------------------------
 //  TEST:
-//  1. initializeMonadexV1Router()
+//  1. initializeBubbleV1Router()
 //  2. supportToken()
 //  3. removeToken()
 //  4. setWinningPortions()
@@ -25,7 +25,7 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
@@ -33,8 +33,8 @@ import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 import { RaffleSetInitialSwaps } from "test/unit/RaffleSetInitialSwaps.t.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
@@ -44,16 +44,16 @@ import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 contract RaffleRunTheRaffle is Test, Deployer, RaffleSetInitialSwaps {
     // --------------------------------
-    //    initializeMonadexV1Router()
+    //    initializeBubbleV1Router()
     // --------------------------------
     function testFail_changingTheRouterAddress() public {
         // Router address is set during the deploy:
-        address routerAddress = s_raffle.getMonadexV1Router();
+        address routerAddress = s_raffle.getBubbleV1Router();
         assertEq(routerAddress, address(s_router));
 
         // We can not change it after the deploy!
         vm.prank(protocolTeamMultisig);
-        s_raffle.initializeMonadexV1Router(address(s_factory));
+        s_raffle.initializeBubbleV1Router(address(s_factory));
     }
 
     // --------------------------------
@@ -61,12 +61,12 @@ contract RaffleRunTheRaffle is Test, Deployer, RaffleSetInitialSwaps {
     // --------------------------------
     function test_supportTokenGetSupported() public {
         vm.startPrank(protocolTeamMultisig);
-        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
-            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        BubbleV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
         ];
 
         s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
@@ -140,8 +140,8 @@ contract RaffleRunTheRaffle is Test, Deployer, RaffleSetInitialSwaps {
         vm.startPrank(swapper10);
         console2.log("swapper10", swapper10);
 
-        MonadexV1Types.RaffleClaim memory _claim = MonadexV1Types.RaffleClaim({
-            tier: MonadexV1Types.Tiers.TIER1,
+        BubbleV1Types.RaffleClaim memory _claim = BubbleV1Types.RaffleClaim({
+            tier: BubbleV1Types.Tiers.TIER1,
             epoch: epochToClaim,
             tokenId: 10
         });

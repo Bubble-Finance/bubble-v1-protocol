@@ -6,18 +6,18 @@ pragma solidity ^0.8.24;
 // ----------------------------
 
 contract TestVault {
+    error BubbleAddrNotADepositor();
 
-    error MonadexAddrNotADepositor();
-    uint public s_Amount;
-    mapping (address depositor => uint amount) public s_Deposit;
+    uint256 public s_Amount;
+    mapping(address depositor => uint256 amount) public s_Deposit;
 
-    function depositFunds( uint amount ) public {
+    function depositFunds(uint256 amount) public {
         s_Deposit[msg.sender] += amount;
     }
 
-    function withDrawFunds (uint amount) public {
+    function withDrawFunds(uint256 amount) public {
         if (s_Deposit[msg.sender] == 0) {
-            revert MonadexAddrNotADepositor();
+            revert BubbleAddrNotADepositor();
         }
         s_Deposit[msg.sender] -= amount;
     }

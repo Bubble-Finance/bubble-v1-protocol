@@ -6,29 +6,29 @@ import { IERC20Permit } from "@openzeppelin/token/ERC20/extensions/IERC20Permit.
 
 import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 
-import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
-import { IMonadexV1Raffle } from "@src/interfaces/IMonadexV1Raffle.sol";
-import { IMonadexV1Router } from "@src/interfaces/IMonadexV1Router.sol";
+import { IBubbleV1Factory } from "@src/interfaces/IBubbleV1Factory.sol";
+import { IBubbleV1Pool } from "@src/interfaces/IBubbleV1Pool.sol";
+import { IBubbleV1Raffle } from "@src/interfaces/IBubbleV1Raffle.sol";
+import { IBubbleV1Router } from "@src/interfaces/IBubbleV1Router.sol";
 import { IWNative } from "@src/interfaces/IWNative.sol";
 
-import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "@src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-/// @title MonadexV1Router.
-/// @author Monadex Labs -- mgnfy-view.
-/// @notice The router contract acts as an entrypoint to interact with Monadex pools.
+/// @title BubbleV1Router.
+/// @author Bubble Finance -- mgnfy-view.
+/// @notice The router contract acts as an entrypoint to interact with Bubble pools.
 /// It performs essential safety checks, and is also the only way to enter the weekly raffle.
-contract MonadexV1Router is IMonadexV1Router {
+contract BubbleV1Router is IBubbleV1Router {
     using SafeERC20 for IERC20;
 
     ///////////////////////
     /// State Variables ///
     ///////////////////////
 
-    /// @dev Address of `MonadexV1Factory`.
+    /// @dev Address of `BubbleV1Factory`.
     address private immutable i_factory;
-    /// @dev Address of `MonadexV1Raffle`.
+    /// @dev Address of `BubbleV1Raffle`.
     address private immutable i_raffle;
     /// @dev Address of the wrapped native token.
     address private immutable i_wNative;
@@ -37,15 +37,15 @@ contract MonadexV1Router is IMonadexV1Router {
     /// Errors ///
     //////////////
 
-    error MonadexV1Router__DeadlinePasssed(uint256 givenDeadline, uint256 currentTimestamp);
-    error MonadexV1Router__TransferFailed();
-    error MonadexV1Router__PermitFailed();
-    error MonadexV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
-    error MonadexV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
-    error MonadexV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
-    error MonadexV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
-    error MonadexV1Router__InvalidPath();
-    error MonadexV1Router__TokenNotSupportedByRaffle();
+    error BubbleV1Router__DeadlinePasssed(uint256 givenDeadline, uint256 currentTimestamp);
+    error BubbleV1Router__TransferFailed();
+    error BubbleV1Router__PermitFailed();
+    error BubbleV1Router__InsufficientAAmount(uint256 amountA, uint256 amountAMin);
+    error BubbleV1Router__InsufficientBAmount(uint256 amountB, uint256 amountBMin);
+    error BubbleV1Router__InsufficientOutputAmount(uint256 amountOut, uint256 amountOutMin);
+    error BubbleV1Router__ExcessiveInputAmount(uint256 amountIn, uint256 amountInMax);
+    error BubbleV1Router__InvalidPath();
+    error BubbleV1Router__TokenNotSupportedByRaffle();
 
     /////////////////
     /// Modifiers ///
@@ -53,7 +53,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
     modifier beforeDeadline(uint256 _deadline) {
         if (_deadline < block.timestamp) {
-            revert MonadexV1Router__DeadlinePasssed(_deadline, block.timestamp);
+            revert BubbleV1Router__DeadlinePasssed(_deadline, block.timestamp);
         }
         _;
     }
@@ -63,8 +63,8 @@ contract MonadexV1Router is IMonadexV1Router {
     ///////////////////
 
     /// @notice Initializes the factory, raffle and wrapped native token addresses.
-    /// @param _factory The `MonadexV1Factory` address.
-    /// @param _raffle The `MonadexV1Raffle` address.
+    /// @param _factory The `BubbleV1Factory` address.
+    /// @param _raffle The `BubbleV1Raffle` address.
     /// @param _wNative The address of the wrapped native token.
     constructor(address _factory, address _raffle, address _wNative) {
         i_factory = _factory;
@@ -78,12 +78,14 @@ contract MonadexV1Router is IMonadexV1Router {
 
     receive() external payable { }
 
-    /// @notice Allows supplying liquidity to Monadex pools with safety checks.
+    /// @notice Allows supplying liquidity to Bubble pools with safety checks.
     /// @param _addLiquidityParams The parameters required to add liquidity.
     /// @return Amount of token A added.
     /// @return Amount of token B added.
     /// @return Amount of LP tokens received.
-    function addLiquidity(MonadexV1Types.AddLiquidity calldata _addLiquidityParams)
+    function addLiquidity(
+        BubbleV1Types.AddLiquidity calldata _addLiquidityParams
+    )
         external
         beforeDeadline(_addLiquidityParams.deadline)
         returns (uint256, uint256, uint256)
@@ -96,23 +98,23 @@ contract MonadexV1Router is IMonadexV1Router {
             _addLiquidityParams.amountAMin,
             _addLiquidityParams.amountBMin
         );
-        address pool = MonadexV1Library.getPool(
+        address pool = BubbleV1Library.getPool(
             i_factory, _addLiquidityParams.tokenA, _addLiquidityParams.tokenB
         );
         IERC20(_addLiquidityParams.tokenA).safeTransferFrom(msg.sender, pool, amountA);
         IERC20(_addLiquidityParams.tokenB).safeTransferFrom(msg.sender, pool, amountB);
-        uint256 lpTokensMinted = IMonadexV1Pool(pool).addLiquidity(_addLiquidityParams.receiver);
+        uint256 lpTokensMinted = IBubbleV1Pool(pool).addLiquidity(_addLiquidityParams.receiver);
 
         return (amountA, amountB, lpTokensMinted);
     }
 
-    /// @notice Allows supplying native token as liquidity to Monadex pools with safety checks.
+    /// @notice Allows supplying native token as liquidity to Bubble pools with safety checks.
     /// @param _addLiquidityNativeParams The parameters required to add liquidity in native token.
     /// @return Amount of token added.
     /// @return Amount of native token added.
     /// @return Amount of LP tokens received.
     function addLiquidityNative(
-        MonadexV1Types.AddLiquidityNative calldata _addLiquidityNativeParams
+        BubbleV1Types.AddLiquidityNative calldata _addLiquidityNativeParams
     )
         external
         payable
@@ -128,37 +130,39 @@ contract MonadexV1Router is IMonadexV1Router {
             _addLiquidityNativeParams.amountNativeTokenMin
         );
         address pool =
-            MonadexV1Library.getPool(i_factory, _addLiquidityNativeParams.token, i_wNative);
+            BubbleV1Library.getPool(i_factory, _addLiquidityNativeParams.token, i_wNative);
         IERC20(_addLiquidityNativeParams.token).safeTransferFrom(msg.sender, pool, amountToken);
         IWNative(payable(i_wNative)).deposit{ value: amountNative }();
         IERC20(i_wNative).safeTransfer(pool, amountNative);
         uint256 lpTokensMinted =
-            IMonadexV1Pool(pool).addLiquidity(_addLiquidityNativeParams.receiver);
+            IBubbleV1Pool(pool).addLiquidity(_addLiquidityNativeParams.receiver);
         if (msg.value > amountNative) {
             (bool success,) = payable(msg.sender).call{ value: msg.value - amountNative }("");
-            if (!success) revert MonadexV1Router__TransferFailed();
+            if (!success) revert BubbleV1Router__TransferFailed();
         }
 
         return (amountToken, amountNative, lpTokensMinted);
     }
 
-    /// @notice Allows removal of liquidity from Monadex pools using a permit.
+    /// @notice Allows removal of liquidity from Bubble pools using a permit.
     /// @param _params The liquidity removal params.
     /// @return Amount of token A withdrawn.
     /// @return Amount of token B withdrawn.
-    function removeLiquidityWithPermit(MonadexV1Types.RemoveLiquidityWithPermit calldata _params)
+    function removeLiquidityWithPermit(
+        BubbleV1Types.RemoveLiquidityWithPermit calldata _params
+    )
         external
         beforeDeadline(_params.deadline)
         returns (uint256, uint256)
     {
-        address pool = MonadexV1Library.getPool(i_factory, _params.tokenA, _params.tokenB);
+        address pool = BubbleV1Library.getPool(i_factory, _params.tokenA, _params.tokenB);
         uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
 
         try IERC20Permit(pool).permit(
             msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
         ) { } catch {
             uint256 allowance = IERC20(pool).allowance(msg.sender, address(this));
-            if (allowance < value) revert MonadexV1Router__PermitFailed();
+            if (allowance < value) revert BubbleV1Router__PermitFailed();
         }
 
         return removeLiquidity(
@@ -172,25 +176,25 @@ contract MonadexV1Router is IMonadexV1Router {
         );
     }
 
-    /// @notice Allows removal of native token liquidity from Monadex pools using a permit.
+    /// @notice Allows removal of native token liquidity from Bubble pools using a permit.
     /// @param _params The liquidity removal params.
     /// @return Amount of token withdrawn.
     /// @return Amount of native token withdrawn.
     function removeLiquidityNativeWithPermit(
-        MonadexV1Types.RemoveLiquidityNativeWithPermit calldata _params
+        BubbleV1Types.RemoveLiquidityNativeWithPermit calldata _params
     )
         external
         beforeDeadline(_params.deadline)
         returns (uint256, uint256)
     {
-        address pool = MonadexV1Library.getPool(i_factory, _params.token, i_wNative);
+        address pool = BubbleV1Library.getPool(i_factory, _params.token, i_wNative);
         uint256 value = _params.approveMax ? type(uint256).max : _params.lpTokensToBurn;
 
         try IERC20Permit(pool).permit(
             msg.sender, address(this), value, _params.deadline, _params.v, _params.r, _params.s
         ) { } catch {
             uint256 allowance = IERC20(pool).allowance(msg.sender, address(this));
-            if (allowance < value) revert MonadexV1Router__PermitFailed();
+            if (allowance < value) revert BubbleV1Router__PermitFailed();
         }
 
         return removeLiquidityNative(
@@ -203,7 +207,7 @@ contract MonadexV1Router is IMonadexV1Router {
         );
     }
 
-    /// @notice Allows removal of liquidity from Monadex pools supporting fee on transfer tokens.
+    /// @notice Allows removal of liquidity from Bubble pools supporting fee on transfer tokens.
     /// @param _token The token contract address.
     /// @param _lpTokensToBurn Amount of LP tokens to burn.
     /// @param _amountTokenMin Minimum amount of token to withdraw from pool.
@@ -236,12 +240,12 @@ contract MonadexV1Router is IMonadexV1Router {
         IERC20(_token).safeTransfer(_receiver, IERC20(_token).balanceOf(address(this)));
         IWNative(payable(i_wNative)).withdraw(amountNative);
         (bool success,) = payable(msg.sender).call{ value: amountNative }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        if (!success) revert BubbleV1Router__TransferFailed();
 
         return amountNative;
     }
 
-    /// @notice Allows removal of native token liquidity from Monadex pools supporting
+    /// @notice Allows removal of native token liquidity from Bubble pools supporting
     /// fee on transfer tokens using a permit.
     /// @param _token The token contract address.
     /// @param _lpTokensToBurn Amount of LP tokens to burn.
@@ -270,13 +274,13 @@ contract MonadexV1Router is IMonadexV1Router {
         external
         returns (uint256)
     {
-        address pool = MonadexV1Library.getPool(i_factory, _token, i_wNative);
+        address pool = BubbleV1Library.getPool(i_factory, _token, i_wNative);
         uint256 value = _approveMax ? type(uint256).max : _lpTokensToBurn;
 
         try IERC20Permit(pool).permit(msg.sender, address(this), value, _deadline, _v, _r, _s) { }
         catch {
             uint256 allowance = IERC20(pool).allowance(msg.sender, address(this));
-            if (allowance < value) revert MonadexV1Router__PermitFailed();
+            if (allowance < value) revert BubbleV1Router__PermitFailed();
         }
 
         return removeLiquidityNativeSupportingFeeOnTransferTokens(
@@ -302,20 +306,20 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+        uint256[] memory amounts = BubbleV1Library.getAmountsOut(i_factory, _amountIn, _path);
         if (amounts[amounts.length - 1] < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(
+            revert BubbleV1Router__InsufficientOutputAmount(
                 amounts[amounts.length - 1], _amountOutMin
             );
         }
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, _receiver);
 
@@ -347,18 +351,18 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        uint256[] memory amounts = MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        uint256[] memory amounts = BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);
         if (amounts[0] > _amountInMax) {
-            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
+            revert BubbleV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
         }
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, _receiver);
 
@@ -388,23 +392,23 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        if (_path[0] != i_wNative) revert MonadexV1Router__InvalidPath();
-        uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, msg.value, _path);
+        if (_path[0] != i_wNative) revert BubbleV1Router__InvalidPath();
+        uint256[] memory amounts = BubbleV1Library.getAmountsOut(i_factory, msg.value, _path);
         if (amounts[amounts.length - 1] < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(
+            revert BubbleV1Router__InsufficientOutputAmount(
                 amounts[amounts.length - 1], _amountOutMin
             );
         }
         IWNative(payable(i_wNative)).deposit{ value: amounts[0] }();
         IERC20(i_wNative).safeTransfer(
-            MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, _receiver);
 
@@ -436,24 +440,24 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        if (_path[_path.length - 1] != i_wNative) revert MonadexV1Router__InvalidPath();
-        uint256[] memory amounts = MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();
+        uint256[] memory amounts = BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);
         if (amounts[0] > _amountInMax) {
-            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
+            revert BubbleV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);
         }
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, address(this));
         IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);
         (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        if (!success) revert BubbleV1Router__TransferFailed();
 
         uint256 nftId;
         if (_raffle.enter) {
@@ -483,26 +487,26 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        if (_path[_path.length - 1] != i_wNative) revert MonadexV1Router__InvalidPath();
-        uint256[] memory amounts = MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();
+        uint256[] memory amounts = BubbleV1Library.getAmountsOut(i_factory, _amountIn, _path);
         if (amounts[amounts.length - 1] < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(
+            revert BubbleV1Router__InsufficientOutputAmount(
                 amounts[amounts.length - 1], _amountOutMin
             );
         }
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, address(this));
         IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);
         (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        if (!success) revert BubbleV1Router__TransferFailed();
 
         uint256 nftId;
         if (_raffle.enter) {
@@ -530,26 +534,26 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable
         beforeDeadline(_deadline)
         returns (uint256[] memory, uint256)
     {
-        if (_path[0] != i_wNative) revert MonadexV1Router__InvalidPath();
-        uint256[] memory amounts = MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        if (_path[0] != i_wNative) revert BubbleV1Router__InvalidPath();
+        uint256[] memory amounts = BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);
         if (amounts[0] > msg.value) {
-            revert MonadexV1Router__ExcessiveInputAmount(amounts[0], msg.value);
+            revert BubbleV1Router__ExcessiveInputAmount(amounts[0], msg.value);
         }
         IWNative(payable(i_wNative)).deposit{ value: amounts[0] }();
         IERC20(i_wNative).safeTransfer(
-            MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
+            BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]
         );
         _swap(amounts, _path, _receiver);
         if (msg.value > amounts[0]) {
             (bool success,) = payable(msg.sender).call{ value: msg.value - amounts[0] }("");
-            if (!success) revert MonadexV1Router__TransferFailed();
+            if (!success) revert BubbleV1Router__TransferFailed();
         }
 
         uint256 nftId;
@@ -577,13 +581,13 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
     {
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), _amountIn
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), _amountIn
         );
 
         uint256 balanceBefore = IERC20(_path[_path.length - 1]).balanceOf(_receiver);
@@ -592,7 +596,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 amountOut = IERC20(_path[_path.length - 1]).balanceOf(_receiver) - balanceBefore;
         if (amountOut < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
+            revert BubbleV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
         }
 
         uint256 nftId;
@@ -621,18 +625,18 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable
         beforeDeadline(_deadline)
     {
-        if (_path[0] != i_wNative) revert MonadexV1Router__InvalidPath();
+        if (_path[0] != i_wNative) revert BubbleV1Router__InvalidPath();
         uint256 amountIn = msg.value;
 
         IWNative(payable(i_wNative)).deposit{ value: amountIn }();
         IERC20(i_wNative).safeTransfer(
-            MonadexV1Library.getPool(i_factory, _path[0], _path[1]), amountIn
+            BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amountIn
         );
 
         uint256 balanceBefore = IERC20(_path[_path.length - 1]).balanceOf(_receiver);
@@ -641,7 +645,7 @@ contract MonadexV1Router is IMonadexV1Router {
 
         uint256 amountOut = IERC20(_path[_path.length - 1]).balanceOf(_receiver) - balanceBefore;
         if (amountOut < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
+            revert BubbleV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
         }
 
         uint256 nftId;
@@ -672,27 +676,27 @@ contract MonadexV1Router is IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         beforeDeadline(_deadline)
     {
-        if (_path[_path.length - 1] != i_wNative) revert MonadexV1Router__InvalidPath();
+        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();
 
         IERC20(_path[0]).safeTransferFrom(
-            msg.sender, MonadexV1Library.getPool(i_factory, _path[0], _path[1]), _amountIn
+            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), _amountIn
         );
 
         _swapSupportingFeeOnTransferTokens(_path, address(this));
 
         uint256 amountOut = IERC20(i_wNative).balanceOf(address(this));
         if (amountOut < _amountOutMin) {
-            revert MonadexV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
+            revert BubbleV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);
         }
 
         IWNative(payable(i_wNative)).withdraw(amountOut);
         (bool success,) = payable(_receiver).call{ value: amountOut }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        if (!success) revert BubbleV1Router__TransferFailed();
 
         uint256 nftId;
         if (_raffle.enter) {
@@ -710,7 +714,7 @@ contract MonadexV1Router is IMonadexV1Router {
     /// Public Functions ///
     ////////////////////////
 
-    /// @notice Allows removal of liquidity from Monadex pools with safety checks.
+    /// @notice Allows removal of liquidity from Bubble pools with safety checks.
     /// @param _tokenA Address of token A.
     /// @param _tokenB Address of token B.
     /// @param _lpTokensToBurn Amount of LP token to burn.
@@ -733,22 +737,22 @@ contract MonadexV1Router is IMonadexV1Router {
         beforeDeadline(_deadline)
         returns (uint256, uint256)
     {
-        address pool = MonadexV1Library.getPool(i_factory, _tokenA, _tokenB);
+        address pool = BubbleV1Library.getPool(i_factory, _tokenA, _tokenB);
         IERC20(pool).safeTransferFrom(msg.sender, pool, _lpTokensToBurn);
-        (uint256 amountA, uint256 amountB) = IMonadexV1Pool(pool).removeLiquidity(_receiver);
-        (address tokenA,) = MonadexV1Library.sortTokens(_tokenA, _tokenB);
+        (uint256 amountA, uint256 amountB) = IBubbleV1Pool(pool).removeLiquidity(_receiver);
+        (address tokenA,) = BubbleV1Library.sortTokens(_tokenA, _tokenB);
         (amountA, amountB) = tokenA == _tokenA ? (amountA, amountB) : (amountB, amountA);
         if (amountA < _amountAMin) {
-            revert MonadexV1Router__InsufficientAAmount(amountA, _amountAMin);
+            revert BubbleV1Router__InsufficientAAmount(amountA, _amountAMin);
         }
         if (amountB < _amountBMin) {
-            revert MonadexV1Router__InsufficientBAmount(amountB, _amountBMin);
+            revert BubbleV1Router__InsufficientBAmount(amountB, _amountBMin);
         }
 
         return (amountA, amountB);
     }
 
-    /// @notice Allows removal of native token liquidity from Monadex pools with safety checks.
+    /// @notice Allows removal of native token liquidity from Bubble pools with safety checks.
     /// @param _token Address of token.
     /// @param _lpTokensToBurn Amount of LP token to burn.
     /// @param _amountTokenMin Minimum amount of token to withdraw from pool.
@@ -782,7 +786,7 @@ contract MonadexV1Router is IMonadexV1Router {
         IERC20(_token).safeTransfer(_receiver, amountToken);
         IWNative(payable(i_wNative)).withdraw(amountNative);
         (bool success,) = payable(_receiver).call{ value: amountNative }("");
-        if (!success) revert MonadexV1Router__TransferFailed();
+        if (!success) revert BubbleV1Router__TransferFailed();
 
         return (amountToken, amountNative);
     }
@@ -812,28 +816,28 @@ contract MonadexV1Router is IMonadexV1Router {
         internal
         returns (uint256, uint256)
     {
-        if (MonadexV1Library.getPool(i_factory, _tokenA, _tokenB) == address(0)) {
-            IMonadexV1Factory(i_factory).deployPool(_tokenA, _tokenB);
+        if (BubbleV1Library.getPool(i_factory, _tokenA, _tokenB) == address(0)) {
+            IBubbleV1Factory(i_factory).deployPool(_tokenA, _tokenB);
         }
         (uint256 reserveA, uint256 reserveB) =
-            MonadexV1Library.getReserves(i_factory, _tokenA, _tokenB);
+            BubbleV1Library.getReserves(i_factory, _tokenA, _tokenB);
 
         if (reserveA == 0 && reserveB == 0) {
             return (_amountADesired, _amountBDesired);
         } else {
-            uint256 amountBOptimal = MonadexV1Library.quote(_amountADesired, reserveA, reserveB);
+            uint256 amountBOptimal = BubbleV1Library.quote(_amountADesired, reserveA, reserveB);
             if (amountBOptimal <= _amountBDesired) {
                 if (amountBOptimal < _amountBMin) {
-                    revert MonadexV1Router__InsufficientBAmount(amountBOptimal, _amountBMin);
+                    revert BubbleV1Router__InsufficientBAmount(amountBOptimal, _amountBMin);
                 }
                 return (_amountADesired, amountBOptimal);
             } else {
-                uint256 amountAOptimal = MonadexV1Library.quote(_amountBDesired, reserveB, reserveA);
+                uint256 amountAOptimal = BubbleV1Library.quote(_amountBDesired, reserveB, reserveA);
                 if (amountAOptimal > _amountADesired) {
-                    revert MonadexV1Router__InsufficientAAmount(_amountADesired, amountAOptimal);
+                    revert BubbleV1Router__InsufficientAAmount(_amountADesired, amountAOptimal);
                 }
                 if (amountAOptimal < _amountAMin) {
-                    revert MonadexV1Router__InsufficientAAmount(amountAOptimal, _amountADesired);
+                    revert BubbleV1Router__InsufficientAAmount(amountAOptimal, _amountADesired);
                 }
 
                 return (amountAOptimal, _amountBDesired);
@@ -849,22 +853,22 @@ contract MonadexV1Router is IMonadexV1Router {
     function _swap(uint256[] memory _amounts, address[] memory _path, address _receiver) internal {
         for (uint256 count = 0; count < _path.length - 1; ++count) {
             (address inputToken, address outputToken) = (_path[count], _path[count + 1]);
-            (address tokenA,) = MonadexV1Library.sortTokens(inputToken, outputToken);
+            (address tokenA,) = BubbleV1Library.sortTokens(inputToken, outputToken);
             uint256 amountOut = _amounts[count + 1];
             (uint256 amountAOut, uint256 amountBOut) =
                 inputToken == tokenA ? (uint256(0), amountOut) : (amountOut, uint256(0));
             address to = count < _path.length - 2
-                ? MonadexV1Library.getPool(i_factory, outputToken, _path[count + 2])
+                ? BubbleV1Library.getPool(i_factory, outputToken, _path[count + 2])
                 : _receiver;
-            MonadexV1Types.SwapParams memory swapParams = MonadexV1Types.SwapParams({
+            BubbleV1Types.SwapParams memory swapParams = BubbleV1Types.SwapParams({
                 amountAOut: amountAOut,
                 amountBOut: amountBOut,
                 receiver: to,
-                hookConfig: MonadexV1Types.HookConfig({ hookBeforeCall: false, hookAfterCall: false }),
+                hookConfig: BubbleV1Types.HookConfig({ hookBeforeCall: false, hookAfterCall: false }),
                 data: new bytes(0)
             });
 
-            IMonadexV1Pool(MonadexV1Library.getPool(i_factory, inputToken, outputToken)).swap(
+            IBubbleV1Pool(BubbleV1Library.getPool(i_factory, inputToken, outputToken)).swap(
                 swapParams
             );
         }
@@ -882,9 +886,9 @@ contract MonadexV1Router is IMonadexV1Router {
     {
         for (uint256 i; i < _path.length - 1; i++) {
             (address inputToken, address outputToken) = (_path[i], _path[i + 1]);
-            (address tokenA,) = MonadexV1Library.sortTokens(inputToken, outputToken);
-            IMonadexV1Pool pool =
-                IMonadexV1Pool(MonadexV1Library.getPool(i_factory, inputToken, outputToken));
+            (address tokenA,) = BubbleV1Library.sortTokens(inputToken, outputToken);
+            IBubbleV1Pool pool =
+                IBubbleV1Pool(BubbleV1Library.getPool(i_factory, inputToken, outputToken));
             uint256 amountInputToken;
             uint256 amountOutputToken;
             {
@@ -892,24 +896,24 @@ contract MonadexV1Router is IMonadexV1Router {
                 (uint256 reserveInput, uint256 reserveOutput) =
                     inputToken == tokenA ? (reserveA, reserveB) : (reserveB, reserveA);
                 amountInputToken = IERC20(inputToken).balanceOf(address(pool)) - reserveInput;
-                amountOutputToken = MonadexV1Library.getAmountOut(
+                amountOutputToken = BubbleV1Library.getAmountOut(
                     amountInputToken,
                     reserveInput,
                     reserveOutput,
-                    MonadexV1Library.getPoolFee(i_factory, inputToken, outputToken)
+                    BubbleV1Library.getPoolFee(i_factory, inputToken, outputToken)
                 );
             }
             (uint256 amountAOut, uint256 amountBOut) = inputToken == tokenA
                 ? (uint256(0), amountOutputToken)
                 : (amountOutputToken, uint256(0));
             address to = i < _path.length - 2
-                ? MonadexV1Library.getPool(i_factory, outputToken, _path[i + 2])
+                ? BubbleV1Library.getPool(i_factory, outputToken, _path[i + 2])
                 : _receiver;
-            MonadexV1Types.SwapParams memory swapParams = MonadexV1Types.SwapParams({
+            BubbleV1Types.SwapParams memory swapParams = BubbleV1Types.SwapParams({
                 amountAOut: amountAOut,
                 amountBOut: amountBOut,
                 receiver: to,
-                hookConfig: MonadexV1Types.HookConfig({ hookBeforeCall: false, hookAfterCall: false }),
+                hookConfig: BubbleV1Types.HookConfig({ hookBeforeCall: false, hookAfterCall: false }),
                 data: new bytes(0)
             });
 
@@ -926,23 +930,23 @@ contract MonadexV1Router is IMonadexV1Router {
     function _enterRaffle(
         address[] memory _path,
         uint256[] memory _amounts,
-        MonadexV1Types.Fraction memory _fraction,
+        BubbleV1Types.Fraction memory _fraction,
         address _receiver
     )
         internal
         returns (uint256)
     {
         uint256 nftId;
-        if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[0])) {
+        if (IBubbleV1Raffle(i_raffle).isSupportedToken(_path[0])) {
             uint256 amountForRaffle =
-                MonadexV1Library.calculateAmountAfterApplyingPercentage(_amounts[0], _fraction);
+                BubbleV1Library.calculateAmountAfterApplyingPercentage(_amounts[0], _fraction);
             uint256 raffleBalanceBefore = IERC20(_path[0]).balanceOf(i_raffle);
             IERC20(_path[0]).safeTransferFrom(msg.sender, i_raffle, amountForRaffle);
             amountForRaffle = IERC20(_path[0]).balanceOf(i_raffle) - raffleBalanceBefore;
 
-            nftId = IMonadexV1Raffle(i_raffle).enterRaffle(_path[0], amountForRaffle, _receiver);
-        } else if (IMonadexV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
-            uint256 amountForRaffle = MonadexV1Library.calculateAmountAfterApplyingPercentage(
+            nftId = IBubbleV1Raffle(i_raffle).enterRaffle(_path[0], amountForRaffle, _receiver);
+        } else if (IBubbleV1Raffle(i_raffle).isSupportedToken(_path[_path.length - 1])) {
+            uint256 amountForRaffle = BubbleV1Library.calculateAmountAfterApplyingPercentage(
                 _amounts[_amounts.length - 1], _fraction
             );
             uint256 raffleBalanceBefore = IERC20(_path[_path.length - 1]).balanceOf(i_raffle);
@@ -950,11 +954,11 @@ contract MonadexV1Router is IMonadexV1Router {
             amountForRaffle =
                 IERC20(_path[_path.length - 1]).balanceOf(i_raffle) - raffleBalanceBefore;
 
-            nftId = IMonadexV1Raffle(i_raffle).enterRaffle(
+            nftId = IBubbleV1Raffle(i_raffle).enterRaffle(
                 _path[_path.length - 1], amountForRaffle, _receiver
             );
         } else {
-            revert MonadexV1Router__TokenNotSupportedByRaffle();
+            revert BubbleV1Router__TokenNotSupportedByRaffle();
         }
 
         return nftId;
@@ -997,7 +1001,7 @@ contract MonadexV1Router is IMonadexV1Router {
         pure
         returns (uint256)
     {
-        return MonadexV1Library.quote(_amountA, _reserveA, _reserveB);
+        return BubbleV1Library.quote(_amountA, _reserveA, _reserveB);
     }
 
     /// @notice Gets the amount that you'll receive in a swap based on the amount you put in,
@@ -1011,13 +1015,13 @@ contract MonadexV1Router is IMonadexV1Router {
         uint256 _amountIn,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         external
         pure
         returns (uint256)
     {
-        return MonadexV1Library.getAmountOut(_amountIn, _reserveIn, _reserveOut, _poolFee);
+        return BubbleV1Library.getAmountOut(_amountIn, _reserveIn, _reserveOut, _poolFee);
     }
 
     /// @notice Gets the amount of input token you need to put so as to receive the specified
@@ -1031,13 +1035,13 @@ contract MonadexV1Router is IMonadexV1Router {
         uint256 _amountOut,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         external
         pure
         returns (uint256)
     {
-        return MonadexV1Library.getAmountOut(_amountOut, _reserveIn, _reserveOut, _poolFee);
+        return BubbleV1Library.getAmountOut(_amountOut, _reserveIn, _reserveOut, _poolFee);
     }
 
     /// @notice Gets the amounts that will be obtained at each checkpoint of the swap path.
@@ -1053,7 +1057,7 @@ contract MonadexV1Router is IMonadexV1Router {
         view
         returns (uint256[] memory)
     {
-        return MonadexV1Library.getAmountsOut(i_factory, _amountIn, _path);
+        return BubbleV1Library.getAmountsOut(i_factory, _amountIn, _path);
     }
 
     /// @notice Gets the input amounts at each checkpoint of the swap path.
@@ -1068,6 +1072,6 @@ contract MonadexV1Router is IMonadexV1Router {
         view
         returns (uint256[] memory)
     {
-        return MonadexV1Library.getAmountsIn(i_factory, _amountOut, _path);
+        return BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);
     }
 }

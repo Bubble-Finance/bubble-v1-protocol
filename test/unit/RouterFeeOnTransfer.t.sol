@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 6 (+2)
 //  1. removeLiquidityNativeSupportingFeeOnTransferTokens()
 //  2. removeLiquidityNativeWithPermitSupportingFeeOnTransferTokens()
@@ -25,15 +25,15 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -55,7 +55,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
         DAI.approve(address(s_router), ADD_50K);
         s_fotToken.approve(address(s_router), ADD_50K);
 
-        MonadexV1Types.AddLiquidity memory liquidityFot = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityFot = BubbleV1Types.AddLiquidity({
             tokenA: address(DAI),
             tokenB: address(s_fotToken),
             amountADesired: ADD_50K,
@@ -102,7 +102,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
         console2.log("poolBalanceBeforeDAI: ", poolBalanceBeforeDAI);
         console2.log("poolBalanceBeforeFOT: ", poolBalanceBeforeFOT);
 
-        MonadexV1Types.AddLiquidity memory liquidityFot = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityFot = BubbleV1Types.AddLiquidity({
             tokenA: address(s_fotToken),
             tokenB: address(DAI),
             amountADesired: 3e18,
@@ -161,7 +161,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
         uint256 poolBalanceBeforeDAI = DAI.balanceOf(poolAddress);
         uint256 poolBalanceBeforeFOT = s_fotToken.balanceOf(poolAddress);
 
-        MonadexV1Types.AddLiquidity memory liquidityFot = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityFot = BubbleV1Types.AddLiquidity({
             tokenA: address(s_fotToken),
             tokenB: address(DAI),
             amountADesired: 3e18,
@@ -211,15 +211,15 @@ contract RouterFeeOnTransfer is Test, Deployer {
         path[1] = address(s_fotToken);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[1],
             raffleNftReceiver: fot
@@ -280,15 +280,15 @@ contract RouterFeeOnTransfer is Test, Deployer {
         path[1] = address(DAI);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[1],
             raffleNftReceiver: fot
@@ -336,7 +336,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
         vm.startPrank(fot);
         s_fotToken.approve(address(s_router), ADD_500K);
 
-        MonadexV1Types.AddLiquidityNative memory nativeFOT = MonadexV1Types.AddLiquidityNative({
+        BubbleV1Types.AddLiquidityNative memory nativeFOT = BubbleV1Types.AddLiquidityNative({
             token: address(s_fotToken),
             amountTokenDesired: ADD_500K,
             amountTokenMin: 1,
@@ -379,15 +379,15 @@ contract RouterFeeOnTransfer is Test, Deployer {
         path[1] = address(s_fotToken);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(fot)
@@ -439,15 +439,15 @@ contract RouterFeeOnTransfer is Test, Deployer {
         path[1] = s_wNative;
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(fot)

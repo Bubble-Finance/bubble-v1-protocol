@@ -16,7 +16,7 @@ import { console } from "lib/forge-std/src/console.sol";
 
 import { InitializeTokens } from "test/baseHelpers/InitializeTokens.sol";
 
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import { InitializePythV2 } from "test/baseHelpers/InitializePythV2.sol";
 
@@ -39,7 +39,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     uint256 public s_initialProposalThreshold = 50e18;
     uint256 public s_quorum = 4;
 
-    uint256 public s_initialSupply = 1_000_000e18; // MDX token initial supply
+    uint256 public s_initialSupply = 1_000_000e18; // Bubble token initial supply
 
     uint256 public s_minDelay = 2 days;
     address[] public s_proposers;
@@ -48,8 +48,8 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
     //     Factory Initialize
     // -------------------------------------------
-    MonadexV1Types.Fraction public s_protocolFee;
-    MonadexV1Types.Fraction[5] public s_feeTiers;
+    BubbleV1Types.Fraction public s_protocolFee;
+    BubbleV1Types.Fraction[5] public s_feeTiers;
 
     // ** Fee Tiers for LPs => swaps
     uint256 public constant NUMERATOR1 = 1;
@@ -71,17 +71,17 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     uint256 public constant tokenCreatorRewardinBasisPoints = 500;
 
     function initializeFactoryConstructorArgs() public {
-        s_protocolFee = MonadexV1Types.Fraction({
+        s_protocolFee = BubbleV1Types.Fraction({
             numerator: PROTOCOL_NUMERATOR,
             denominator: PROTOCOL_DENOMINATOR
         });
 
-        MonadexV1Types.Fraction[5] memory feeTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
+        BubbleV1Types.Fraction[5] memory feeTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_1000 }), // 0.1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_1000 }), // 0.2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_1000 }), // 0.3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_1000 }), // 0.4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_1000 }) // 0.4%
         ];
 
         for (uint256 count = 0; count < 5; ++count) {
@@ -93,7 +93,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     //     Oracle Pyth Prices Initialize
     // -------------------------------------------
     InitializePythV2 public s_initializePyth;
-    MonadexV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
+    BubbleV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
 
     function initializePythMockAndPrices() public {
         s_entropyContract = address(s_pythPriceFeedContract);
@@ -127,7 +127,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
     //     Raffle Initialize
     // -------------------------------------------
-    MonadexV1Types.Fraction[3] public s_winningPortions;
+    BubbleV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumNftsToBeMintedEachEpoch = 10;
 
     uint256 public constant WINNING_PORTTIONS_1 = 45;
@@ -137,16 +137,16 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     string public s_uri = "https://placehold.co/400x400?text=RaffleNFT";
 
     function initializeRaffleConstructorArgs() public {
-        MonadexV1Types.PriceFeedConfig memory wethConfig = MonadexV1Types.PriceFeedConfig({
+        BubbleV1Types.PriceFeedConfig memory wethConfig = BubbleV1Types.PriceFeedConfig({
             priceFeedId: 0x9d4294bbcd1174d6f2003ec365831e64cc31d9f6f15a2b85399db8d5000960f6,
             noOlderThan: type(uint32).max // This is a dangerous value, make sure to not use it for mainnet
          });
         s_priceFeedConfigs.push(wethConfig);
 
-        MonadexV1Types.Fraction[3] memory winningPortions = [
-            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
-            MonadexV1Types.Fraction({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
+        BubbleV1Types.Fraction[3] memory winningPortions = [
+            BubbleV1Types.Fraction({ numerator: WINNING_PORTTIONS_1, denominator: DENOMINATOR_100 }),
+            BubbleV1Types.Fraction({ numerator: WINNING_PORTTIONS_2, denominator: DENOMINATOR_100 }),
+            BubbleV1Types.Fraction({ numerator: WINNING_PORTTIONS_3, denominator: DENOMINATOR_100 })
         ];
 
         for (uint256 count = 0; count < 3; ++count) {
@@ -157,7 +157,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     // -------------------------------------------
     //     ERC20Launchable Initialize
     // -------------------------------------------
-    MonadexV1Types.Fraction s_fee = MonadexV1Types.Fraction({
+    BubbleV1Types.Fraction s_fee = BubbleV1Types.Fraction({
         numerator: 2, // 2% fee (200 basis points)
         denominator: 100
     });

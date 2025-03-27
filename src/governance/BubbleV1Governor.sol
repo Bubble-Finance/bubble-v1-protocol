@@ -15,10 +15,10 @@ import { GovernorVotes } from "@openzeppelin/governance/extensions/GovernorVotes
 import { GovernorVotesQuorumFraction } from
     "@openzeppelin/governance/extensions/GovernorVotesQuorumFraction.sol";
 
-/// @title MonadexV1Governor.
-/// @author Monadex Labs -- Ola hamid.
+/// @title BubbleV1Governor.
+/// @author Bubble Finance -- Ola hamid.
 /// @notice Facilitates on-chain governance with voting and timelock control.
-contract MonadexV1Governor is
+contract BubbleV1Governor is
     Governor,
     GovernorSettings,
     GovernorCountingSimple,
@@ -31,11 +31,11 @@ contract MonadexV1Governor is
     ///////////////////
 
     /// @notice Initializes the Governor. Fully configurable during deployment.
-    /// @param _token The token to vote with. This will be the $MDX token.
+    /// @param _token The token to vote with. This will be the $BUBBLE token.
     /// @param _timelock The timelock which will add a delay before executing proposals.
     /// @param _initialVotingDelay The delay after which votes can be cast.
     /// @param _initialVotingPeriod The duration for which the voting will last.
-    /// @param _initialProposalThreshold The minimum amount of $MDX you should have to propose.
+    /// @param _initialProposalThreshold The minimum amount of $BUBBLE you should have to propose.
     /// @param _quorum The minimum percentage of voters that should be involved in the voting.
     constructor(
         IVotes _token,
@@ -45,7 +45,7 @@ contract MonadexV1Governor is
         uint256 _initialProposalThreshold,
         uint256 _quorum
     )
-        Governor("MonadexV1Governor")
+        Governor("BubbleV1Governor")
         GovernorSettings(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(_quorum)

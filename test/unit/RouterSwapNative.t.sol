@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 8
 //  THIS TEST HAS RAFFLE TICKETS SET TO FALSE
 //  THE PORPUSE IS TEST THE SWAPS
@@ -23,15 +23,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
@@ -70,15 +70,15 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[1] = address(DAI);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
@@ -133,15 +133,15 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[1] = address(DAI);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
@@ -196,15 +196,15 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[1] = address(DAI);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
@@ -250,15 +250,15 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[1] = s_wNative;
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
@@ -293,15 +293,15 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
         path[1] = s_wNative;
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 6
 //  THIS TEST HAS RAFFLE TICKETS SET TO TRUE
 //  THE ONLY PORPUSE OF THIS TEST THE CAPACITY OF USER TO BUY TICKETS
@@ -30,15 +30,15 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
@@ -53,12 +53,12 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
     // --------------------------------
     modifier addSupportedTokens() {
         vm.startPrank(protocolTeamMultisig);
-        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
-            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        BubbleV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
         ];
 
         s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
@@ -79,12 +79,12 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
     function test_supportTokenGetSupported() public {
         vm.startPrank(protocolTeamMultisig);
-        MonadexV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
-            // MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
-            MonadexV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
+        BubbleV1Types.PriceFeedConfig[4] memory _pythPriceFeedConfig = [
+            // BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoMonadUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptowBTCUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoDAIUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoUSDTUSD, noOlderThan: 60 }),
+            BubbleV1Types.PriceFeedConfig({ priceFeedId: cryptoSHIBUSD, noOlderThan: 60 })
         ];
 
         s_raffle.supportToken(address(wBTC), _pythPriceFeedConfig[0]);
@@ -132,15 +132,15 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: true,
             fractionOfSwapAmount: fractionTiers[2],
             raffleNftReceiver: address(swapper1)
@@ -189,15 +189,15 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
 
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: true,
             fractionOfSwapAmount: fractionTiers[0],
             raffleNftReceiver: address(swapper1)
@@ -244,15 +244,15 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         // PythStructs.Price memory price = s_pythPriceFeedContract.getPrice(cryptoMonadUSD);
 
         // 4. User don't want raffle tickets: This is not the objetive of this test
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: true,
             fractionOfSwapAmount: fractionTiers[4],
             raffleNftReceiver: address(swapper1)

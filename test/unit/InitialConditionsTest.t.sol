@@ -27,13 +27,13 @@ pragma solidity ^0.8.20;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Pool } from "src/core/MonadexV1Pool.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Pool } from "src/core/BubbleV1Pool.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -64,7 +64,7 @@ contract InitialConditionsTest is Test, Deployer {
         assertEq(swapper10.balance, TOKEN_1M);
     }
 
-    function test_addressOfMonadexContracts() public view {
+    function test_addressOfBubbleContracts() public view {
         assert(address(s_factory) != address(0));
         assert(address(s_raffle) != address(0));
         assert(address(s_router) != address(0));

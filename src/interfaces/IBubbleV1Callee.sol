@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-interface IMonadexV1Callee {
+interface IBubbleV1Callee {
     /// @notice Called once the contract receives the requested tokens.
     /// @param _caller The address which initiated the swap.
     /// @param _amountAOut The amount of token A sent to the contract.

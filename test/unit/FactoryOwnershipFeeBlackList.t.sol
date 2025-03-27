@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Factory
+//  CONTRACT: BubbleV1Factory
 //  FUNCTIONS TESTED: 6
 //  This test check all the sets and side features.
 // ----------------------------------
@@ -27,15 +27,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -121,22 +121,22 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     // ----------------------------------
     function test_protocolTeamMultisigSetProtocolFees() external {
         vm.startPrank(protocolTeamMultisig);
-        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 3, denominator: 5 }));
-        MonadexV1Types.Fraction memory newFees = s_factory.getProtocolFee();
+        s_factory.setProtocolFee(BubbleV1Types.Fraction({ numerator: 3, denominator: 5 }));
+        BubbleV1Types.Fraction memory newFees = s_factory.getProtocolFee();
         assertEq(newFees.numerator, 3);
         assertEq(newFees.denominator, 5);
     }
 
     function testFail_usersCanNotSetProtocolFees() external {
         vm.prank(blackHat);
-        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 1, denominator: 1000 }));
+        s_factory.setProtocolFee(BubbleV1Types.Fraction({ numerator: 1, denominator: 1000 }));
     }
 
     function testFail_ownerCanNotSetProtocolFees() external {
         vm.prank(protocolTeamMultisig);
         s_factory.transferOwnership(address(blackHat));
         vm.prank(blackHat);
-        s_factory.setProtocolFee(MonadexV1Types.Fraction({ numerator: 1, denominator: 1000 }));
+        s_factory.setProtocolFee(BubbleV1Types.Fraction({ numerator: 1, denominator: 1000 }));
     }
 
     // ----------------------------------
@@ -156,7 +156,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     function test_setTokenPairFeeNotBetween1and5() external deployNewPool {
         vm.prank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 4);
-        MonadexV1Types.Fraction memory feeTier =
+        BubbleV1Types.Fraction memory feeTier =
             s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 4);
         assertEq(feeTier.denominator, 1000);
@@ -165,7 +165,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     function test_ownerTimeLockerCanSetTokenPairFee() external deployNewPool setTimelockerAsOwner {
         vm.prank(address(s_timelock));
         s_factory.setTokenPairFee(address(wETH), address(DAI), 1);
-        MonadexV1Types.Fraction memory feeTier =
+        BubbleV1Types.Fraction memory feeTier =
             s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 1);
         assertEq(feeTier.denominator, 1000);
@@ -175,7 +175,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
         vm.startPrank(protocolTeamMultisig);
         s_factory.setTokenPairFee(address(wETH), address(DAI), 4);
         s_factory.setTokenPairFee(address(DAI), address(wETH), 3);
-        MonadexV1Types.Fraction memory feeTier =
+        BubbleV1Types.Fraction memory feeTier =
             s_factory.getTokenPairToFee(address(wETH), address(DAI));
         assertEq(feeTier.numerator, 3);
         assertEq(feeTier.denominator, 1000);
@@ -208,7 +208,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
         wBTC.approve(address(s_router), WBTC_10K);
         DAI.approve(address(s_router), DAI_50K);
 
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(DAI),
             amountADesired: WBTC_10K,

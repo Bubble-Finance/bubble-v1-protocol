@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-interface IMonadexV1Router {
+interface IBubbleV1Router {
     function addLiquidity(
-        MonadexV1Types.AddLiquidity memory _addLiquidityParams
+        BubbleV1Types.AddLiquidity memory _addLiquidityParams
     )
         external
         returns (uint256, uint256, uint256);
 
     function addLiquidityNative(
-        MonadexV1Types.AddLiquidityNative memory _addLiquidityNativeParams
+        BubbleV1Types.AddLiquidityNative memory _addLiquidityNativeParams
     )
         external
         payable
         returns (uint256, uint256, uint256);
 
     function removeLiquidityWithPermit(
-        MonadexV1Types.RemoveLiquidityWithPermit memory _params
+        BubbleV1Types.RemoveLiquidityWithPermit memory _params
     )
         external
         returns (uint256, uint256);
 
     function removeLiquidityNativeWithPermit(
-        MonadexV1Types.RemoveLiquidityNativeWithPermit memory _params
+        BubbleV1Types.RemoveLiquidityNativeWithPermit memory _params
     )
         external
         returns (uint256, uint256);
@@ -61,7 +61,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -72,7 +72,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -82,7 +82,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable
@@ -94,7 +94,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _enter
+        BubbleV1Types.Raffle memory _enter
     )
         external
         returns (uint256[] memory, uint256);
@@ -105,7 +105,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         returns (uint256[] memory, uint256);
@@ -115,7 +115,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable
@@ -127,7 +127,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external;
 
@@ -136,7 +136,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external
         payable;
@@ -147,7 +147,7 @@ interface IMonadexV1Router {
         address[] calldata _path,
         address _receiver,
         uint256 _deadline,
-        MonadexV1Types.Raffle memory _raffle
+        BubbleV1Types.Raffle memory _raffle
     )
         external;
 
@@ -193,7 +193,7 @@ interface IMonadexV1Router {
         uint256 _amountIn,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         external
         pure
@@ -203,7 +203,7 @@ interface IMonadexV1Router {
         uint256 _amountOut,
         uint256 _reserveIn,
         uint256 _reserveOut,
-        MonadexV1Types.Fraction memory _poolFee
+        BubbleV1Types.Fraction memory _poolFee
     )
         external
         pure

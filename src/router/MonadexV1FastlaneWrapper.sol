@@ -10,8 +10,8 @@
 // import { SolverOperation } from "@atlas/types/SolverOperation.sol";
 // import { UserOperation } from "@atlas/types/UserOperation.sol";
 
-// import { IMonadexV1Router } from "../interfaces/IMonadexV1Router.sol";
-// import { MonadexV1Types } from "../library/MonadexV1Types.sol";
+// import { IBubbleV1Router } from "../interfaces/IBubbleV1Router.sol";
+// import { BubbleV1Types } from "../library/BubbleV1Types.sol";
 
 // struct SwapTokenInfo {
 //     address inputToken;
@@ -20,7 +20,7 @@
 //     uint256 outputMin;
 // }
 
-// contract MonadexDAppControl is DAppControl {
+// contract BubbleDAppControl is DAppControl {
 //     address public constant MONADEX_ROUTER = 0x89831AED10991214D3Bd417FF0E97E5e876bE8dD;
 //     uint256 public constant PERCENTAGE_DENOMINATOR = 10_000; //basis points denominator
 //     uint32 public constant SOLVER_GAS_LIMIT = 5_000_000;
@@ -346,53 +346,53 @@
 //         bytes4 funcSelector = bytes4(userData);
 //         bytes memory decodeData = userData[4:];
 
-//         if (funcSelector == IMonadexV1Router.swapExactTokensForTokens.selector) {
+//         if (funcSelector == IBubbleV1Router.swapExactTokensForTokens.selector) {
 //             (uint256 amountIn, uint256 amountOutMin, address[] memory path,,,) = abi.decode(
 //                 decodeData,
-//                 (uint256, uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 (uint256, uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = path[0];
 //             swapTokenInfo.outputToken = path[path.length - 1];
 //             swapTokenInfo.inputAmount = amountIn;
 //             swapTokenInfo.outputMin = amountOutMin;
-//         } else if (funcSelector == IMonadexV1Router.swapTokensForExactTokens.selector) {
+//         } else if (funcSelector == IBubbleV1Router.swapTokensForExactTokens.selector) {
 //             (uint256 amountOut, uint256 amountInMax, address[] memory path,,,) = abi.decode(
 //                 decodeData,
-//                 (uint256, uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 (uint256, uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = path[0];
 //             swapTokenInfo.outputToken = path[path.length - 1];
 //             swapTokenInfo.inputAmount = amountInMax;
 //             swapTokenInfo.outputMin = amountOut;
-//         } else if (funcSelector == IMonadexV1Router.swapExactNativeForTokens.selector) {
+//         } else if (funcSelector == IBubbleV1Router.swapExactNativeForTokens.selector) {
 //             (uint256 amountOutMin, address[] memory path,,,) = abi.decode(
-//                 decodeData, (uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 decodeData, (uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = _ETH;
 //             swapTokenInfo.outputToken = path[path.length - 1];
 //             swapTokenInfo.inputAmount = userValue;
 //             swapTokenInfo.outputMin = amountOutMin;
-//         } else if (funcSelector == IMonadexV1Router.swapTokensForExactNative.selector) {
+//         } else if (funcSelector == IBubbleV1Router.swapTokensForExactNative.selector) {
 //             (uint256 amountOut, uint256 amountInMax, address[] memory path,,,) = abi.decode(
 //                 decodeData,
-//                 (uint256, uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 (uint256, uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = path[0];
 //             swapTokenInfo.outputToken = _ETH;
 //             swapTokenInfo.inputAmount = amountInMax;
 //             swapTokenInfo.outputMin = amountOut;
-//         } else if (funcSelector == IMonadexV1Router.swapExactTokensForNative.selector) {
+//         } else if (funcSelector == IBubbleV1Router.swapExactTokensForNative.selector) {
 //             (uint256 amountIn, uint256 amountOutMin, address[] memory path,,,) = abi.decode(
 //                 decodeData,
-//                 (uint256, uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 (uint256, uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = path[0];
 //             swapTokenInfo.outputToken = _ETH;
 //             swapTokenInfo.inputAmount = amountIn;
 //             swapTokenInfo.outputMin = amountOutMin;
-//         } else if (funcSelector == IMonadexV1Router.swapNativeForExactTokens.selector) {
+//         } else if (funcSelector == IBubbleV1Router.swapNativeForExactTokens.selector) {
 //             (uint256 amountOut, address[] memory path,,,) = abi.decode(
-//                 decodeData, (uint256, address[], address, uint256, MonadexV1Types.PurchaseTickets)
+//                 decodeData, (uint256, address[], address, uint256, BubbleV1Types.PurchaseTickets)
 //             );
 //             swapTokenInfo.inputToken = _ETH;
 //             swapTokenInfo.outputToken = path[path.length - 1];
@@ -416,12 +416,12 @@
 //     // ---------------------------------------------------- //
 
 //     modifier onlyGovernance() {
-//         address _dAppGov = MonadexDAppControl(this).getDAppSignatory();
+//         address _dAppGov = BubbleDAppControl(this).getDAppSignatory();
 //         if (msg.sender != _dAppGov) revert OnlyGovernance();
 //         _;
 //     }
 // }
 
-// // contract MonadexV1FastlaneWrapper is DAppControl {
+// // contract BubbleV1FastlaneWrapper is DAppControl {
 // //     address private immutable i_monadexV1Router;
 // // }

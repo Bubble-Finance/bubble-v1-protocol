@@ -6,22 +6,23 @@ import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { Owned } from "@solmate/auth/Owned.sol";
 
-import { ERC20Launchable } from "@src/campaigns/ERC20Launchable.sol";
+import { IBubbleV1Campaigns } from "@src/interfaces/IBubbleV1Campaigns.sol";
+import { IBubbleV1Router } from "@src/interfaces/IBubbleV1Router.sol";
 import { ILaunch } from "@src/interfaces/ILaunch.sol";
-import { IMonadexV1Campaigns } from "@src/interfaces/IMonadexV1Campaigns.sol";
-import { IMonadexV1Router } from "@src/interfaces/IMonadexV1Router.sol";
 import { IOwned } from "@src/interfaces/IOwned.sol";
 import { IWNative } from "@src/interfaces/IWNative.sol";
-import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
 
-/// @title MonadexV1Campaigns.
-/// @author Monadex Labs -- mgnfy-view.
+import { ERC20Launchable } from "@src/campaigns/ERC20Launchable.sol";
+import { BubbleV1Library } from "@src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
+
+/// @title BubbleV1Campaigns.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice The core campaigns contract that facilitates the creation and launch of new tokens
-/// with custom bonding curve parameters. Once these tokens complete their bonding curve, the raised
-/// liquidity is added to Monadex, and both the protocol and token creator receive rewards. The contract
+/// with custom bonding curve parameters. Once these tokens complete their bonding curves, the raised
+/// liquidity is added to Bubble, and both the protocol and token creator receive rewards. The contract
 /// removes transfer restrictions from the launched token, and renounces ownership of the token contract.
-contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
+contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
     using SafeERC20 for IERC20;
 
     ///////////////////////
@@ -42,15 +43,15 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// a token successfully completes its bonding curve.
     uint256 private s_liquidityMigrationFee;
     /// @dev The percentage fee taken by the protocol for each buy/sell amount.
-    MonadexV1Types.Fraction private s_fee;
+    BubbleV1Types.Fraction private s_fee;
     /// @dev The amount of native token collected in fees by the protocol.
     uint256 private s_feeCollected;
-    /// @dev The address of the MonadexV1Router.
+    /// @dev The address of the BubbleV1Router.
     address private immutable i_monadexV1Router;
     /// @dev The address of the wrapped native token.
     address private immutable i_wNative;
     /// @dev The address of the proxy owned by the DAO which will use the LP tokens
-    /// for farming rewards for the MDX token holders.
+    /// for farming rewards for the Bubble token holders.
     address private s_vault;
     /// @dev A counter which tracks the total number of tokens created so far.
     uint256 private s_tokenCounter;
@@ -59,7 +60,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     mapping(uint256 tokenCount => address token) private s_tokenCountToTokenAddress;
     /// @dev Maps a token address to its details which includes token metadata and bonding
     /// curve details.
-    mapping(address token => MonadexV1Types.TokenDetails tokenDetails) private s_tokenDetails;
+    mapping(address token => BubbleV1Types.TokenDetails tokenDetails) private s_tokenDetails;
 
     //////////////
     /// Events ///
@@ -70,10 +71,10 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     event MinimumNativeTokenAmountToRaiseSet(uint256 indexed newMinimumNativeAmountToRaise);
     event TokenCreatorRewardSet(uint256 indexed newTokenCreatorReward);
     event LiquidityMigrationFeeSet(uint256 indexed newLiquidityMigrationFee);
-    event FeeSet(MonadexV1Types.Fraction indexed newFee);
+    event FeeSet(BubbleV1Types.Fraction indexed newFee);
     event VaultSet(address indexed newVault);
     event FeesCollected(address indexed by, uint256 indexed amount, address indexed to);
-    event TokenCreated(address indexed token, MonadexV1Types.TokenDetails indexed tokenDetails);
+    event TokenCreated(address indexed token, BubbleV1Types.TokenDetails indexed tokenDetails);
     event TokensSold(
         address indexed by,
         address indexed token,
@@ -89,21 +90,21 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// Errors ///
     //////////////
 
-    error MonadexV1Campaigns__DeadlinePasssed(uint256 deadline);
-    error MonadexV1Campaigns__AmountZero();
-    error MonadexV1Campaigns__AddressZero();
-    error MonadexV1Campaigns__InvalidFee(MonadexV1Types.Fraction fee);
-    error MonadexV1Campaigns__InsufficientFeesToCollect(
+    error BubbleV1Campaigns__DeadlinePasssed(uint256 deadline);
+    error BubbleV1Campaigns__AmountZero();
+    error BubbleV1Campaigns__AddressZero();
+    error BubbleV1Campaigns__InvalidFee(BubbleV1Types.Fraction fee);
+    error BubbleV1Campaigns__InsufficientFeesToCollect(
         uint256 amountToCollect, uint256 accumulatedFees
     );
-    error MonadexV1Campaigns__InvalidTokenCreationparams(MonadexV1Types.TokenDetails tokenDetails);
-    error MonadexV1Campaigns__BondingCurveNotActive();
-    error MonadexV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
+    error BubbleV1Campaigns__InvalidTokenCreationparams(BubbleV1Types.TokenDetails tokenDetails);
+    error BubbleV1Campaigns__BondingCurveNotActive();
+    error BubbleV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
         uint256 amountOut, uint256 minimumAmountOut
     );
 
     modifier beforeDeadline(uint256 _deadline) {
-        if (_deadline < block.timestamp) revert MonadexV1Campaigns__DeadlinePasssed(_deadline);
+        if (_deadline < block.timestamp) revert BubbleV1Campaigns__DeadlinePasssed(_deadline);
         _;
     }
 
@@ -121,15 +122,15 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// a token successfully completes its bonding curve.
     /// @param _liquidityMigrationFee The fee taken in native token by the protocol once
     /// a token successfully completes its bonding curve.
-    /// @param _monadexV1Router The address of the MonadexV1Router.
+    /// @param _monadexV1Router The address of the BubbleV1Router.
     /// @param _wNative The address of the wrapped native token.
     /// @param _vault The address of the proxy owned by the DAO which will use the LP tokens
-    /// for farming rewards for the MDX token holders.
+    /// for farming rewards for the Bubble token holders.
     constructor(
         uint256 _minimumTokenTotalSupply,
         uint256 _minimumVirutalNativeTokenReserve,
         uint256 _minimumNativeTokenAmountToRaise,
-        MonadexV1Types.Fraction memory _fee,
+        BubbleV1Types.Fraction memory _fee,
         uint256 _tokenCreatorReward,
         uint256 _liquidityMigrationFee,
         address _monadexV1Router,
@@ -141,9 +142,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         if (
             _minimumTokenTotalSupply == 0 || _minimumVirutalNativeTokenReserve == 0
                 || _minimumNativeTokenAmountToRaise == 0
-        ) revert MonadexV1Campaigns__AmountZero();
+        ) revert BubbleV1Campaigns__AmountZero();
         if (_monadexV1Router == address(0) || _wNative == address(0) || _vault == address(0)) {
-            revert MonadexV1Campaigns__AddressZero();
+            revert BubbleV1Campaigns__AddressZero();
         }
 
         s_minimumTokenTotalSupply = _minimumTokenTotalSupply;
@@ -164,7 +165,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @notice Allows the owner to set the minimum total supply for each newly created token.
     /// @param _minimumTokenTotalSupply The new minimum total supply for each newly created token.
     function setMinimumTokenTotalSupply(uint256 _minimumTokenTotalSupply) external onlyOwner {
-        if (_minimumTokenTotalSupply == 0) revert MonadexV1Campaigns__AmountZero();
+        if (_minimumTokenTotalSupply == 0) revert BubbleV1Campaigns__AmountZero();
 
         s_minimumTokenTotalSupply = _minimumTokenTotalSupply;
 
@@ -179,7 +180,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         external
         onlyOwner
     {
-        if (_minimumVirtualNativeTokenReserve == 0) revert MonadexV1Campaigns__AmountZero();
+        if (_minimumVirtualNativeTokenReserve == 0) revert BubbleV1Campaigns__AmountZero();
 
         s_minimumVirutalNativeTokenReserve = _minimumVirtualNativeTokenReserve;
 
@@ -195,7 +196,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         external
         onlyOwner
     {
-        if (_minimumNativeTokenAmountToRaise == 0) revert MonadexV1Campaigns__AmountZero();
+        if (_minimumNativeTokenAmountToRaise == 0) revert BubbleV1Campaigns__AmountZero();
 
         s_minimumNativeTokenAmountToRaise = _minimumNativeTokenAmountToRaise;
 
@@ -212,7 +213,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         emit TokenCreatorRewardSet(_tokenCreatorReward);
     }
 
-    /// @notice Allows the owner to change the fee taken when liquidity is added to Monadex.
+    /// @notice Allows the owner to change the fee taken when liquidity is added to Bubble.
     /// @param _liquidityMigrationFee The new fee taken when the token completes its bonding curve.
     function setLiquidityMigrationFee(uint256 _liquidityMigrationFee) external onlyOwner {
         s_liquidityMigrationFee = _liquidityMigrationFee;
@@ -222,9 +223,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
     /// @notice Allows the owner to change the fee taken while buying/selling tokens.
     /// @param _fee The new fee while buying/selling tokens.
-    function setFee(MonadexV1Types.Fraction memory _fee) external onlyOwner {
+    function setFee(BubbleV1Types.Fraction memory _fee) external onlyOwner {
         if (_fee.denominator == 0 || _fee.numerator > _fee.denominator) {
-            revert MonadexV1Campaigns__InvalidFee(_fee);
+            revert BubbleV1Campaigns__InvalidFee(_fee);
         }
 
         s_fee = _fee;
@@ -236,7 +237,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// once a token completes its bonding curve.
     /// @param _vault The new vault address.
     function setVault(address _vault) external onlyOwner {
-        if (_vault == address(0)) revert MonadexV1Campaigns__AddressZero();
+        if (_vault == address(0)) revert BubbleV1Campaigns__AddressZero();
 
         s_vault = _vault;
 
@@ -247,9 +248,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _to The address to which the fee amount is directed to.
     /// @param _amount The amount of native token to withdraw.
     function collectFees(address _to, uint256 _amount) external onlyOwner {
-        if (_to == address(0)) revert MonadexV1Campaigns__AddressZero();
+        if (_to == address(0)) revert BubbleV1Campaigns__AddressZero();
         if (_amount > s_feeCollected) {
-            revert MonadexV1Campaigns__InsufficientFeesToCollect(_amount, s_feeCollected);
+            revert BubbleV1Campaigns__InsufficientFeesToCollect(_amount, s_feeCollected);
         }
 
         s_feeCollected -= _amount;
@@ -265,7 +266,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// @param _initialNativeAmountToBuyWith The native token amount to be used for initial token purchase.
     /// @return Address of the created token.
     function createToken(
-        MonadexV1Types.TokenDetails calldata _tokenDetails,
+        BubbleV1Types.TokenDetails calldata _tokenDetails,
         uint256 _deadline,
         uint256 _initialNativeAmountToBuyWith
     )
@@ -283,7 +284,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
                 || _tokenDetails.tokenCreatorReward != s_tokenCreatorReward
                 || _tokenDetails.liquidityMigrationFee != s_liquidityMigrationFee
                 || _tokenDetails.launched == true
-        ) revert MonadexV1Campaigns__InvalidTokenCreationparams(_tokenDetails);
+        ) revert BubbleV1Campaigns__InvalidTokenCreationparams(_tokenDetails);
 
         ERC20Launchable token = new ERC20Launchable(
             _tokenDetails.name, _tokenDetails.symbol, _tokenDetails.tokenReserve
@@ -317,16 +318,16 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         beforeDeadline(_deadline)
     {
         if (_token == address(0) || _receiver == address(0)) {
-            revert MonadexV1Campaigns__AddressZero();
+            revert BubbleV1Campaigns__AddressZero();
         }
-        if (_amount == 0) revert MonadexV1Campaigns__AmountZero();
+        if (_amount == 0) revert BubbleV1Campaigns__AmountZero();
 
-        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
-        if (tokenDetails.launched) revert MonadexV1Campaigns__BondingCurveNotActive();
+        BubbleV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        if (tokenDetails.launched) revert BubbleV1Campaigns__BondingCurveNotActive();
 
         (uint256 nativeAmount, uint256 fee) = previewSell(_token, _amount);
         if (nativeAmount < _minimumWrappedNativeAmountToReceive) {
-            revert MonadexV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
+            revert BubbleV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
                 nativeAmount, _minimumWrappedNativeAmountToReceive
             );
         }
@@ -360,11 +361,11 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         beforeDeadline(_deadline)
     {
         if (_token == address(0) || _receiver == address(0)) {
-            revert MonadexV1Campaigns__AddressZero();
+            revert BubbleV1Campaigns__AddressZero();
         }
 
-        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
-        if (tokenDetails.launched) revert MonadexV1Campaigns__BondingCurveNotActive();
+        BubbleV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        if (tokenDetails.launched) revert BubbleV1Campaigns__BondingCurveNotActive();
         uint256 nativeTokenAmountToCompleteBondingCurve =
             getRemainingNativeTokenAmountToCompleteBondingCurve(_token);
         uint256 refundAmount;
@@ -378,7 +379,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         (tokenAmount, feeAmount) = previewBuy(_token, _nativeTokenAmount);
         refundAmount = msg.value - _nativeTokenAmount - feeAmount;
         if (tokenAmount < _minimumAmountToReceive) {
-            revert MonadexV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
+            revert BubbleV1Campaigns__TokenAmountOutLessThanMinimumAmountOut(
                 tokenAmount, _minimumAmountToReceive
             );
         }
@@ -400,18 +401,18 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     /// Internal Functions ///
     //////////////////////////
 
-    /// @notice Adds the raised liquidity and remainging tokens to Monadex.
+    /// @notice Adds the raised liquidity and remainging tokens to Bubble.
     /// @param _token The token address.
     /// @param _tokenDetails The metadata and bonding curve details of the token.
-    /// @param _deadline The UNIX timestamp before which the tokens should be added to Monadex.
+    /// @param _deadline The UNIX timestamp before which the tokens should be added to Bubble.
     function _completeBondingCurve(
         address _token,
-        MonadexV1Types.TokenDetails memory _tokenDetails,
+        BubbleV1Types.TokenDetails memory _tokenDetails,
         uint256 _deadline
     )
         internal
     {
-        MonadexV1Types.AddLiquidityNative memory addLiquidityNativeParams = MonadexV1Types
+        BubbleV1Types.AddLiquidityNative memory addLiquidityNativeParams = BubbleV1Types
             .AddLiquidityNative({
             token: _token,
             amountTokenDesired: _tokenDetails.tokenReserve,
@@ -421,7 +422,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
             deadline: _deadline
         });
         IERC20(_token).approve(i_monadexV1Router, _tokenDetails.tokenReserve);
-        IMonadexV1Router(i_monadexV1Router).addLiquidityNative{
+        IBubbleV1Router(i_monadexV1Router).addLiquidityNative{
             value: _tokenDetails.nativeTokenReserve - _tokenDetails.virtualNativeTokenReserve
                 - _tokenDetails.tokenCreatorReward - _tokenDetails.liquidityMigrationFee
         }(addLiquidityNativeParams);
@@ -485,7 +486,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
 
     /// @notice Gets the fee taken by the protocol on each buy/sell amount.
     /// @return The fee struct with numerator and denominator fields.
-    function getFee() external view returns (MonadexV1Types.Fraction memory) {
+    function getFee() external view returns (BubbleV1Types.Fraction memory) {
         return s_fee;
     }
 
@@ -495,9 +496,9 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         return s_feeCollected;
     }
 
-    /// @notice Gets the address of the MonadexV1Router.
-    /// @return The MonadexV1Router address.
-    function getMonadexV1Router() external view returns (address) {
+    /// @notice Gets the address of the BubbleV1Router.
+    /// @return The BubbleV1Router address.
+    function getBubbleV1Router() external view returns (address) {
         return i_monadexV1Router;
     }
 
@@ -535,7 +536,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
     )
         external
         view
-        returns (MonadexV1Types.TokenDetails memory)
+        returns (BubbleV1Types.TokenDetails memory)
     {
         return s_tokenDetails[_token];
     }
@@ -547,7 +548,7 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         view
         returns (uint256)
     {
-        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        BubbleV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
         if (tokenDetails.launched) return 0;
 
         return tokenDetails.targetNativeTokenReserve + tokenDetails.tokenCreatorReward
@@ -567,11 +568,11 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         view
         returns (uint256, uint256)
     {
-        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        BubbleV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
 
         uint256 feeAmount =
-            MonadexV1Library.calculateAmountAfterApplyingPercentage(_nativeAmount, s_fee);
-        uint256 tokenAmount = MonadexV1Library.getAmountOutForCampaigns(
+            BubbleV1Library.calculateAmountAfterApplyingPercentage(_nativeAmount, s_fee);
+        uint256 tokenAmount = BubbleV1Library.getAmountOutForCampaigns(
             _nativeAmount, tokenDetails.nativeTokenReserve, tokenDetails.tokenReserve
         );
 
@@ -592,13 +593,13 @@ contract MonadexV1Campaigns is Owned, IMonadexV1Campaigns {
         view
         returns (uint256, uint256)
     {
-        MonadexV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
+        BubbleV1Types.TokenDetails memory tokenDetails = s_tokenDetails[_token];
 
-        uint256 nativeAmountToSend = MonadexV1Library.getAmountOutForCampaigns(
+        uint256 nativeAmountToSend = BubbleV1Library.getAmountOutForCampaigns(
             _tokenAmount, tokenDetails.tokenReserve, tokenDetails.nativeTokenReserve
         );
         uint256 fee =
-            MonadexV1Library.calculateAmountAfterApplyingPercentage(nativeAmountToSend, s_fee);
+            BubbleV1Library.calculateAmountAfterApplyingPercentage(nativeAmountToSend, s_fee);
 
         return (nativeAmountToSend - fee, fee);
     }

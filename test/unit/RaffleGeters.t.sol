@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Raffle
+//  CONTRACT: BubbleV1Raffle
 //  FUNCTIONS TESTED: 24
 // ----------------------------------
 
@@ -14,7 +14,7 @@ pragma solidity ^0.8.24;
 //  3. getWinnersInTier1()
 //  4. getWinnersInTier2()
 //  5. getWinnersInTier3()
-//  6. getMonadexV1Router()
+//  6. getBubbleV1Router()
 //  7. getPyth()
 //  8. getEntropyContract()
 //  9. getEntropyProvider()
@@ -29,15 +29,15 @@ pragma solidity ^0.8.24;
 import { Test, console2 } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
@@ -84,7 +84,7 @@ contract RaffleGetters is Test, Deployer {
     }
 
     function test_getRouterAddress() public view {
-        address routerAddress = s_raffle.getMonadexV1Router();
+        address routerAddress = s_raffle.getBubbleV1Router();
         assertEq(routerAddress, address(s_router));
     }
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Router
+//  CONTRACT: BubbleV1Router
 //  FUNCTIONS TESTED: 5
 //  This test execute several operations in a single function, like
 //  create pool, add liquidity, swaps, remove liquidity, swap again,...
@@ -26,15 +26,15 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
 import { RouterAddLiquidity } from "test/unit/RouterAddLiquidity.t.sol";
 
@@ -75,7 +75,7 @@ contract RouterSeveralOperations is Test, Deployer {
         DAI.approve(address(s_router), ADD_50K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP1 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP1 = BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(DAI),
             amountADesired: ADD_10K,
@@ -98,7 +98,7 @@ contract RouterSeveralOperations is Test, Deployer {
         DAI.approve(address(s_router), ADD_500K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP2 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP2 = BubbleV1Types.AddLiquidity({
             tokenA: address(DAI),
             tokenB: address(wBTC),
             amountADesired: ADD_500K,
@@ -124,15 +124,15 @@ contract RouterSeveralOperations is Test, Deployer {
         path[0] = address(DAI);
         path[1] = address(wBTC);
 
-        MonadexV1Types.Fraction[5] memory fractionTiers = [
-            MonadexV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
-            MonadexV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
+        BubbleV1Types.Fraction[5] memory fractionTiers = [
+            BubbleV1Types.Fraction({ numerator: NUMERATOR1, denominator: DENOMINATOR_100 }), // 1%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR2, denominator: DENOMINATOR_100 }), // 2%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR3, denominator: DENOMINATOR_100 }), // 3%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR4, denominator: DENOMINATOR_100 }), // 4%
+            BubbleV1Types.Fraction({ numerator: NUMERATOR5, denominator: DENOMINATOR_100 }) // 5%
         ];
 
-        MonadexV1Types.Raffle memory raffleParameters = MonadexV1Types.Raffle({
+        BubbleV1Types.Raffle memory raffleParameters = BubbleV1Types.Raffle({
             enter: false,
             fractionOfSwapAmount: fractionTiers[1],
             raffleNftReceiver: address(swapper1)
@@ -154,7 +154,7 @@ contract RouterSeveralOperations is Test, Deployer {
         DAI.approve(address(s_router), ADD_100K);
 
         // Note: deadline = max deadLine possible => 1921000304
-        MonadexV1Types.AddLiquidity memory liquidityLP3 = MonadexV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity memory liquidityLP3 = BubbleV1Types.AddLiquidity({
             tokenA: address(DAI),
             tokenB: address(wBTC),
             amountADesired: ADD_10K,

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ----------------------------------
-//  CONTRACT: MonadexV1Factory
+//  CONTRACT: BubbleV1Factory
 //  GET FUNCTIONS: 3
 //  This test check the deploy Pool feature.
 // ----------------------------------
@@ -25,17 +25,17 @@ pragma solidity ^0.8.24;
 import { Test, console } from "lib/forge-std/src/Test.sol";
 
 // --------------------------------
-//    Monadex Contracts Imports
+//    Bubble Contracts Imports
 // --------------------------------
 
 import { ERC20 } from "lib/solmate/src/tokens/ERC20.sol";
 
 import { Deployer } from "test/baseHelpers/Deployer.sol";
 
-import { MonadexV1Library } from "src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "src/library/BubbleV1Types.sol";
 
-import { MonadexV1Pool } from "src/core/MonadexV1Pool.sol";
+import { BubbleV1Pool } from "src/core/BubbleV1Pool.sol";
 
 // ------------------------------------------------------
 //    Contract for testing and debugging
@@ -64,11 +64,11 @@ contract FactoryDeployPool is Test, Deployer {
         bytes32 salt = keccak256(abi.encodePacked(address(wETH), address(DAI)));
         bytes32 hashPreAddress = keccak256(
             abi.encodePacked(
-                bytes1(0xff), address(s_factory), salt, keccak256(type(MonadexV1Pool).creationCode)
+                bytes1(0xff), address(s_factory), salt, keccak256(type(BubbleV1Pool).creationCode)
             )
         );
 
-        bytes32 initCodeHash = keccak256(abi.encodePacked(type(MonadexV1Pool).creationCode));
+        bytes32 initCodeHash = keccak256(abi.encodePacked(type(BubbleV1Pool).creationCode));
 
         address preAddress = address(uint160(uint256(hashPreAddress)));
 
@@ -81,7 +81,7 @@ contract FactoryDeployPool is Test, Deployer {
         bytes32 salt2 = keccak256(abi.encodePacked(address(wBTC), address(USDT)));
         bytes32 hashPreAddress2 = keccak256(
             abi.encodePacked(
-                bytes1(0xff), address(s_factory), salt2, keccak256(type(MonadexV1Pool).creationCode)
+                bytes1(0xff), address(s_factory), salt2, keccak256(type(BubbleV1Pool).creationCode)
             )
         );
 
@@ -94,7 +94,7 @@ contract FactoryDeployPool is Test, Deployer {
         vm.stopPrank();
 
         /* console.logBytes32(bytes32(hashPreAddress));
-        bytes memory bytecode = type(MonadexV1Pool).creationCode;
+        bytes memory bytecode = type(BubbleV1Pool).creationCode;
         console.logBytes32(keccak256(abi.encodePacked(bytecode))); */
     }
 
@@ -103,7 +103,7 @@ contract FactoryDeployPool is Test, Deployer {
         bytes32 salt = keccak256(abi.encodePacked(address(wBTC), address(USDT)));
         bytes32 hashPreAddress = keccak256(
             abi.encodePacked(
-                bytes1(0xff), address(s_factory), salt, keccak256(type(MonadexV1Pool).creationCode)
+                bytes1(0xff), address(s_factory), salt, keccak256(type(BubbleV1Pool).creationCode)
             )
         );
         address preAddress = address(uint160(uint256(hashPreAddress)));
@@ -117,7 +117,7 @@ contract FactoryDeployPool is Test, Deployer {
         bytes32 salt = keccak256(abi.encodePacked(address(USDT), address(wBTC)));
         bytes32 hashPreAddress = keccak256(
             abi.encodePacked(
-                bytes1(0xff), address(s_factory), salt, keccak256(type(MonadexV1Pool).creationCode)
+                bytes1(0xff), address(s_factory), salt, keccak256(type(BubbleV1Pool).creationCode)
             )
         );
         address preAddress = address(uint160(uint256(hashPreAddress)));

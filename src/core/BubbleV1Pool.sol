@@ -8,17 +8,17 @@ import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import { Math } from "@openzeppelin/utils/math/Math.sol";
 import { ERC20 } from "@solmate/tokens/ERC20.sol";
 
-import { IMonadexV1Callee } from "@src/interfaces/IMonadexV1Callee.sol";
-import { IMonadexV1Factory } from "@src/interfaces/IMonadexV1Factory.sol";
-import { IMonadexV1Pool } from "@src/interfaces/IMonadexV1Pool.sol";
-import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { IBubbleV1Callee } from "@src/interfaces/IBubbleV1Callee.sol";
+import { IBubbleV1Factory } from "@src/interfaces/IBubbleV1Factory.sol";
+import { IBubbleV1Pool } from "@src/interfaces/IBubbleV1Pool.sol";
+import { BubbleV1Library } from "@src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-/// @title MonadexV1Pool.
-/// @author Monadex Labs -- mgnfy-view.
-/// @notice Monadex pools store reserves of a token pair, and allow supplying liquidity,
+/// @title BubbleV1Pool.
+/// @author Bubble Finance -- mgnfy-view.
+/// @notice Bubble pools store reserves of a token pair, and allow supplying liquidity,
 /// withdrawing liquidity, and swapping tokens in either direction.
-contract MonadexV1Pool is ERC20, IMonadexV1Pool {
+contract BubbleV1Pool is ERC20, IBubbleV1Pool {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -89,30 +89,30 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// Errors ///
     //////////////
 
-    error MonadexV1Pool__Locked();
-    error MonadexV1Pool__NotFactory();
-    error MonadexV1Pool__ZeroLpTokensToMint();
-    error MonadexV1Pool__CannotWithdrawZeroTokenAmount();
-    error MonadexV1Pool__InsufficientOutputAmount();
-    error MonadexV1Pool__OutputAmountGreaterThanReserves();
-    error MonadexV1Pool__InvalidReceiver(address receiver);
-    error MonadexV1Pool__InsufficientInputAmount();
-    error MonadexV1Pool__InvalidK();
-    error MonadexV1Pool__BalancesOverflow();
+    error BubbleV1Pool__Locked();
+    error BubbleV1Pool__NotFactory();
+    error BubbleV1Pool__ZeroLpTokensToMint();
+    error BubbleV1Pool__CannotWithdrawZeroTokenAmount();
+    error BubbleV1Pool__InsufficientOutputAmount();
+    error BubbleV1Pool__OutputAmountGreaterThanReserves();
+    error BubbleV1Pool__InvalidReceiver(address receiver);
+    error BubbleV1Pool__InsufficientInputAmount();
+    error BubbleV1Pool__InvalidK();
+    error BubbleV1Pool__BalancesOverflow();
 
     /////////////////
     /// Modifiers ///
     /////////////////
 
     modifier globalLock() {
-        if (s_isLocked) revert MonadexV1Pool__Locked();
+        if (s_isLocked) revert BubbleV1Pool__Locked();
         s_isLocked = true;
         _;
         s_isLocked = false;
     }
 
     modifier onlyFactory() {
-        if (msg.sender != i_factory) revert MonadexV1Pool__NotFactory();
+        if (msg.sender != i_factory) revert BubbleV1Pool__NotFactory();
         _;
     }
 
@@ -129,7 +129,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// External Functions ///
     //////////////////////////
 
-    /// @notice This function is called by the Monadex V1 factory right after pool deployment
+    /// @notice This function is called by the Bubble V1 factory right after pool deployment
     /// to set the token addresses for this pool, as well as the LP token name and symbol.
     /// @param _tokenA Address of the first token in the pair.
     /// @param _tokenB Address of the second token in the pair.
@@ -138,7 +138,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         s_tokenB = _tokenB;
 
         name = string.concat(
-            "Monadex ",
+            "Bubble ",
             IERC20Metadata(_tokenA).name(),
             " ",
             IERC20Metadata(_tokenB).name(),
@@ -153,7 +153,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// @notice Allows liquidity providers to add liquidity to the pool, and get LP tokens which
     /// represent their share of the pool. The protocol team is minted their share of the swap fee
     /// accumulated in the pool before proceeding to add liquidity. It is recommended to use the
-    /// Monadex v1 router (which performs additional safety checks) for this action.
+    /// Bubble v1 router (which performs additional safety checks) for this action.
     /// @param _receiver The address to send the LP tokens to.
     /// @return The amount of LP tokens minted.
     function addLiquidity(address _receiver) external globalLock returns (uint256) {
@@ -175,7 +175,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
                 (amountBIn * totalLpTokenSupply) / reserveB
             );
         }
-        if (lpTokensToMint == 0) revert MonadexV1Pool__ZeroLpTokensToMint();
+        if (lpTokensToMint == 0) revert BubbleV1Pool__ZeroLpTokensToMint();
         _mint(_receiver, lpTokensToMint);
         _updateReservesAndTWAP(balanceA, balanceB, reserveA, reserveB);
         if (getProtocolTeamMultisig() != address(0)) s_lastK = s_reserveA * s_reserveB;
@@ -188,7 +188,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// @notice Allows liquidity providers to exit their positions by withdrawing their liquidity
     /// based on their share of the pool. The protocol team is minted their share of the fee
     /// accumulated in the pool before proceeding to remove liquidity. It is recommended to use the
-    /// Monadex v1 router (which performs additional safety checks) for this action.
+    /// Bubble v1 router (which performs additional safety checks) for this action.
     /// @param _receiver The address to direct the withdrawn liquidity to.
     /// @return Amount of token A withdrawn.
     /// @return Amount of token B withdrawn.
@@ -203,7 +203,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         uint256 amountAOut = (lpTokensReceived * balanceA) / totalLpTokenSupply;
         uint256 amountBOut = (lpTokensReceived * balanceB) / totalLpTokenSupply;
         if (amountAOut == 0 || amountBOut == 0) {
-            revert MonadexV1Pool__CannotWithdrawZeroTokenAmount();
+            revert BubbleV1Pool__CannotWithdrawZeroTokenAmount();
         }
         _burn(address(this), lpTokensReceived);
         IERC20(s_tokenA).safeTransfer(_receiver, amountAOut);
@@ -222,23 +222,23 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// flash loans, all packed in the same function. Additionally, users leveraging flash
     /// swaps and flash loans can invoke hooks before and after a swap.
     /// @param _swapParams The parameters for swapping.
-    function swap(MonadexV1Types.SwapParams memory _swapParams) external globalLock {
+    function swap(BubbleV1Types.SwapParams memory _swapParams) external globalLock {
         if (_swapParams.amountAOut == 0 && _swapParams.amountBOut == 0) {
-            revert MonadexV1Pool__InsufficientOutputAmount();
+            revert BubbleV1Pool__InsufficientOutputAmount();
         }
         (uint256 reserveA, uint256 reserveB) = getReserves();
         if (_swapParams.amountAOut >= reserveA || _swapParams.amountBOut >= reserveB) {
-            revert MonadexV1Pool__OutputAmountGreaterThanReserves();
+            revert BubbleV1Pool__OutputAmountGreaterThanReserves();
         }
 
         uint256 balanceA;
         uint256 balanceB;
         {
             if (_swapParams.receiver == s_tokenA || _swapParams.receiver == s_tokenB) {
-                revert MonadexV1Pool__InvalidReceiver(_swapParams.receiver);
+                revert BubbleV1Pool__InvalidReceiver(_swapParams.receiver);
             }
             if (_swapParams.hookConfig.hookBeforeCall) {
-                IMonadexV1Callee(_swapParams.receiver).hookBeforeCall(
+                IBubbleV1Callee(_swapParams.receiver).hookBeforeCall(
                     msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
                 );
             }
@@ -249,7 +249,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
                 IERC20(s_tokenB).safeTransfer(_swapParams.receiver, _swapParams.amountBOut);
             }
             if (_swapParams.data.length > 0) {
-                IMonadexV1Callee(_swapParams.receiver).onCall(
+                IBubbleV1Callee(_swapParams.receiver).onCall(
                     msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
                 );
             }
@@ -262,9 +262,9 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         uint256 amountBIn = balanceB > reserveB - _swapParams.amountBOut
             ? balanceB - (reserveB - _swapParams.amountBOut)
             : 0;
-        if (amountAIn == 0 && amountBIn == 0) revert MonadexV1Pool__InsufficientInputAmount();
+        if (amountAIn == 0 && amountBIn == 0) revert BubbleV1Pool__InsufficientInputAmount();
         {
-            MonadexV1Types.Fraction memory poolFee = getPoolFee();
+            BubbleV1Types.Fraction memory poolFee = getPoolFee();
             uint256 balanceAAdjusted =
                 (balanceA * poolFee.denominator) - (amountAIn * poolFee.numerator);
             uint256 balanceBAdjusted =
@@ -273,7 +273,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
                 balanceAAdjusted * balanceBAdjusted
                     < reserveA * reserveB * (poolFee.denominator ** 2)
             ) {
-                revert MonadexV1Pool__InvalidK();
+                revert BubbleV1Pool__InvalidK();
             }
         }
         _updateReservesAndTWAP(balanceA, balanceB, reserveA, reserveB);
@@ -288,7 +288,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         );
 
         if (_swapParams.hookConfig.hookAfterCall) {
-            IMonadexV1Callee(_swapParams.receiver).hookAfterCall(
+            IBubbleV1Callee(_swapParams.receiver).hookAfterCall(
                 msg.sender, _swapParams.amountAOut, _swapParams.amountBOut, _swapParams.data
             );
         }
@@ -348,21 +348,21 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         internal
     {
         if (_balanceA > type(uint112).max || _balanceB > type(uint112).max) {
-            revert MonadexV1Pool__BalancesOverflow();
+            revert BubbleV1Pool__BalancesOverflow();
         }
         unchecked {
-            uint32 blockTimestamp = uint32(block.timestamp % MonadexV1Library.Q112);
+            uint32 blockTimestamp = uint32(block.timestamp % BubbleV1Library.Q112);
             uint32 timeElapsed = blockTimestamp - s_blockTimestampLast;
 
             if (timeElapsed > 0 && _reserveA != 0 && _reserveB != 0) {
                 s_priceACumulativeLast += uint256(
-                    MonadexV1Library.uqdiv(
-                        MonadexV1Library.encode(uint112(_reserveB)), uint112(_reserveA)
+                    BubbleV1Library.uqdiv(
+                        BubbleV1Library.encode(uint112(_reserveB)), uint112(_reserveA)
                     )
                 ) * timeElapsed;
                 s_priceBCumulativeLast += uint256(
-                    MonadexV1Library.uqdiv(
-                        MonadexV1Library.encode(uint112(_reserveA)), uint112(_reserveB)
+                    BubbleV1Library.uqdiv(
+                        BubbleV1Library.encode(uint112(_reserveA)), uint112(_reserveB)
                     )
                 ) * timeElapsed;
             }
@@ -382,7 +382,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// @param _reserveB Token B's reserve.
     function _mintProtocolFee(uint256 _reserveA, uint256 _reserveB) internal {
         address protocolTeamMultisig = getProtocolTeamMultisig();
-        MonadexV1Types.Fraction memory protocolFee = getProtocolFee();
+        BubbleV1Types.Fraction memory protocolFee = getProtocolFee();
         uint256 lastK = s_lastK;
         uint256 totalLpTokenSupply = totalSupply;
 
@@ -417,7 +417,7 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
         return true;
     }
 
-    /// @notice Gets the address of the MonadexV1Factory.
+    /// @notice Gets the address of the BubbleV1Factory.
     /// @return The factory address.
     function getFactory() external view returns (address) {
         return i_factory;
@@ -433,19 +433,19 @@ contract MonadexV1Pool is ERC20, IMonadexV1Pool {
     /// part of the swap fee to the protocol team.
     /// @return The protocol team's multi-sig address.
     function getProtocolTeamMultisig() public view returns (address) {
-        return IMonadexV1Factory(i_factory).getProtocolTeamMultisig();
+        return IBubbleV1Factory(i_factory).getProtocolTeamMultisig();
     }
 
     /// @notice Gets the protocol's cut of the swap fee from the factory.
     /// @return The protocol fee, a struct with numerator and denominator fields.
-    function getProtocolFee() public view returns (MonadexV1Types.Fraction memory) {
-        return IMonadexV1Factory(i_factory).getProtocolFee();
+    function getProtocolFee() public view returns (BubbleV1Types.Fraction memory) {
+        return IBubbleV1Factory(i_factory).getProtocolFee();
     }
 
     /// @notice Gets the swap fee from the factory.
     /// @return The swap fee, a struct with numerator and denominator fields.
-    function getPoolFee() public view returns (MonadexV1Types.Fraction memory) {
-        return IMonadexV1Factory(i_factory).getTokenPairToFee(s_tokenA, s_tokenB);
+    function getPoolFee() public view returns (BubbleV1Types.Fraction memory) {
+        return IBubbleV1Factory(i_factory).getTokenPairToFee(s_tokenA, s_tokenB);
     }
 
     /// @notice Gets the addresses of the tokens in this pool.

@@ -14,16 +14,16 @@ import { EnumerableSet } from "@openzeppelin/utils/structs/EnumerableSet.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 
-import { IMonadexV1Raffle } from "@src/interfaces/IMonadexV1Raffle.sol";
+import { IBubbleV1Raffle } from "@src/interfaces/IBubbleV1Raffle.sol";
 
-import { MonadexV1Library } from "@src/library/MonadexV1Library.sol";
-import { MonadexV1Types } from "@src/library/MonadexV1Types.sol";
+import { BubbleV1Library } from "@src/library/BubbleV1Library.sol";
+import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
-/// @title MonadexV1Raffle.
-/// @author Monadex Labs -- mgnfy-view.
+/// @title BubbleV1Raffle.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice Raffle allows users to swap and pay additional fees on supported pools
 /// to be eligible for the weekly draw.
-contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle {
+contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -54,7 +54,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     string private constant SEED_4 = "Mon-Turtle";
     /// @dev The token Uri for all Nfts.
     string private s_tokenUri;
-    /// @dev The address of the `MonadexV1Router`.
+    /// @dev The address of the `BubbleV1Router`.
     address private s_monadexV1Router;
     /// @dev This is the contract we query to get the price of each supported token in USD.
     address private immutable i_pyth;
@@ -62,7 +62,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// for raffle.
     EnumerableSet.AddressSet private s_supportedTokens;
     /// @dev Each supported token has a corresponding token/USD price feed Id.
-    mapping(address token => MonadexV1Types.PriceFeedConfig config) private s_tokenToPriceFeedConfig;
+    mapping(address token => BubbleV1Types.PriceFeedConfig config) private s_tokenToPriceFeedConfig;
     /// @dev The Pyth contract which we'll use to request random numbers from.
     address private immutable i_entropy;
     /// @dev We can use different entropy providers to request random numbers from.
@@ -96,22 +96,22 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @dev Tracks whether a user has claimed winnings from a tier in a given epoch. Prevents replays.
     mapping(
         uint256 tokenId
-            => mapping(uint256 epoch => mapping(MonadexV1Types.Tiers tier => bool claimed))
+            => mapping(uint256 epoch => mapping(BubbleV1Types.Tiers tier => bool claimed))
     ) private s_hasClaimedEpochTierWinnings;
     /// @dev The winning portions of the total collected amount in each tier.
     /// For example, the winning portions may be like:
     /// 55% of total collected amount for 1 winner in tier 1.
     /// 15% of total collected amount for 2 winners in tier 2.
     /// 5% of total collected amount for 3 winners in tier 3.
-    MonadexV1Types.Fraction[TIERS] private s_winningPortions;
+    BubbleV1Types.Fraction[TIERS] private s_winningPortions;
 
     //////////////
     /// Events ///
     //////////////
 
-    event MonadexV1RouterSet(address indexed monadexV1Router);
+    event BubbleV1RouterSet(address indexed monadexV1Router);
     event TokenSupported(
-        address indexed _token, MonadexV1Types.PriceFeedConfig indexed priceFeedConfig
+        address indexed _token, BubbleV1Types.PriceFeedConfig indexed priceFeedConfig
     );
     event TokenRemoved(address indexed token);
     event RewardsBoosted(address indexed by, address indexed token, uint256 indexed amount);
@@ -123,37 +123,37 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         uint256 distance
     );
     event RandomNumberRequested();
-    event TierWinningsClaimed(MonadexV1Types.RaffleClaim indexed claim);
+    event TierWinningsClaimed(BubbleV1Types.RaffleClaim indexed claim);
     event EpochEnded(uint256 indexed epoch, bytes32 indexed randomNumber);
-    event WinningPortionsSet(MonadexV1Types.Fraction[TIERS] indexed winningPortions);
+    event WinningPortionsSet(BubbleV1Types.Fraction[TIERS] indexed winningPortions);
     event MinimumNftsToBeMintedEachEpochSet(uint256 indexed minimumNftsToBeMintedEachEpoch);
 
     //////////////
     /// Errors ///
     //////////////
 
-    error MonadexV1Raffle__NotRouter();
-    error MonadexV1Raffle__RouterAlreadySet(address monadexV1Router);
-    error MonadexV1Raffle__AddressZero();
-    error MonadexV1Raffle__TokenAlreadySupported(address token);
-    error MonadexV1Raffle__TokenNotSupported(address token);
-    error MonadexV1Raffle__AmountZero();
-    error MonadexV1Raffle__EpochHasNotEndedYet();
-    error MonadexV1Raffle__InsufficientNftsMinted(
+    error BubbleV1Raffle__NotRouter();
+    error BubbleV1Raffle__RouterAlreadySet(address monadexV1Router);
+    error BubbleV1Raffle__AddressZero();
+    error BubbleV1Raffle__TokenAlreadySupported(address token);
+    error BubbleV1Raffle__TokenNotSupported(address token);
+    error BubbleV1Raffle__AmountZero();
+    error BubbleV1Raffle__EpochHasNotEndedYet();
+    error BubbleV1Raffle__InsufficientNftsMinted(
         uint256 nftsMinted, uint256 minimumNftsToBeMintedEachEpoch
     );
-    error MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(
+    error BubbleV1Raffle__InsufficientFeeForRequestingRandomNumber(
         uint256 feeGiven, uint256 expectedFee
     );
-    error MonadexV1Raffle__RandomNumberAlreadyRequested();
-    error MonadexV1Raffle__InvalidTier();
-    error MonadexV1Raffle__AlreadyClaimedTierWinnings(uint256 tokenId, uint256 epoch, uint8 tier);
-    error MonadexV1Raffle__InvalidWinningPortions();
-    error MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
+    error BubbleV1Raffle__RandomNumberAlreadyRequested();
+    error BubbleV1Raffle__InvalidTier();
+    error BubbleV1Raffle__AlreadyClaimedTierWinnings(uint256 tokenId, uint256 epoch, uint8 tier);
+    error BubbleV1Raffle__InvalidWinningPortions();
+    error BubbleV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
-    modifier onlyMonadexV1Router() {
+    modifier onlyBubbleV1Router() {
         if (msg.sender != s_monadexV1Router) {
-            revert MonadexV1Raffle__NotRouter();
+            revert BubbleV1Raffle__NotRouter();
         }
         _;
     }
@@ -162,7 +162,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// Constructor ///
     ///////////////////
 
-    /// @notice Sets the addresses for external services like Pyth, the `MonadexV1Router`,
+    /// @notice Sets the addresses for external services like Pyth, the `BubbleV1Router`,
     /// and some required params for raffle.
     /// @param _pyth The address of the Pyth contract to query prices from.
     /// @param _entropy The Pyth entropy contract to request random numbers from.
@@ -174,14 +174,14 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         address _entropy,
         address _entropyProvider,
         uint256 _minimumNftsToBeMintedEachEpoch,
-        MonadexV1Types.Fraction[TIERS] memory _winningPortions,
+        BubbleV1Types.Fraction[TIERS] memory _winningPortions,
         string memory _tokenUri
     )
-        ERC721("Monadex V1 Raffle", "MDXR")
+        ERC721("Bubble V1 Raffle", "BUBBLR")
         Ownable(msg.sender)
     {
         if (_pyth == address(0) || _entropy == address(0) || _entropyProvider == address(0)) {
-            revert MonadexV1Raffle__AddressZero();
+            revert BubbleV1Raffle__AddressZero();
         }
 
         _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
@@ -200,16 +200,16 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// External Functions ///
     //////////////////////////
 
-    /// @notice Allows the owner to set the `MonadexV1Router` address once.
-    /// @param _monadexV1Router The `MonadexV1Router` address.
-    function initializeMonadexV1Router(address _monadexV1Router) external onlyOwner {
+    /// @notice Allows the owner to set the `BubbleV1Router` address once.
+    /// @param _monadexV1Router The `BubbleV1Router` address.
+    function initializeBubbleV1Router(address _monadexV1Router) external onlyOwner {
         if (s_monadexV1Router != address(0)) {
-            revert MonadexV1Raffle__RouterAlreadySet(s_monadexV1Router);
+            revert BubbleV1Raffle__RouterAlreadySet(s_monadexV1Router);
         }
 
         s_monadexV1Router = _monadexV1Router;
 
-        emit MonadexV1RouterSet(_monadexV1Router);
+        emit BubbleV1RouterSet(_monadexV1Router);
     }
 
     /// @notice Enables the owner to support tokens for raffle.
@@ -217,14 +217,14 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @param _priceFeedConfig The Pyth price feed config.
     function supportToken(
         address _token,
-        MonadexV1Types.PriceFeedConfig memory _priceFeedConfig
+        BubbleV1Types.PriceFeedConfig memory _priceFeedConfig
     )
         external
         onlyOwner
     {
-        if (_token == address(0)) revert MonadexV1Raffle__AddressZero();
+        if (_token == address(0)) revert BubbleV1Raffle__AddressZero();
         if (s_supportedTokens.contains(_token)) {
-            revert MonadexV1Raffle__TokenAlreadySupported(_token);
+            revert BubbleV1Raffle__TokenAlreadySupported(_token);
         }
 
         s_supportedTokens.add(_token);
@@ -236,8 +236,8 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Allows the owner to revoke support from a token for raffle.
     /// @param _token The token address.
     function removeToken(address _token) external onlyOwner {
-        if (_token == address(0)) revert MonadexV1Raffle__AddressZero();
-        if (!s_supportedTokens.contains(_token)) revert MonadexV1Raffle__TokenNotSupported(_token);
+        if (_token == address(0)) revert BubbleV1Raffle__AddressZero();
+        if (!s_supportedTokens.contains(_token)) revert BubbleV1Raffle__TokenNotSupported(_token);
 
         s_supportedTokens.remove(_token);
         delete s_tokenToPriceFeedConfig[_token];
@@ -248,7 +248,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Allows the owner to set winning portions for winners in each tier.
     /// @param _winningPortions The winning portions for winners in each tier.
     function setWinningPortions(
-        MonadexV1Types.Fraction[TIERS] memory _winningPortions
+        BubbleV1Types.Fraction[TIERS] memory _winningPortions
     )
         external
         onlyOwner
@@ -271,7 +271,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @param _token The token to contribute.
     /// @param _amount The amount of tokens to use for the boost.
     function boostRewards(address _token, uint256 _amount) external {
-        if (!s_supportedTokens.contains(_token)) revert MonadexV1Raffle__TokenNotSupported(_token);
+        if (!s_supportedTokens.contains(_token)) revert BubbleV1Raffle__TokenNotSupported(_token);
 
         s_epochToTokenAmountsCollected[s_epoch][_token] += _amount;
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
@@ -280,7 +280,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     }
 
     /// @notice Allows users to enter the weekly raffle during a swap.
-    /// @dev Only callable by the `MonadexV1Router`.
+    /// @dev Only callable by the `BubbleV1Router`.
     /// @param _tokenIn The token used for entering raffle.
     /// @param _amount The amount of token to be used for entering raffle.
     /// @param _receiver The recipient of raffle Nft.
@@ -291,11 +291,11 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         address _receiver
     )
         external
-        onlyMonadexV1Router
+        onlyBubbleV1Router
         returns (uint256)
     {
-        if (_amount == 0) revert MonadexV1Raffle__AmountZero();
-        if (_receiver == address(0)) revert MonadexV1Raffle__AddressZero();
+        if (_amount == 0) revert BubbleV1Raffle__AmountZero();
+        if (_receiver == address(0)) revert BubbleV1Raffle__AddressZero();
         uint256 distance = _convertToUsd(_tokenIn, _amount);
 
         uint256 epoch = s_epoch;
@@ -324,17 +324,17 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         uint256 epoch = s_epoch;
 
         if (block.timestamp - s_lastDrawTimestamp < EPOCH_DURATION) {
-            revert MonadexV1Raffle__EpochHasNotEndedYet();
+            revert BubbleV1Raffle__EpochHasNotEndedYet();
         }
         if (s_nftsMintedEachEpoch[epoch] < s_minimumNftsToBeMintedEachEpoch) {
-            revert MonadexV1Raffle__InsufficientNftsMinted(
+            revert BubbleV1Raffle__InsufficientNftsMinted(
                 s_nftsMintedEachEpoch[epoch], s_minimumNftsToBeMintedEachEpoch
             );
         }
 
         uint256 fee = IEntropy(i_entropy).getFee(i_entropyProvider);
         if (msg.value < fee) {
-            revert MonadexV1Raffle__InsufficientFeeForRequestingRandomNumber(msg.value, fee);
+            revert BubbleV1Raffle__InsufficientFeeForRequestingRandomNumber(msg.value, fee);
         }
         IEntropy(i_entropy).requestWithCallback{ value: fee }(i_entropyProvider, _userRandomNumber);
 
@@ -343,15 +343,15 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
 
     /// @notice Allows anyone to claim the raffle tier winnings for a given epoch on behalf of valid winners.
     /// @param _claim The claim details.
-    function claimTierWinnings(MonadexV1Types.RaffleClaim memory _claim) external {
+    function claimTierWinnings(BubbleV1Types.RaffleClaim memory _claim) external {
         if (s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier]) {
-            revert MonadexV1Raffle__AlreadyClaimedTierWinnings(
+            revert BubbleV1Raffle__AlreadyClaimedTierWinnings(
                 _claim.tokenId, _claim.epoch, uint8(_claim.tier)
             );
         }
 
         address owner = ownerOf(_claim.tokenId);
-        MonadexV1Types.Winnings[] memory winnings = getWinnings(_claim);
+        BubbleV1Types.Winnings[] memory winnings = getWinnings(_claim);
         uint256 length = winnings.length;
 
         s_hasClaimedEpochTierWinnings[_claim.tokenId][_claim.epoch][_claim.tier] = true;
@@ -386,26 +386,26 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @notice Allows the owner to set winning portions for winners in each tier.
     /// @param _winningPortions The winning portions for winners in each tier.
     function _setWinningPortions(
-        MonadexV1Types.Fraction[TIERS] memory _winningPortions
+        BubbleV1Types.Fraction[TIERS] memory _winningPortions
     )
         internal
         onlyOwner
     {
         if (
             _winningPortions.length > TIERS
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].numerator == 0
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator == 0
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator == 0
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator == 0
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator
-                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].denominator
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].denominator
-                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].denominator
-                || _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].numerator
-                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER2)].numerator * WINNERS_IN_TIER_2
-                    + _winningPortions[uint8(MonadexV1Types.Tiers.TIER3)].numerator * WINNERS_IN_TIER_3
-                    != _winningPortions[uint8(MonadexV1Types.Tiers.TIER1)].denominator
-        ) revert MonadexV1Raffle__InvalidWinningPortions();
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER1)].numerator == 0
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER2)].numerator == 0
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER3)].numerator == 0
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER1)].denominator == 0
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER1)].denominator
+                    != _winningPortions[uint8(BubbleV1Types.Tiers.TIER2)].denominator
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER2)].denominator
+                    != _winningPortions[uint8(BubbleV1Types.Tiers.TIER3)].denominator
+                || _winningPortions[uint8(BubbleV1Types.Tiers.TIER1)].numerator
+                    + _winningPortions[uint8(BubbleV1Types.Tiers.TIER2)].numerator * WINNERS_IN_TIER_2
+                    + _winningPortions[uint8(BubbleV1Types.Tiers.TIER3)].numerator * WINNERS_IN_TIER_3
+                    != _winningPortions[uint8(BubbleV1Types.Tiers.TIER1)].denominator
+        ) revert BubbleV1Raffle__InvalidWinningPortions();
 
         for (uint256 i; i < TIERS; ++i) {
             s_winningPortions[i] = _winningPortions[i];
@@ -420,7 +420,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         if (
             _minimumNftsToBeMintedEachEpoch
                 <= WINNERS_IN_TIER_1 + WINNERS_IN_TIER_2 + WINNERS_IN_TIER_3
-        ) revert MonadexV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
+        ) revert BubbleV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
         s_minimumNftsToBeMintedEachEpoch = _minimumNftsToBeMintedEachEpoch;
 
@@ -454,12 +454,12 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @param _token The token address.
     /// @param _amount The amount of token supplied.
     function _convertToUsd(address _token, uint256 _amount) internal view returns (uint256) {
-        MonadexV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
+        BubbleV1Types.PriceFeedConfig memory config = s_tokenToPriceFeedConfig[_token];
         PythStructs.Price memory price =
             IPyth(i_pyth).getPriceNoOlderThan(config.priceFeedId, config.noOlderThan);
         uint256 tokenDecimals = IERC20Metadata(_token).decimals();
 
-        return MonadexV1Library.totalValueInUsd(_amount, price, TARGET_DECIMALS, tokenDecimals);
+        return BubbleV1Library.totalValueInUsd(_amount, price, TARGET_DECIMALS, tokenDecimals);
     }
 
     /// @notice Maps the tier to the slice of random numbers to determine winners in the tier.
@@ -467,14 +467,14 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @return The slice's starting index.
     /// @return The slice's ending index.
     function _mapTierToRandomNumbersArrayIndices(
-        MonadexV1Types.Tiers _tier
+        BubbleV1Types.Tiers _tier
     )
         internal
         pure
         returns (uint256, uint256)
     {
-        if (_tier == MonadexV1Types.Tiers.TIER1) return (0, 1);
-        else if (_tier == MonadexV1Types.Tiers.TIER2) return (1, 3);
+        if (_tier == BubbleV1Types.Tiers.TIER1) return (0, 1);
+        else if (_tier == BubbleV1Types.Tiers.TIER2) return (1, 3);
         else return (3, 6);
     }
 
@@ -524,9 +524,9 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         return WINNERS_IN_TIER_3;
     }
 
-    /// @notice Gets the address of the `MonadexV1Router`.
-    /// @return The `MonadexV1Router` address.
-    function getMonadexV1Router() external view returns (address) {
+    /// @notice Gets the address of the `BubbleV1Router`.
+    /// @return The `BubbleV1Router` address.
+    function getBubbleV1Router() external view returns (address) {
         return s_monadexV1Router;
     }
 
@@ -561,7 +561,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     )
         external
         view
-        returns (MonadexV1Types.PriceFeedConfig memory)
+        returns (BubbleV1Types.PriceFeedConfig memory)
     {
         return s_tokenToPriceFeedConfig[_token];
     }
@@ -668,7 +668,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     function hasUserClaimedTierWinningsForEpoch(
         uint256 _tokenId,
         uint256 _epoch,
-        MonadexV1Types.Tiers _tier
+        BubbleV1Types.Tiers _tier
     )
         external
         view
@@ -694,18 +694,18 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
     /// @param _claim The claim details.
     /// @return The winning amounts for an epoch.
     function getWinnings(
-        MonadexV1Types.RaffleClaim memory _claim
+        BubbleV1Types.RaffleClaim memory _claim
     )
         public
         view
-        returns (MonadexV1Types.Winnings[] memory)
+        returns (BubbleV1Types.Winnings[] memory)
     {
-        MonadexV1Types.Winnings[] memory winnings;
+        BubbleV1Types.Winnings[] memory winnings;
 
-        if (_claim.tier < MonadexV1Types.Tiers.TIER1 || _claim.tier > MonadexV1Types.Tiers.TIER3) {
-            revert MonadexV1Raffle__InvalidTier();
+        if (_claim.tier < BubbleV1Types.Tiers.TIER1 || _claim.tier > BubbleV1Types.Tiers.TIER3) {
+            revert BubbleV1Raffle__InvalidTier();
         }
-        if (_claim.epoch == 0 || _claim.tokenId == 0) revert MonadexV1Raffle__AmountZero();
+        if (_claim.epoch == 0 || _claim.tokenId == 0) revert BubbleV1Raffle__AmountZero();
 
         uint256 epochRangeEndingPoint = s_epochToEndingPoint[_claim.epoch];
         uint256[] memory nftToRange = s_nftToRange[_claim.tokenId];
@@ -713,7 +713,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
 
         address[] memory tokens = s_supportedTokens.values();
         uint256 length = tokens.length;
-        winnings = new MonadexV1Types.Winnings[](length);
+        winnings = new BubbleV1Types.Winnings[](length);
         uint256[] memory tokenBalances = new uint256[](length);
 
         for (uint256 i; i < length; ++i) {
@@ -726,7 +726,7 @@ contract MonadexV1Raffle is ERC721, Ownable, IEntropyConsumer, IMonadexV1Raffle 
         }
 
         (uint256 start, uint256 end) = _mapTierToRandomNumbersArrayIndices(_claim.tier);
-        MonadexV1Types.Fraction memory winningPortion = s_winningPortions[uint8(_claim.tier)];
+        BubbleV1Types.Fraction memory winningPortion = s_winningPortions[uint8(_claim.tier)];
 
         for (uint256 i = start; i < end; ++i) {
             uint256 hitPoint = epochToRandomNumbers[i] % epochRangeEndingPoint;

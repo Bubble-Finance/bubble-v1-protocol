@@ -5,18 +5,18 @@ import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
 import { Owned } from "@solmate/auth/Owned.sol";
 
 /// @title ERC20Launchable.
-/// @author Monadex labs -- mgnfy-view.
+/// @author Bubble Finance -- mgnfy-view.
 /// @notice An ERC20 token which is not tradeable before launch (only transfers from/to owner
 /// are supported). This is to prevent tokens that have not completed their bonding curve
 /// from being listed on other dexes, lending protocols, etc. Once the token completes its bonding
-/// curve and has been listed on Monadex, the restriction is removed. Ownership of this token
-/// by MonadexV1Campaigns is renounced.
+/// curve and has been listed on Bubble, the restriction is removed. Ownership of this token
+/// by BubbleV1Campaigns is renounced.
 contract ERC20Launchable is ERC20, Owned {
     ///////////////////////
     /// State Variables ///
     ///////////////////////
 
-    /// @dev Tells if the token has been listed on Monadex or not, and that if it can be
+    /// @dev Tells if the token has been listed on Bubble or not, and that if it can be
     /// traded freely.
     bool private s_launched;
 
@@ -36,7 +36,7 @@ contract ERC20Launchable is ERC20, Owned {
     /// Constructor ///
     ///////////////////
 
-    /// @notice Initialized the token's metadata, and mints the total supply to MonadexV1Campaigns.
+    /// @notice Initialized the token's metadata, and mints the total supply to BubbleV1Campaigns.
     /// @param _name The name of the token.
     /// @param _symbol The symbol of the token.
     /// @param _totalSupply The total supply of the token.
@@ -55,8 +55,8 @@ contract ERC20Launchable is ERC20, Owned {
     /// External Functions ///
     //////////////////////////
 
-    /// @notice Allows the owner (MonadexV1Campaigns) to launch the token after it has successfully
-    /// completed it's bonding curve on MonadexV1Campaigns.
+    /// @notice Allows the owner (BubbleV1Campaigns) to launch the token after it has successfully
+    /// completed it's bonding curve on BubbleV1Campaigns.
     function launch() external onlyOwner {
         s_launched = true;
 
