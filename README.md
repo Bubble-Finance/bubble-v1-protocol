@@ -133,6 +133,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)][discord-url]
 
+[![X](https://img.shields.io/badge/X-%23000000.svg?style=for-the-badge&logo=X&logoColor=white)][x-url]
+
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
@@ -147,3 +150,4 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 [license-shield]: https://img.shields.io/github/license/Bubble-Finance/bubble-v1-protocol.svg?style=for-the-badge
 [license-url]: https://github.com/Bubble-Finance/bubble-v1-protocol/blob/master/LICENSE.txt
 [discord-url]: https://discord.gg/gUG5fhF69D
+[x-url]: https://x.com/Bubblefi_xyz
