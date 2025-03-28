@@ -52,9 +52,11 @@
 
 ## About The Project
 
+![bubblefi](./images/bubblefi.png)
+
 Welcome to Bubble, the #1 gamified and ecosystem-focused native DEX built on Monad. Bubble is the ultimate liquidity hub catering to the interests of both degens and mature traders alike with features such as MEV shield, gas sponsored swaps, raffle, launchpads, farms and more.
 
-This repository houses the core and auxiliary smart contracts for Bubble v1. For those seeking non-technical, in-depth documentation, we have prepared a comprehensive guide available on [GitBook](https://monadex.gitbook.io/monadex). This resource is tailored to provide a thorough understanding of Bubble, its features, and how to get started, making it an invaluable asset for both newcomers and experienced users alike.
+This repository houses the core and auxiliary smart contracts for Bubble v1. For those seeking non-technical, in-depth documentation, we have prepared a comprehensive guide available on [GitBook](https://bubblefi.gitbook.io/bubblefi). This resource is tailored to provide a thorough understanding of Bubble, its features, and how to get started, making it an invaluable asset for both newcomers and experienced users alike.
 
 Join us in shaping the future of decentralized finance on Monad by contributing to Bubble. Whether you're a developer looking to build on our platform, a degen trader seeking a new exchange, or simply curious about the project, we welcome you to explore and engage with our community.
 
