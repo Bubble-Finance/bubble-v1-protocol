@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IVotes } from "@openzeppelin/governance/extensions/GovernorVotes.sol";
+import { IVotes } from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 
-import { Governor } from "@openzeppelin/governance/Governor.sol";
+import { Governor } from "@openzeppelin/contracts/governance/Governor.sol";
 import { GovernorCountingSimple } from
-    "@openzeppelin/governance/extensions/GovernorCountingSimple.sol";
-import { GovernorSettings } from "@openzeppelin/governance/extensions/GovernorSettings.sol";
+    "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import { GovernorSettings } from
+    "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import {
     GovernorTimelockControl,
     TimelockController
-} from "@openzeppelin/governance/extensions/GovernorTimelockControl.sol";
-import { GovernorVotes } from "@openzeppelin/governance/extensions/GovernorVotes.sol";
+} from "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+import { GovernorVotes } from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import { GovernorVotesQuorumFraction } from
-    "@openzeppelin/governance/extensions/GovernorVotesQuorumFraction.sol";
+    "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
 /// @title BubbleV1Governor.
 /// @author Bubble Finance -- Ola hamid.

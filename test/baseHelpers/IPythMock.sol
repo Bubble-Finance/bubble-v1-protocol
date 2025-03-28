@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
+
 import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
@@ -15,23 +16,40 @@ contract IPythMock is IPyth {
         });
     }
 
-    function getValidTimePeriod() external pure override returns (uint) {
+    function getValidTimePeriod() external pure override returns (uint256) {
         return 3600; // Default to 1 hour
     }
 
-    function getPrice(bytes32 priceFeedId) external view override returns (PythStructs.Price memory) {
+    function getPrice(
+        bytes32 priceFeedId
+    )
+        external
+        view
+        override
+        returns (PythStructs.Price memory)
+    {
         return prices[priceFeedId];
     }
 
-    function getPriceUnsafe(bytes32 priceFeedId) external view override returns (PythStructs.Price memory) {
+    function getPriceUnsafe(
+        bytes32 priceFeedId
+    )
+        external
+        view
+        override
+        returns (PythStructs.Price memory)
+    {
         return prices[priceFeedId];
     }
 
-    function getPriceNoOlderThan(bytes32 priceFeedId, uint age) 
-        external 
-        view 
-        override 
-        returns (PythStructs.Price memory) 
+    function getPriceNoOlderThan(
+        bytes32 priceFeedId,
+        uint256 age
+    )
+        external
+        view
+        override
+        returns (PythStructs.Price memory)
     {
         PythStructs.Price memory price = prices[priceFeedId];
         require(price.publishTime + age >= block.timestamp, "Price is too old");
@@ -42,11 +60,14 @@ contract IPythMock is IPyth {
         //return PythStructs.Price(0, 0, 0, 0);
     }
 
-    function getEmaPriceNoOlderThan(bytes32, uint) 
-        external 
-        view 
-        override 
-        returns (PythStructs.Price memory) 
+    function getEmaPriceNoOlderThan(
+        bytes32,
+        uint256
+    )
+        external
+        view
+        override
+        returns (PythStructs.Price memory)
     {
         //return PythStructs.Price(0, 0, 0, 0);
     }
@@ -55,15 +76,19 @@ contract IPythMock is IPyth {
         //return PythStructs.Price(0, 0, 0, 0);
     }
 
-    function updatePriceFeeds(bytes[] calldata) external payable override {}
+    function updatePriceFeeds(bytes[] calldata) external payable override { }
 
     function updatePriceFeedsIfNecessary(
         bytes[] calldata updateData,
         bytes32[] calldata priceIds,
         uint64[] calldata publishTimes
-    ) external payable override {}
+    )
+        external
+        payable
+        override
+    { }
 
-    function getUpdateFee(bytes[] calldata) external view override returns (uint) {
+    function getUpdateFee(bytes[] calldata) external pure override returns (uint256) {
         return 0;
     }
 
@@ -72,7 +97,12 @@ contract IPythMock is IPyth {
         bytes32[] calldata,
         uint64,
         uint64
-    ) external payable override returns (PythStructs.PriceFeed[] memory) {
+    )
+        external
+        payable
+        override
+        returns (PythStructs.PriceFeed[] memory)
+    {
         return new PythStructs.PriceFeed[](0);
     }
 
@@ -81,7 +111,12 @@ contract IPythMock is IPyth {
         bytes32[] calldata,
         uint64,
         uint64
-    ) external payable override returns (PythStructs.PriceFeed[] memory) {
+    )
+        external
+        payable
+        override
+        returns (PythStructs.PriceFeed[] memory)
+    {
         return new PythStructs.PriceFeed[](0);
     }
 }

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IEntropy } from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import { IEntropyConsumer } from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import { IPyth } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
-import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import { ERC721 } from "@openzeppelin/token/ERC721/ERC721.sol";
-import { EnumerableSet } from "@openzeppelin/utils/structs/EnumerableSet.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { PythStructs } from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 import { PythUtils } from "@pythnetwork/pyth-sdk-solidity/PythUtils.sol";
 

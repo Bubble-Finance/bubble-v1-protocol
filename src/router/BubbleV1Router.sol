@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
-import { IERC20Permit } from "@openzeppelin/token/ERC20/extensions/IERC20Permit.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
-import { SafeERC20 } from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IBubbleV1Factory } from "@src/interfaces/IBubbleV1Factory.sol";
 import { IBubbleV1Pool } from "@src/interfaces/IBubbleV1Pool.sol";

@@ -66,8 +66,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountA, uint256 amountB, uint256 lpTokensMinted) =
-            s_router.addLiquidity(liquidityFot);
+        (,, uint256 lpTokensMinted) = s_router.addLiquidity(liquidityFot);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(DAI), address(s_fotToken));
@@ -113,8 +112,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountA, uint256 amountB, uint256 lpTokensMinted) =
-            s_router.addLiquidity(liquidityFot);
+        s_router.addLiquidity(liquidityFot);
         vm.stopPrank();
 
         /*
@@ -158,9 +156,6 @@ contract RouterFeeOnTransfer is Test, Deployer {
         DAI.approve(address(s_router), 100e18);
         s_fotToken.approve(address(s_router), 30e18);
 
-        uint256 poolBalanceBeforeDAI = DAI.balanceOf(poolAddress);
-        uint256 poolBalanceBeforeFOT = s_fotToken.balanceOf(poolAddress);
-
         BubbleV1Types.AddLiquidity memory liquidityFot = BubbleV1Types.AddLiquidity({
             tokenA: address(s_fotToken),
             tokenB: address(DAI),
@@ -172,8 +167,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountA, uint256 amountB, uint256 lpTokensMinted) =
-            s_router.addLiquidity(liquidityFot);
+        s_router.addLiquidity(liquidityFot);
 
         console2.log("User Balance DAI 3: ", DAI.balanceOf(fot));
         console2.log("User Balance FOT 3: ", s_fotToken.balanceOf(fot));
@@ -345,8 +339,7 @@ contract RouterFeeOnTransfer is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountToken, uint256 amountNative, uint256 lpTokensMinted) =
-            s_router.addLiquidityNative{ value: ADD_500K }(nativeFOT);
+        (,, uint256 lpTokensMinted) = s_router.addLiquidityNative{ value: ADD_500K }(nativeFOT);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wMonad), address(s_fotToken));
@@ -367,7 +360,6 @@ contract RouterFeeOnTransfer is Test, Deployer {
 
     function test_swapExactNativeForTokensSupportingFeeOnTransferTokens() public {
         test_initialSupplyAddNative_FOT();
-        address poolAddress = s_factory.getTokenPairToPool(address(wMonad), address(s_fotToken));
 
         console2.log("***** USER BALANCES BEFORE *****");
         console2.log("Native balance: ", fot.balance);

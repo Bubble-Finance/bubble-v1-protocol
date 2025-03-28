@@ -35,8 +35,8 @@ contract MockEntropyContract is IEntropyConsumer {
     }
 
     function entropyCallback(
-        uint64 sequenceNumber,
-        address _providerAddress,
+        uint64, /* sequenceNumber */
+        address, /* _providerAddress */
         bytes32 _randomNumber
     )
         internal

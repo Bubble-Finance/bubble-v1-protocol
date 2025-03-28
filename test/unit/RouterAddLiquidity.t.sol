@@ -71,8 +71,7 @@ contract RouterAddLiquidity is Test, Deployer {
             receiver: LP1,
             deadline: block.timestamp
         });
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        (,, uint256 lpTokensMintedLP1) = s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(DAI));
@@ -107,8 +106,7 @@ contract RouterAddLiquidity is Test, Deployer {
             receiver: LP1,
             deadline: block.timestamp
         });
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        (,, uint256 lpTokensMintedLP1) = s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(USDT));
@@ -148,8 +146,7 @@ contract RouterAddLiquidity is Test, Deployer {
             receiver: LP2,
             deadline: block.timestamp
         });
-        (uint256 amountALP2, uint256 amountBLP2, uint256 lpTokensMintedLP2) =
-            s_router.addLiquidity(liquidityLP2);
+        s_router.addLiquidity(liquidityLP2);
         vm.stopPrank();
 
         /*
@@ -183,8 +180,7 @@ contract RouterAddLiquidity is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(DAI));
@@ -209,8 +205,7 @@ contract RouterAddLiquidity is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wBTC), address(DAI));
@@ -237,8 +232,7 @@ contract RouterAddLiquidity is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountTokenLP1, uint256 amountNativeLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidityNative{ value: ADD_100K }(nativeLP1);
+        (,, uint256 lpTokensMintedLP1) = s_router.addLiquidityNative{ value: ADD_100K }(nativeLP1);
         vm.stopPrank();
 
         address poolAddress = s_factory.getTokenPairToPool(address(wMonad), address(DAI));
@@ -270,8 +264,7 @@ contract RouterAddLiquidity is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountTokenLP1, uint256 amountNativeLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidityNative(nativeLP1);
+        s_router.addLiquidityNative(nativeLP1);
         vm.stopPrank();
     }
 }

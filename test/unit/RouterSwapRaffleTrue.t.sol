@@ -109,12 +109,9 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         test_secondSupplyAddDAI_WBTC();
 
         // 2. A few checks before the start:
-        address pool = s_factory.getTokenPairToPool(address(DAI), address(wBTC));
+        s_factory.getTokenPairToPool(address(DAI), address(wBTC));
 
         uint256 balance_swapper1_DAI = DAI.balanceOf(swapper1);
-        uint256 balance_swapper1_wBTC = wBTC.balanceOf(swapper1);
-        uint256 balance_pool_DAI = DAI.balanceOf(pool);
-        uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
 
         /**
          * SWAP START *
@@ -166,12 +163,9 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         test_initialSupplyAddUSDT_WBTC();
 
         // 2. A few checks before the start:
-        address pool = s_factory.getTokenPairToPool(address(USDT), address(wBTC));
+        s_factory.getTokenPairToPool(address(USDT), address(wBTC));
 
         uint256 balance_swapper1_USDT = USDT.balanceOf(swapper1);
-        uint256 balance_swapper1_wBTC = wBTC.balanceOf(swapper1);
-        uint256 balance_pool_USDT = USDT.balanceOf(pool);
-        uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
 
         /**
          * SWAP START *
@@ -220,12 +214,9 @@ contract RouterSwapRaffleTrue is Test, Deployer, RouterAddLiquidity {
         test_initialSupplyAddUSDT_WBTC();
 
         // 2. A few checks before the start:
-        address pool = s_factory.getTokenPairToPool(address(USDT), address(wBTC));
+        s_factory.getTokenPairToPool(address(USDT), address(wBTC));
 
         uint256 balance_swapper1_USDT = USDT.balanceOf(swapper1);
-        uint256 balance_swapper1_wBTC = wBTC.balanceOf(swapper1);
-        uint256 balance_pool_USDT = USDT.balanceOf(pool);
-        uint256 balance_pool_wBTC = wBTC.balanceOf(pool);
 
         /**
          * SWAP START *

@@ -19,7 +19,7 @@ contract MockEntropy is IEntropy {
 
     function requestWithCallback(
         address provider,
-        bytes32 userRandomNumber
+        bytes32 /* userRandomNumber */
     )
         external
         payable
@@ -44,7 +44,9 @@ contract MockEntropy is IEntropy {
         return keccak256(abi.encodePacked(userRandomness, providerRandomness, blockHash));
     }
 
-    function getProviderInfo(address)
+    function getProviderInfo(
+        address
+    )
         external
         pure
         override
@@ -66,8 +68,8 @@ contract MockEntropy is IEntropy {
     }
 
     function getRequest(
-        address provider,
-        uint64 _sequenceNumber
+        address, /* provider */
+        uint64 /* _sequenceNumber */
     )
         external
         pure
@@ -108,7 +110,9 @@ contract MockEntropy is IEntropy {
         randomNumber = _randomNumber;
     }
 
-    function constructUserCommitment(bytes32 userRandomness)
+    function constructUserCommitment(
+        bytes32 userRandomness
+    )
         external
         pure
         override

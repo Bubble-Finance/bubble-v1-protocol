@@ -85,8 +85,7 @@ contract RouterSeveralOperations is Test, Deployer {
             receiver: LP1,
             deadline: block.timestamp
         });
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        (,, uint256 lpTokensMintedLP1) = s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
 
         /*
@@ -108,8 +107,7 @@ contract RouterSeveralOperations is Test, Deployer {
             receiver: LP2,
             deadline: block.timestamp
         });
-        (uint256 amountALP2, uint256 amountBLP2, uint256 lpTokensMintedLP2) =
-            s_router.addLiquidity(liquidityLP2);
+        s_router.addLiquidity(liquidityLP2);
         vm.stopPrank();
 
         /*
@@ -164,8 +162,7 @@ contract RouterSeveralOperations is Test, Deployer {
             receiver: LP3,
             deadline: block.timestamp
         });
-        (uint256 amountALP3, uint256 amountBLP3, uint256 lpTokensMintedLP3) =
-            s_router.addLiquidity(liquidityLP3);
+        s_router.addLiquidity(liquidityLP3);
         vm.stopPrank();
 
         /*

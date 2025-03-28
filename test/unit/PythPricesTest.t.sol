@@ -44,8 +44,7 @@ contract PythPricesTest is Test, Deployer {
         vm.deal(address(this), value);
         s_pythPriceFeedContract.updatePriceFeeds{ value: value }(updateData);
 
-        PythStructs.Price memory price =
-            s_pythPriceFeedContract.getPriceNoOlderThan(cryptoDAIUSD, 60);
+        s_pythPriceFeedContract.getPriceNoOlderThan(cryptoDAIUSD, 60);
 
         vm.stopPrank();
     }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract FeeOnTransferToken is ERC20, Ownable {
     uint256 public transferFeeBps; // Fee in basis points (100 = 1%)

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import { ERC20 } from "@openzeppelin/token/ERC20/ERC20.sol";
-import { ERC20Permit, Nonces } from "@openzeppelin/token/ERC20/extensions/ERC20Permit.sol";
-import { ERC20Votes } from "@openzeppelin/token/ERC20/extensions/ERC20Votes.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20Permit, Nonces } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 /// @title Bubble token.
 /// @author Bubble Finance -- Ola hamid.

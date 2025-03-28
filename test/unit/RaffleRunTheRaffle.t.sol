@@ -108,7 +108,7 @@ contract RaffleRunTheRaffle is Test, Deployer, RaffleSetInitialSwaps {
 
         vm.warp(block.timestamp + 7 days);
 
-        uint128 requestFee = mock.getFee(address(mock));
+        mock.getFee(address(mock));
         s_raffle.requestRandomNumber(userRandomNumber);
     }
 

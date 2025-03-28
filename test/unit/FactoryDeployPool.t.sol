@@ -68,8 +68,6 @@ contract FactoryDeployPool is Test, Deployer {
             )
         );
 
-        bytes32 initCodeHash = keccak256(abi.encodePacked(type(BubbleV1Pool).creationCode));
-
         address preAddress = address(uint160(uint256(hashPreAddress)));
 
         address newPool = s_factory.deployPool(address(wETH), address(DAI));
@@ -92,10 +90,6 @@ contract FactoryDeployPool is Test, Deployer {
         assertEq(preAddress2, newPool2);
         assertEq(preAddress2, getTokenPairPool2);
         vm.stopPrank();
-
-        /* console.logBytes32(bytes32(hashPreAddress));
-        bytes memory bytecode = type(BubbleV1Pool).creationCode;
-        console.logBytes32(keccak256(abi.encodePacked(bytecode))); */
     }
 
     function test_deployPoolwBTCUSDT() public {
@@ -121,19 +115,19 @@ contract FactoryDeployPool is Test, Deployer {
             )
         );
         address preAddress = address(uint160(uint256(hashPreAddress)));
-        address newPool = s_factory.deployPool(address(USDT), address(wBTC));
+        s_factory.deployPool(address(USDT), address(wBTC));
         // assertEq(preAddress, newPool);
         console.log("test_deployPoolwBTCUSDT: ", preAddress);
     }
 
     function testFail_revertIfPairAlreadyExists() external deployNewPool {
         vm.prank(LP1);
-        address newPool = s_factory.deployPool(address(wETH), address(DAI));
+        s_factory.deployPool(address(wETH), address(DAI));
     }
 
     function testFail_revertIfPairUntidyExists() external deployNewPool {
         vm.prank(LP1);
-        address newPool = s_factory.deployPool(address(DAI), address(wETH));
+        s_factory.deployPool(address(DAI), address(wETH));
     }
 
     function test_deployMultiplePools() public {

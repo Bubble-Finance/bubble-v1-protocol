@@ -201,7 +201,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
     function testFail_TryToAddLiqToPoolWithBlacklistedToken() public {
         // ** POOL CREATED BEFORE BLACKLISTED **
         vm.prank(LP1);
-        address poolwBTCDAI = s_factory.deployPool(address(wBTC), address(DAI));
+        s_factory.deployPool(address(wBTC), address(DAI));
         vm.prank(protocolTeamMultisig);
         s_factory.setBlackListedToken(address(DAI), true);
         vm.startPrank(LP1);
@@ -219,8 +219,7 @@ contract FactoryOwnershipFeeBlackList is Test, Deployer {
             deadline: block.timestamp
         });
 
-        (uint256 amountALP1, uint256 amountBLP1, uint256 lpTokensMintedLP1) =
-            s_router.addLiquidity(liquidityLP1);
+        s_router.addLiquidity(liquidityLP1);
         vm.stopPrank();
     }
 

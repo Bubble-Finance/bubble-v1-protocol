@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { TimelockController } from "@openzeppelin/governance/TimelockController.sol";
+import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 /// @title BubbleV1Timelock.
 /// @author Bubble Finance -- Ola hamid.

@@ -86,12 +86,6 @@ contract RaffleSetInitialSwaps is Test, FactoryDeployPool {
     function test_deployAllThePools() public {
         test_deployPools();
         test_deployMultiplePools();
-        address poolwETHDAI = s_factory.getTokenPairToPool(address(wETH), address(DAI));
-        address poolwBTCUSDT = s_factory.getTokenPairToPool(address(wBTC), address(USDT));
-        address poolwETHSHIB = s_factory.getTokenPairToPool(address(wETH), address(SHIB));
-        address poolwBTCSHIB = s_factory.getTokenPairToPool(address(wBTC), address(SHIB));
-        address poolUSDTSHIB = s_factory.getTokenPairToPool(address(USDT), address(SHIB));
-        address poolDAISHIB = s_factory.getTokenPairToPool(address(DAI), address(SHIB));
     }
 
     // --------------------------------------------------
@@ -161,7 +155,7 @@ contract RaffleSetInitialSwaps is Test, FactoryDeployPool {
             deadline: block.timestamp
         });
 
-        BubbleV1Types.AddLiquidity memory liquiditypoolwBTCSHIB = BubbleV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity({
             tokenA: address(wBTC),
             tokenB: address(SHIB),
             amountADesired: ADD_10K,
@@ -172,7 +166,7 @@ contract RaffleSetInitialSwaps is Test, FactoryDeployPool {
             deadline: block.timestamp
         });
 
-        BubbleV1Types.AddLiquidity memory liquiditypoolUSDTSHIB = BubbleV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity({
             tokenA: address(USDT),
             tokenB: address(SHIB),
             amountADesired: ADD_10K,
@@ -183,7 +177,7 @@ contract RaffleSetInitialSwaps is Test, FactoryDeployPool {
             deadline: block.timestamp
         });
 
-        BubbleV1Types.AddLiquidity memory liquiditypoolDAISHIB = BubbleV1Types.AddLiquidity({
+        BubbleV1Types.AddLiquidity({
             tokenA: address(DAI),
             tokenB: address(SHIB),
             amountADesired: ADD_10K,
@@ -196,16 +190,13 @@ contract RaffleSetInitialSwaps is Test, FactoryDeployPool {
 
         // 3. Add Liquidity to the pools:
         vm.prank(LP1);
-        (uint256 aLP1, uint256 bLP1, uint256 lpTokensLP1) =
-            s_router.addLiquidity(liquiditypoolwETHDAI);
+        s_router.addLiquidity(liquiditypoolwETHDAI);
 
         vm.prank(LP2);
-        (uint256 aLP2, uint256 bLP2, uint256 lpTokensLP2) =
-            s_router.addLiquidity(liquiditypoolwBTCUSDT);
+        s_router.addLiquidity(liquiditypoolwBTCUSDT);
 
         vm.prank(LP3);
-        (uint256 aLP3, uint256 bLP3, uint256 lpTokensLP3) =
-            s_router.addLiquidity(liquiditypoolwETHSHIB);
+        s_router.addLiquidity(liquiditypoolwETHSHIB);
 
         // NOTE: STACK TOO DEEP
         /*        vm.prank(LP4);

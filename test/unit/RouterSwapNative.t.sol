@@ -282,7 +282,6 @@ contract RouterSwapNative is Test, Deployer, RouterAddLiquidity {
 
     function test_swapExactTokensForNative() public {
         test_initialSupplyAddNative_DAI();
-        address poolAddress = s_factory.getTokenPairToPool(address(wMonad), address(DAI));
 
         console.log("***** USER BALANCES BEFORE *****");
         console.log("Native balance: ", swapper1.balance);
