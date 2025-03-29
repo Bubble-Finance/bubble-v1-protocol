@@ -430,6 +430,10 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @notice Entropy callback by Pyth which supplies random number for a request.
     /// @param _randomNumber The supplied random number.
     function entropyCallback(uint64, address, bytes32 _randomNumber) internal override {
+        if (block.timestamp - s_lastDrawTimestamp < EPOCH_DURATION) {
+            revert BubbleV1Raffle__EpochHasNotEndedYet();
+        }
+
         s_epochToRandomNumbers[s_epoch].push(uint256(_randomNumber));
         s_epochToRandomNumbers[s_epoch].push(uint256(keccak256(abi.encode(_randomNumber))));
         s_epochToRandomNumbers[s_epoch].push(
@@ -612,9 +616,9 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         return s_tokenIdToEpoch[_tokenId];
     }
 
-    /// @notice Gets the total number of raffl Nfts minted for a given epoch.
+    /// @notice Gets the total number of raffle Nfts minted for a given epoch.
     /// @param _epoch The epoch number.
-    /// @return The total number of raffl Nfts minted for a given epoch.
+    /// @return The total number of raffle Nfts minted for a given epoch.
     function getNftsMintedEachEpoch(uint256 _epoch) external view returns (uint256) {
         return s_nftsMintedEachEpoch[_epoch];
     }
