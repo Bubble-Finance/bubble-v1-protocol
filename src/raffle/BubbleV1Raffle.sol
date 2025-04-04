@@ -691,6 +691,8 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @notice Gets the time remaining until the next epoch.
     /// @return The time remaining until the next epoch.
     function getTimeRemainingUntilNextEpoch() external view returns (uint256) {
+        if (block.timestamp - s_lastDrawTimestamp > EPOCH_DURATION) return 0;
+
         return EPOCH_DURATION - (block.timestamp - s_lastDrawTimestamp);
     }
 
