@@ -630,6 +630,20 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         return s_nftToRange[_tokenId];
     }
 
+    /// @notice Gets the range occupied by a raffle Nft in an epoch.
+    /// @param _tokenIds The raffle Nft tokenId.
+    /// @return The range occupied by the Nft tokenId.
+    function getNftToRange(uint256[] memory _tokenIds) external view returns (uint256[][] memory) {
+        uint256 length = _tokenIds.length;
+        uint256[][] memory nftRanges = new uint256[][](length);
+
+        for (uint256 i; i < length; ++i) {
+            nftRanges[i] = s_nftToRange[_tokenIds[i]];
+        }
+
+        return nftRanges;
+    }
+
     /// @notice Gets the epoch range ending point.
     /// @param _epoch The epoch number.
     /// @return The range ending point for a given epoch.

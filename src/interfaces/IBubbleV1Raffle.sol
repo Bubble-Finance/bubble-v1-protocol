@@ -79,6 +79,8 @@ interface IBubbleV1Raffle {
 
     function getNftToRange(uint256 _tokenId) external view returns (uint256[] memory);
 
+    function getNftToRange(uint256[] memory _tokenIds) external view returns (uint256[][] memory);
+
     function getEpochToRangeEndingPoint(uint256 _epoch) external view returns (uint256);
 
     function getTokenAmountCollectedInEpoch(
