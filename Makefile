@@ -25,11 +25,11 @@ precommit :; forge fmt && git add .
 anvil :; anvil -m 'test test test test test test test test test test test junk' --steps-tracing --block-time 1
 
 sync-branches :; git switch audit && git pull origin main && git push \
-	git switch review && git pull origin main && git push \
-	git switch fix && git pull origin main && git push \
-	git switch developer_s01 && git pull origin main && git push \
-	git switch developer_h02 && git pull origin main && git push \
-	git switch testing && git pull origin main && git push
+	&& git switch review && git pull origin main && git push \
+	&& git switch fix && git pull origin main && git push \
+	&& git switch developer_s01 && git pull origin main && git push \
+	&& git switch developer_h02 && git pull origin main && git push \
+	&& git switch testing && git pull origin main && git push
 
 deploy-protocol-without-governance-local :; forge script script/DeployProtocolWithoutGovernance.s.sol \
 	--broadcast \
