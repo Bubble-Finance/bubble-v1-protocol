@@ -100,6 +100,7 @@ contract Deployer2 is Test, InitializeActors, InitializeConstructorArgs {
             address(IpythMock),
             address(mock2),
             address(mock2),
+            s_fee,
             s_minimumNftsToBeMintedEachEpoch,
             s_winningPortions,
             s_uri
