@@ -47,7 +47,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
     /// @dev The amount of native token collected in fees by the protocol.
     uint256 private s_feeCollected;
     /// @dev The address of the BubbleV1Router.
-    address private immutable i_monadexV1Router;
+    address private immutable i_bubbleV1Router;
     /// @dev The address of the wrapped native token.
     address private immutable i_wNative;
     /// @dev The address of the proxy owned by the DAO which will use the LP tokens
@@ -122,7 +122,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
     /// a token successfully completes its bonding curve.
     /// @param _liquidityMigrationFee The fee taken in native token by the protocol once
     /// a token successfully completes its bonding curve.
-    /// @param _monadexV1Router The address of the BubbleV1Router.
+    /// @param _bubbleV1Router The address of the BubbleV1Router.
     /// @param _wNative The address of the wrapped native token.
     /// @param _vault The address of the proxy owned by the DAO which will use the LP tokens
     /// for farming rewards for the Bubble token holders.
@@ -133,7 +133,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
         BubbleV1Types.Fraction memory _fee,
         uint256 _tokenCreatorReward,
         uint256 _liquidityMigrationFee,
-        address _monadexV1Router,
+        address _bubbleV1Router,
         address _wNative,
         address _vault
     )
@@ -143,7 +143,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
             _minimumTokenTotalSupply == 0 || _minimumVirutalNativeTokenReserve == 0
                 || _minimumNativeTokenAmountToRaise == 0
         ) revert BubbleV1Campaigns__AmountZero();
-        if (_monadexV1Router == address(0) || _wNative == address(0) || _vault == address(0)) {
+        if (_bubbleV1Router == address(0) || _wNative == address(0) || _vault == address(0)) {
             revert BubbleV1Campaigns__AddressZero();
         }
 
@@ -153,7 +153,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
         s_fee = _fee;
         s_tokenCreatorReward = _tokenCreatorReward;
         s_liquidityMigrationFee = _liquidityMigrationFee;
-        i_monadexV1Router = _monadexV1Router;
+        i_bubbleV1Router = _bubbleV1Router;
         i_wNative = _wNative;
         s_vault = _vault;
     }
@@ -421,8 +421,8 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
             receiver: s_vault,
             deadline: _deadline
         });
-        IERC20(_token).approve(i_monadexV1Router, _tokenDetails.tokenReserve);
-        IBubbleV1Router(i_monadexV1Router).addLiquidityNative{
+        IERC20(_token).approve(i_bubbleV1Router, _tokenDetails.tokenReserve);
+        IBubbleV1Router(i_bubbleV1Router).addLiquidityNative{
             value: _tokenDetails.nativeTokenReserve - _tokenDetails.virtualNativeTokenReserve
                 - _tokenDetails.tokenCreatorReward - _tokenDetails.liquidityMigrationFee
         }(addLiquidityNativeParams);
@@ -499,7 +499,7 @@ contract BubbleV1Campaigns is Owned, IBubbleV1Campaigns {
     /// @notice Gets the address of the BubbleV1Router.
     /// @return The BubbleV1Router address.
     function getBubbleV1Router() external view returns (address) {
-        return i_monadexV1Router;
+        return i_bubbleV1Router;
     }
 
     /// @notice Gets the address of the wrapped native token.

@@ -55,9 +55,11 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @dev The token Uri for all Nfts.
     string private s_tokenUri;
     /// @dev The address of the `BubbleV1Router`.
-    address private s_monadexV1Router;
+    address private s_bubbleV1Router;
     /// @dev This is the contract we query to get the price of each supported token in USD.
     address private immutable i_pyth;
+    /// @dev The fee charged on each raffle entry.
+    BubbleV1Types.Fraction private s_fee;
     /// @dev Supported tokens for entering raffle. Pools with these tokens are indirectly supported
     /// for raffle.
     EnumerableSet.AddressSet private s_supportedTokens;
@@ -91,6 +93,8 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @dev The total token amounts collected in each epoch.
     mapping(uint256 epoch => mapping(address token => uint256 amount)) private
         s_epochToTokenAmountsCollected;
+    /// @dev Tracks the fee collected so far.
+    mapping(address token => uint256 collectedFees) private s_collectedFees;
     /// @dev The random numbers supplied by Pyth in each epoch.
     mapping(uint256 epoch => uint256[] randomNumbers) private s_epochToRandomNumbers;
     /// @dev Tracks whether a user has claimed winnings from a tier in a given epoch. Prevents replays.
@@ -109,11 +113,13 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// Events ///
     //////////////
 
-    event BubbleV1RouterSet(address indexed monadexV1Router);
+    event BubbleV1RouterSet(address indexed bubbleV1Router);
+    event FeeSet(BubbleV1Types.Fraction indexed newFee);
     event TokenSupported(
         address indexed _token, BubbleV1Types.PriceFeedConfig indexed priceFeedConfig
     );
     event TokenRemoved(address indexed token);
+    event FeeCollected(address indexed token, uint256 indexed amount);
     event RewardsBoosted(address indexed by, address indexed token, uint256 indexed amount);
     event EnteredRaffle(
         address indexed receiver,
@@ -133,10 +139,12 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     //////////////
 
     error BubbleV1Raffle__NotRouter();
-    error BubbleV1Raffle__RouterAlreadySet(address monadexV1Router);
+    error BubbleV1Raffle__RouterAlreadySet(address bubbleV1Router);
+    error BubbleV1Raffle__InvalidFee();
     error BubbleV1Raffle__AddressZero();
     error BubbleV1Raffle__TokenAlreadySupported(address token);
     error BubbleV1Raffle__TokenNotSupported(address token);
+    error BubbleV1Raffle__InsufficientFee(uint256 feeToWithdraw, uint256 acccumulatedFees);
     error BubbleV1Raffle__AmountZero();
     error BubbleV1Raffle__EpochHasNotEndedYet();
     error BubbleV1Raffle__InsufficientNftsMinted(
@@ -152,7 +160,7 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     error BubbleV1Raffle__InvalidMinimumNumberOfNftsToBeMintedEachEpoch();
 
     modifier onlyBubbleV1Router() {
-        if (msg.sender != s_monadexV1Router) {
+        if (msg.sender != s_bubbleV1Router) {
             revert BubbleV1Raffle__NotRouter();
         }
         _;
@@ -167,12 +175,14 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @param _pyth The address of the Pyth contract to query prices from.
     /// @param _entropy The Pyth entropy contract to request random numbers from.
     /// @param _entropyProvider The entropy provider for requesting random numbers.
+    /// @param _feeInBps The fee (in bps) charged on each raffle entry.
     /// @param _minimumNftsToBeMintedEachEpoch The minimum number of Nfts to be minted in each epoch.
     /// @param _winningPortions The winning portions for winners in each tier.
     constructor(
         address _pyth,
         address _entropy,
         address _entropyProvider,
+        BubbleV1Types.Fraction memory _feeInBps,
         uint256 _minimumNftsToBeMintedEachEpoch,
         BubbleV1Types.Fraction[TIERS] memory _winningPortions,
         string memory _tokenUri
@@ -190,6 +200,7 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         i_pyth = _pyth;
         i_entropy = _entropy;
         i_entropyProvider = _entropyProvider;
+        s_fee = _feeInBps;
         s_tokenUri = _tokenUri;
 
         s_epoch = 1;
@@ -201,15 +212,25 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     //////////////////////////
 
     /// @notice Allows the owner to set the `BubbleV1Router` address once.
-    /// @param _monadexV1Router The `BubbleV1Router` address.
-    function initializeBubbleV1Router(address _monadexV1Router) external onlyOwner {
-        if (s_monadexV1Router != address(0)) {
-            revert BubbleV1Raffle__RouterAlreadySet(s_monadexV1Router);
+    /// @param _bubbleV1Router The `BubbleV1Router` address.
+    function initializeBubbleV1Router(address _bubbleV1Router) external onlyOwner {
+        if (s_bubbleV1Router != address(0)) {
+            revert BubbleV1Raffle__RouterAlreadySet(s_bubbleV1Router);
         }
 
-        s_monadexV1Router = _monadexV1Router;
+        s_bubbleV1Router = _bubbleV1Router;
 
-        emit BubbleV1RouterSet(_monadexV1Router);
+        emit BubbleV1RouterSet(_bubbleV1Router);
+    }
+
+    /// @notice Allows the admin to set the new fee (in bps) charged on each raffle entry.
+    /// @param _newFee The new fee (in bps).
+    function setFee(BubbleV1Types.Fraction memory _newFee) external onlyOwner {
+        if (_newFee.denominator < _newFee.numerator) revert BubbleV1Raffle__InvalidFee();
+
+        s_fee = _newFee;
+
+        emit FeeSet(_newFee);
     }
 
     /// @notice Enables the owner to support tokens for raffle.
@@ -267,6 +288,26 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         _setMinimumNftsToBeMintedEachEpoch(_minimumNftsToBeMintedEachEpoch);
     }
 
+    /// Allows the admin to collect any accumulated fees.
+    /// @param _token The token address.
+    /// @param _amount The amount to withdraw.
+    function collectFees(address _token, uint256 _amount, address _receiver) external onlyOwner {
+        if (!s_supportedTokens.contains(_token)) revert BubbleV1Raffle__TokenNotSupported(_token);
+
+        uint256 acccumulatedFees = s_collectedFees[_token];
+
+        if (_amount == 0) revert BubbleV1Raffle__AmountZero();
+        if (_amount > acccumulatedFees) {
+            revert BubbleV1Raffle__InsufficientFee(_amount, acccumulatedFees);
+        }
+        if (_receiver == address(0)) revert BubbleV1Raffle__AddressZero();
+
+        s_collectedFees[_token] -= _amount;
+        IERC20(_token).safeTransfer(_receiver, _amount);
+
+        emit FeeCollected(_token, _amount);
+    }
+
     /// @notice Allows anyone to contribute tokens to the current raffle epoch.
     /// @param _token The token to contribute.
     /// @param _amount The amount of tokens to use for the boost.
@@ -296,7 +337,10 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     {
         if (_amount == 0) revert BubbleV1Raffle__AmountZero();
         if (_receiver == address(0)) revert BubbleV1Raffle__AddressZero();
-        uint256 distance = _convertToUsd(_tokenIn, _amount);
+
+        uint256 amountLeftAfterFee =
+            BubbleV1Library.calculateAmountAfterApplyingPercentage(_amount, s_fee);
+        uint256 distance = _convertToUsd(_tokenIn, amountLeftAfterFee);
 
         uint256 epoch = s_epoch;
         uint256 currentRangeEndingPoint = s_epochToEndingPoint[epoch];
@@ -307,10 +351,10 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         s_nftsMintedEachEpoch[s_epoch]++;
         s_nftToRange[tokenId] = [currentRangeEndingPoint, currentRangeEndingPoint + distance];
         s_epochToEndingPoint[epoch] += distance;
-        s_epochToTokenAmountsCollected[epoch][_tokenIn] += _amount;
+        s_epochToTokenAmountsCollected[epoch][_tokenIn] += amountLeftAfterFee;
+        s_collectedFees[_tokenIn] += _amount - amountLeftAfterFee;
 
         _safeMint(_receiver, tokenId);
-        // _setTokenURI()
 
         emit EnteredRaffle(_receiver, _tokenIn, _amount, tokenId, distance);
 
@@ -531,7 +575,7 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
     /// @notice Gets the address of the `BubbleV1Router`.
     /// @return The `BubbleV1Router` address.
     function getBubbleV1Router() external view returns (address) {
-        return s_monadexV1Router;
+        return s_bubbleV1Router;
     }
 
     /// @notice Gets the Pyth contract address for querying prices.

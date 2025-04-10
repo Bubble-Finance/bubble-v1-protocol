@@ -4,7 +4,9 @@ pragma solidity ^0.8.25;
 import { BubbleV1Types } from "@src/library/BubbleV1Types.sol";
 
 interface IBubbleV1Raffle {
-    function initializeBubbleV1Router(address _monadexV1Router) external;
+    function initializeBubbleV1Router(address _bubbleV1Router) external;
+
+    function setFee(BubbleV1Types.Fraction memory _newFee) external;
 
     function supportToken(
         address _token,
@@ -17,6 +19,8 @@ interface IBubbleV1Raffle {
     function setWinningPortions(BubbleV1Types.Fraction[3] memory _winningPortions) external;
 
     function setMinimumNftsToBeMintedEachEpoch(uint256 _minimumNftsToBeMintedEachEpoch) external;
+
+    function collectFees(address _token, uint256 _amount, address _receiver) external;
 
     function boostRewards(address _token, uint256 _amount) external;
 
