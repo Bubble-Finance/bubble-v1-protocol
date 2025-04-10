@@ -338,9 +338,8 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         if (_amount == 0) revert BubbleV1Raffle__AmountZero();
         if (_receiver == address(0)) revert BubbleV1Raffle__AddressZero();
 
-        uint256 amountLeftAfterFee =
-            BubbleV1Library.calculateAmountAfterApplyingPercentage(_amount, s_fee);
-        uint256 distance = _convertToUsd(_tokenIn, amountLeftAfterFee);
+        uint256 feeAmount = BubbleV1Library.calculateAmountAfterApplyingPercentage(_amount, s_fee);
+        uint256 distance = _convertToUsd(_tokenIn, _amount - feeAmount);
 
         uint256 epoch = s_epoch;
         uint256 currentRangeEndingPoint = s_epochToEndingPoint[epoch];
@@ -351,8 +350,8 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         s_nftsMintedEachEpoch[s_epoch]++;
         s_nftToRange[tokenId] = [currentRangeEndingPoint, currentRangeEndingPoint + distance];
         s_epochToEndingPoint[epoch] += distance;
-        s_epochToTokenAmountsCollected[epoch][_tokenIn] += amountLeftAfterFee;
-        s_collectedFees[_tokenIn] += _amount - amountLeftAfterFee;
+        s_epochToTokenAmountsCollected[epoch][_tokenIn] += _amount - feeAmount;
+        s_collectedFees[_tokenIn] += feeAmount;
 
         _safeMint(_receiver, tokenId);
 
