@@ -1,0 +1,627 @@
+{
+    "insights": [
+        {
+            "name": "Unverified from Address Usage in transferFrom",
+            "severity": "Low",
+            "precision": "Medium",
+            "description": "Employing an unverified from address in transferFrom or safeTransferFrom operations poses a substantial risk of fund loss. This risk arises from the potential for any party to execute token transfers from the specified from address, contingent upon having received adequate approval.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/raffle/BubbleV1Raffle.sol",
+                    "lines": "Line 374 Columns 9-49",
+                    "code": "super.transferFrom(_from, _to, _tokenId)"
+                }
+            ],
+            "action-items": [
+                "Verify that the from address used in calls to transferFrom or safeTransferFrom is validated properly."
+            ],
+            "references": [
+                "https://solidity.readthedocs.io/en/latest/types.html#members-of-addresses"
+            ],
+            "reports": []
+        },
+        {
+            "name": "Use of transfer or send on a payable address",
+            "severity": "Medium",
+            "precision": "Medium",
+            "description": "In Solidity, .transfer and .send both implement a risky gas limitation that reverts the transaction if the recipient's operations require more gas than the stipend of 2300 gas.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/WNative.sol",
+                    "lines": "Line 32 Columns 9-42",
+                    "code": "payable(msg.sender).transfer(wad)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/WrappedMonad.sol",
+                    "lines": "Line 35 Columns 9-42",
+                    "code": "payable(msg.sender).transfer(wad)"
+                }
+            ],
+            "action-items": [
+                "Replace .transfer or .send with .call for transfers to payable addresses.",
+                "Implement necessary checks and error handling to ensure the safety of the new .call usage."
+            ],
+            "references": [
+                "https://docs.soliditylang.org/en/v0.8.0/080-breaking-changes.html#new-recommendations"
+            ],
+            "reports": [
+                "https://github.com/code-423n4/2024-01-curves/blob/main/bot-report.md#m-02",
+                "https://github.com/code-423n4/2022-04-backd-findings/issues/52"
+            ]
+        },
+        {
+            "name": "Unbounded Loop",
+            "severity": "Low",
+            "precision": "Low",
+            "description": "Unbounded loops, specifically, for loops that can modify state and have no apparent max restriction to the nunmber of iterations possible, can lead to excessive gas consumption, which may cause transactions to fail or become prohibitively expensive.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializeActors.sol",
+                    "lines": "Line 124 Columns 9-54",
+                    "code": "for (uint256 i = 0; i < actors.length; ++i) {\n            wETH.mint(actors[i], TOKEN_1M);\n            wBTC.mint(actors[i], TOKEN_1M);\n            USDT.mint(actors[i], TOKEN_1M);\n            DAI.mint(actors[i], TOKEN_1M);\n            SHIB.mint(actors[i], TOKEN_1M);\n        }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializeActors.sol",
+                    "lines": "Line 133 Columns 9-54",
+                    "code": "for (uint256 i = 0; i < actors.length; ++i) {\n            vm.deal(actors[i], TOKEN_1M);\n        }"
+                }
+            ],
+            "action-items": [
+                "Review raised loops and ensure there are acceptable limitations of maximum iterations.",
+                "If possible, reduce the complication of loops and see if there's any other way to provide a similar functionality with a smaller range of iterations required, if at all."
+            ],
+            "references": [
+                "https://blog.b9lab.com/getting-loopy-with-solidity-1d51794622ad"
+            ],
+            "reports": [
+                "https://github.com/code-423n4/2024-01-curves/blob/main/bot-report.md#l-12-unbounded-loop-may-run-out-of-gas"
+            ]
+        },
+        {
+            "name": "Usage of unsafe _mint",
+            "severity": "Medium",
+            "precision": "High",
+            "description": "ERC721 _mint is used for token creation and updates the internal mappings of token ownership. Instead of using _mint directly, it's preferrable to use _safeMint, which is a safer extension of the _mint function, that's adding a security check meant to verify that if the recipient address is a contract - it's a contract that can handle ERC721 tokens correctly (by calling that contract's onERC721Received function).",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/ERC20Launchable.sol",
+                    "lines": "Line 51 Columns 9-40",
+                    "code": "_mint(msg.sender, _totalSupply)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 172 Columns 13-61",
+                    "code": "_mint(initialLPTokenReceiver, MINIMUM_LIQUIDITY)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 179 Columns 9-41",
+                    "code": "_mint(_receiver, lpTokensToMint)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 403 Columns 41-84",
+                    "code": "_mint(protocolTeamMultisig, lpTokensToMint)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/governance/BubbleGovernanceToken.sol",
+                    "lines": "Line 30 Columns 9-38",
+                    "code": "_mint(_owner, _initialSupply)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/DangerousToken.sol",
+                    "lines": "Line 39 Columns 9-26",
+                    "code": "_mint(to, amount)"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/FeeOnTransferTokenMock.sol",
+                    "lines": "Line 27 Columns 9-60",
+                    "code": "_mint(msg.sender, initialSupply * 10 ** decimals())"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/TokenMock.sol",
+                    "lines": "Line 39 Columns 9-26",
+                    "code": "_mint(to, amount)"
+                }
+            ],
+            "action-items": [
+                "Review calls to _mint in your contract, and if there's ever a chance of the recipient address of being a contact, replace it with a _safeMint implementation.",
+                "If there isn't a possibility that the recipient will ever be a contract, you may keep using _mint to save gas costs."
+            ],
+            "references": [
+                "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d4d8d2ed9798cc3383912a23b5e8d5cb602f7d4b/contracts/token/ERC721/ERC721.sol#L271",
+                "https://www.appsloveworld.com/ethereum/57/openzeppelin-erc721-difference-between-safemint-and-mint"
+            ],
+            "reports": [
+                "https://github.com/code-423n4/2024-02-wise-lending/blob/main/bot-report.md#m-04-use-_safemint-instead-of-_mint"
+            ]
+        },
+        {
+            "name": "Missing Reentracy Guard",
+            "severity": "Low",
+            "precision": "Low",
+            "description": "Due to Solidity's design, when a function in your contract interacts with another contract's address, that contract gains the ability to recursively call your contract's function before handing back the control on the execution flow. If the reentrant function's logic did not expect the function to be called multiple times, it can be exposed to abuse.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 116 Columns 5-33",
+                    "code": "function addLiquidityNative(\n        BubbleV1Types.AddLiquidityNative calldata _addLiquidityNativeParams\n    )\n        external\n        payable\n        beforeDeadline(_addLiquidityNativeParams.deadline)\n        returns (uint256, uint256, uint256)\n    {\n        (uint256 amountToken, uint256 amountNative) = _addLiquidityHelper(\n            _addLiquidityNativeParams.token,\n            i_wNative,\n            _addLiquidityNativeParams.amountTokenDesired,\n            msg.value,\n            _addLiquidityNativeParams.amountTokenMin,\n            _addLiquidityNativeParams.amountNativeTokenMin\n        );\n        address pool =\n            BubbleV1Library.getPool(i_factory, _addLiquidityNativeParams.token, i_wNative);\n        IERC20(_addLiquidityNativeParams.token).safeTransferFrom(msg.sender, pool, amountToken);\n        IWNative(payable(i_wNative)).deposit{ value: amountNative }();\n        IERC20(i_wNative).safeTransfer(pool, amountNative);\n        uint256 lpTokensMinted =\n            IBubbleV1Pool(pool).addLiquidity(_addLiquidityNativeParams.receiver);\n        if (msg.value > amountNative) {\n            (bool success,) = payable(msg.sender).call{ value: msg.value - amountNative }(\"\");\n            if (!success) revert BubbleV1Router__TransferFailed();\n        }\n\n        return (amountToken, amountNative, lpTokensMinted);\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 218 Columns 5-65",
+                    "code": "function removeLiquidityNativeSupportingFeeOnTransferTokens(\n        address _token,\n        uint256 _lpTokensToBurn,\n        uint256 _amountTokenMin,\n        uint256 _amountNativeMin,\n        address _receiver,\n        uint256 _deadline\n    )\n        public\n        beforeDeadline(_deadline)\n        returns (uint256)\n    {\n        (, uint256 amountNative) = removeLiquidity(\n            _token,\n            i_wNative,\n            _lpTokensToBurn,\n            _amountTokenMin,\n            _amountNativeMin,\n            address(this),\n            _deadline\n        );\n\n        IERC20(_token).safeTransfer(_receiver, IERC20(_token).balanceOf(address(this)));\n        IWNative(payable(i_wNative)).withdraw(amountNative);\n        (bool success,) = payable(msg.sender).call{ value: amountNative }(\"\");\n        if (!success) revert BubbleV1Router__TransferFailed();\n\n        return amountNative;\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 437 Columns 5-39",
+                    "code": "function swapTokensForExactNative(\n        uint256 _amountOut,\n        uint256 _amountInMax,\n        address[] calldata _path,\n        address _receiver,\n        uint256 _deadline,\n        BubbleV1Types.Raffle memory _raffle\n    )\n        external\n        beforeDeadline(_deadline)\n        returns (uint256[] memory, uint256)\n    {\n        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();\n        uint256[] memory amounts = BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);\n        if (amounts[0] > _amountInMax) {\n            revert BubbleV1Router__ExcessiveInputAmount(amounts[0], _amountInMax);\n        }\n        IERC20(_path[0]).safeTransferFrom(\n            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]\n        );\n        _swap(amounts, _path, address(this));\n        IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);\n        (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }(\"\");\n        if (!success) revert BubbleV1Router__TransferFailed();\n\n        uint256 nftId;\n        if (_raffle.enter) {\n            nftId = _enterRaffle(\n                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver\n            );\n        }\n\n        return (amounts, nftId);\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 484 Columns 5-39",
+                    "code": "function swapExactTokensForNative(\n        uint256 _amountIn,\n        uint256 _amountOutMin,\n        address[] calldata _path,\n        address _receiver,\n        uint256 _deadline,\n        BubbleV1Types.Raffle memory _raffle\n    )\n        external\n        beforeDeadline(_deadline)\n        returns (uint256[] memory, uint256)\n    {\n        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();\n        uint256[] memory amounts = BubbleV1Library.getAmountsOut(i_factory, _amountIn, _path);\n        if (amounts[amounts.length - 1] < _amountOutMin) {\n            revert BubbleV1Router__InsufficientOutputAmount(\n                amounts[amounts.length - 1], _amountOutMin\n            );\n        }\n        IERC20(_path[0]).safeTransferFrom(\n            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]\n        );\n        _swap(amounts, _path, address(this));\n        IWNative(payable(i_wNative)).withdraw(amounts[amounts.length - 1]);\n        (bool success,) = payable(_receiver).call{ value: amounts[amounts.length - 1] }(\"\");\n        if (!success) revert BubbleV1Router__TransferFailed();\n\n        uint256 nftId;\n        if (_raffle.enter) {\n            nftId = _enterRaffle(\n                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver\n            );\n        }\n\n        return (amounts, nftId);\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 532 Columns 5-39",
+                    "code": "function swapNativeForExactTokens(\n        uint256 _amountOut,\n        address[] calldata _path,\n        address _receiver,\n        uint256 _deadline,\n        BubbleV1Types.Raffle memory _raffle\n    )\n        external\n        payable\n        beforeDeadline(_deadline)\n        returns (uint256[] memory, uint256)\n    {\n        if (_path[0] != i_wNative) revert BubbleV1Router__InvalidPath();\n        uint256[] memory amounts = BubbleV1Library.getAmountsIn(i_factory, _amountOut, _path);\n        if (amounts[0] > msg.value) {\n            revert BubbleV1Router__ExcessiveInputAmount(amounts[0], msg.value);\n        }\n        IWNative(payable(i_wNative)).deposit{ value: amounts[0] }();\n        IERC20(i_wNative).safeTransfer(\n            BubbleV1Library.getPool(i_factory, _path[0], _path[1]), amounts[0]\n        );\n        _swap(amounts, _path, _receiver);\n        if (msg.value > amounts[0]) {\n            (bool success,) = payable(msg.sender).call{ value: msg.value - amounts[0] }(\"\");\n            if (!success) revert BubbleV1Router__TransferFailed();\n        }\n\n        uint256 nftId;\n        if (_raffle.enter) {\n            nftId = _enterRaffle(\n                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver\n            );\n        }\n\n        return (amounts, nftId);\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 673 Columns 5-68",
+                    "code": "function swapExactTokensForNativeSupportingFeeOnTransferTokens(\n        uint256 _amountIn,\n        uint256 _amountOutMin,\n        address[] calldata _path,\n        address _receiver,\n        uint256 _deadline,\n        BubbleV1Types.Raffle memory _raffle\n    )\n        external\n        beforeDeadline(_deadline)\n    {\n        if (_path[_path.length - 1] != i_wNative) revert BubbleV1Router__InvalidPath();\n\n        IERC20(_path[0]).safeTransferFrom(\n            msg.sender, BubbleV1Library.getPool(i_factory, _path[0], _path[1]), _amountIn\n        );\n\n        _swapSupportingFeeOnTransferTokens(_path, address(this));\n\n        uint256 amountOut = IERC20(i_wNative).balanceOf(address(this));\n        if (amountOut < _amountOutMin) {\n            revert BubbleV1Router__InsufficientOutputAmount(amountOut, _amountOutMin);\n        }\n\n        IWNative(payable(i_wNative)).withdraw(amountOut);\n        (bool success,) = payable(_receiver).call{ value: amountOut }(\"\");\n        if (!success) revert BubbleV1Router__TransferFailed();\n\n        uint256 nftId;\n        if (_raffle.enter) {\n            uint256[] memory amounts = new uint256[](2);\n            amounts[0] = _amountIn;\n            amounts[1] = amountOut;\n\n            nftId = _enterRaffle(\n                _path, amounts, _raffle.fractionOfSwapAmount, _raffle.raffleNftReceiver\n            );\n        }\n    }"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 764 Columns 5-36",
+                    "code": "function removeLiquidityNative(\n        address _token,\n        uint256 _lpTokensToBurn,\n        uint256 _amountTokenMin,\n        uint256 _amountNativeMin,\n        address _receiver,\n        uint256 _deadline\n    )\n        public\n        beforeDeadline(_deadline)\n        returns (uint256, uint256)\n    {\n        (uint256 amountToken, uint256 amountNative) = removeLiquidity(\n            _token,\n            i_wNative,\n            _lpTokensToBurn,\n            _amountTokenMin,\n            _amountNativeMin,\n            address(this),\n            _deadline\n        );\n\n        IERC20(_token).safeTransfer(_receiver, amountToken);\n        IWNative(payable(i_wNative)).withdraw(amountNative);\n        (bool success,) = payable(_receiver).call{ value: amountNative }(\"\");\n        if (!success) revert BubbleV1Router__TransferFailed();\n\n        return (amountToken, amountNative);\n    }"
+                }
+            ],
+            "action-items": [
+                "Protect functions that may interact with other contracts by disallowing making nested (or re-entering) calls to them.",
+                "Refer to ecosystem-trusted solutions, like OpenZeppelin's nonReentrant modifier.",
+                "Review all raised functions for a correct implementation of the checks-effects-interactions pattern."
+            ],
+            "references": [
+                "https://docs.openzeppelin.com/contracts/3.x/api/utils#ReentrancyGuard",
+                "https://swcregistry.io/docs/SWC-107/"
+            ],
+            "reports": [
+                "https://github.com/code-423n4/2023-04-caviar-findings/blob/d22bd0a22308bee92374f90d01e4bd3c2958ec42/data/Rolezn-Q.md#low6-missing-reentrancy-guard-to-withdraw-function"
+            ]
+        },
+        {
+            "name": "Missing Zero Address Check",
+            "severity": "Low",
+            "precision": "Medium",
+            "description": "In Solidity, contracts often interact with external addresses. Failing to check for a possible 0 address input (especially in constructors, setters, and initializer functions) before such interactions can lead to unexpected dangerous behavior. A zero address check ensures that addresses are explicitly provided and not left uninitialized or set to a default, invalid state.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/IEntropy.sol",
+                    "lines": "Line 111 Columns 9-25",
+                    "code": "address provider"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/IEntropy.sol",
+                    "lines": "Line 121 Columns 28-43",
+                    "code": "address manager"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/BubbleV1Campaigns.sol",
+                    "lines": "Line 136 Columns 9-33",
+                    "code": "address _monadexV1Router"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/BubbleV1Campaigns.sol",
+                    "lines": "Line 137 Columns 9-25",
+                    "code": "address _wNative"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/BubbleV1Campaigns.sol",
+                    "lines": "Line 138 Columns 9-23",
+                    "code": "address _vault"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Factory.sol",
+                    "lines": "Line 101 Columns 9-38",
+                    "code": "address _protocolTeamMultisig"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Factory.sol",
+                    "lines": "Line 168 Columns 9-38",
+                    "code": "address _protocolTeamMultisig"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 136 Columns 25-40",
+                    "code": "address _tokenA"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 136 Columns 42-57",
+                    "code": "address _tokenB"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/governance/BubbleGovernanceToken.sol",
+                    "lines": "Line 23 Columns 9-23",
+                    "code": "address _owner"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Campaigns.sol",
+                    "lines": "Line 25 Columns 23-37",
+                    "code": "address _vault"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Factory.sol",
+                    "lines": "Line 9 Columns 38-67",
+                    "code": "address _protocolTeamMultisig"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Factory.sol",
+                    "lines": "Line 13 Columns 34-48",
+                    "code": "address _token"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Factory.sol",
+                    "lines": "Line 15 Columns 30-45",
+                    "code": "address _tokenA"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Factory.sol",
+                    "lines": "Line 15 Columns 47-62",
+                    "code": "address _tokenB"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Pool.sol",
+                    "lines": "Line 7 Columns 25-40",
+                    "code": "address _tokenA"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Pool.sol",
+                    "lines": "Line 7 Columns 42-57",
+                    "code": "address _tokenB"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Raffle.sol",
+                    "lines": "Line 7 Columns 39-63",
+                    "code": "address _monadexV1Router"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/raffle/BubbleV1Raffle.sol",
+                    "lines": "Line 173 Columns 9-22",
+                    "code": "address _pyth"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/raffle/BubbleV1Raffle.sol",
+                    "lines": "Line 174 Columns 9-25",
+                    "code": "address _entropy"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/raffle/BubbleV1Raffle.sol",
+                    "lines": "Line 175 Columns 9-33",
+                    "code": "address _entropyProvider"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 69 Columns 17-33",
+                    "code": "address _factory"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 69 Columns 35-50",
+                    "code": "address _raffle"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 69 Columns 52-68",
+                    "code": "address _wNative"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/MockEntropyContract.sol",
+                    "lines": "Line 14 Columns 17-33",
+                    "code": "address _entropy"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/MockEntropyContract.sol",
+                    "lines": "Line 14 Columns 35-52",
+                    "code": "address _provider"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/FeeOnTransferTokenMock.sol",
+                    "lines": "Line 19 Columns 9-29",
+                    "code": "address feeReceiver_"
+                }
+            ],
+            "action-items": [
+                "Use require statements to validate addresses before any operation involving external addresses is performed, especially on constructors, setters or initializer functions."
+            ],
+            "references": [
+                "https://detectors.auditbase.com/check-state-variable-address-zero-solidity"
+            ],
+            "reports": [
+                "https://github.com/code-423n4/2024-01-curves/blob/main/bot-report.md#l-06"
+            ]
+        },
+        {
+            "name": "Unspecific Solidity Pragma Detector",
+            "severity": "Low",
+            "precision": "High",
+            "description": "Detects the usage of unspecific compiler pragmas that allow for a broader range of compiler versions than necessary, which can lead to unintended behavior or compiler warnings/errors with newer versions.",
+            "results": [
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/EntropyEvents.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/EntropyStructs.sol",
+                    "lines": "Line 3 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/IEntropy.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/AbstractPyth.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/IPyth.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/IPythEvents.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/MockPyth.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/PythErrors.sol",
+                    "lines": "Line 3 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/PythStructs.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/node_modules/@pythnetwork/pyth-sdk-solidity/PythUtils.sol",
+                    "lines": "Line 2 Columns 1-24",
+                    "code": "pragma solidity ^0.8.0;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/CampaignsScriptBase.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/FactoryScriptBase.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/GovernanceScriptBase.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/RaffleScriptBase.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/RouterScriptBase.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/script/utils/Utils.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/BubbleV1Campaigns.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/campaigns/ERC20Launchable.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Factory.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/core/BubbleV1Pool.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/governance/BubbleGovernanceToken.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/governance/BubbleV1Governor.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/governance/BubbleV1Timelock.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Callee.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Campaigns.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Factory.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Pool.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Raffle.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IBubbleV1Router.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/ILaunch.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IOwned.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/interfaces/IWNative.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/library/BubbleV1Library.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/library/BubbleV1Types.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/raffle/BubbleV1Raffle.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/src/router/BubbleV1Router.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.25;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/Deployer.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/Deployer2.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializeActors.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializeConstructorArgs.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializePythV2.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/InitializeTokens.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/MockEntropy.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/baseHelpers/MockEntropyContract.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/DangerousToken.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/FeeOnTransferTokenMock.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/TokenMock.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/WNative.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/WrappedMonad.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                },
+                {
+                    "file": "/Users/aitor/repos_bubblefi/bubble-v1-protocol/test/utils/vault.sol",
+                    "lines": "Line 2 Columns 1-25",
+                    "code": "pragma solidity ^0.8.24;"
+                }
+            ],
+            "action-items": [
+                "Specify a more precise range of compiler versions in the pragma statement to ensure consistent behavior across different environments."
+            ],
+            "references": [
+                "https://docs.soliditylang.org/en/latest/layout-of-source-files.html#version-pragma"
+            ],
+            "reports": [
+                "https://github.com/Steemhunt/mint.club-v2-contract/issues/36",
+                "https://solodit.xyz/issues/n-06-inconsistent-method-of-specifying-a-floating-pragma-code4rena-ens-ens-contest-git"
+            ]
+        }
+    ],
+    "nsloc": {
+        "file_count": 21,
+        "code_count": 2466,
+        "documentation_count": 1496,
+        "empty_count": 1272,
+        "string_count": 6
+    }
+}

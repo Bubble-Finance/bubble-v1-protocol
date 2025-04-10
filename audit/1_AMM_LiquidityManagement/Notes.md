@@ -5,3 +5,7 @@
 5. getAllPools returns an array, then may be a DoS.
 6. Tokens 777 works? check oif breaks the formula
 7. Next step: check if FOT breaks the formula.
+8. We have an unchecked + blocktimestamp .. is this safe?
+9. We have to add to every transfer function the OZ Safeguard.
+10. Remove all the ^ in pragmas.
+11. A few zero address without check. Check all.
