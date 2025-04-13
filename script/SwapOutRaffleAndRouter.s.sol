@@ -32,6 +32,7 @@ contract SwapOutRaffleAndRouter is RaffleScriptBase, RouterScriptBase, Utils, Sc
             s_pythPriceFeedContract,
             s_entropyContract,
             s_entropyProvider,
+            s_fee,
             s_minimumNftsToBeMintedEachEpoch,
             s_winningPortions,
             s_uri

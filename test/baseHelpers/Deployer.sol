@@ -89,6 +89,7 @@ contract Deployer is Test, InitializeActors, InitializeConstructorArgs {
             address(s_pythPriceFeedContract),
             s_entropyContract,
             s_entropyContract,
+            s_fee,
             s_minimumNftsToBeMintedEachEpoch,
             s_winningPortions,
             s_uri

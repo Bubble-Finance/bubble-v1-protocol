@@ -128,6 +128,7 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
     //     Raffle Initialize
     // -------------------------------------------
     BubbleV1Types.Fraction[3] public s_winningPortions;
+    BubbleV1Types.Fraction public s_fee;
     uint256 public s_minimumNftsToBeMintedEachEpoch = 10;
 
     uint256 public constant WINNING_PORTTIONS_1 = 45;
@@ -152,15 +153,17 @@ contract InitializeConstructorArgs is InitializePythV2, InitializeTokens {
         for (uint256 count = 0; count < 3; ++count) {
             s_winningPortions[count] = winningPortions[count];
         }
+
+        s_fee = BubbleV1Types.Fraction({ numerator: 10, denominator: 100 });
     }
 
     // -------------------------------------------
     //     ERC20Launchable Initialize
     // -------------------------------------------
-    BubbleV1Types.Fraction s_fee = BubbleV1Types.Fraction({
+    /*    BubbleV1Types.Fraction s_fee = BubbleV1Types.Fraction({
         numerator: 2, // 2% fee (200 basis points)
         denominator: 100
-    });
+    }); */
 
     uint256 s_minimumTokenTotalSupply = 1000_000;
     uint256 s_minimumVirutalNativeReserve = 5 ether; //5e18

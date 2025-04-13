@@ -433,7 +433,8 @@ contract V1RaffleTest is Test, Deployer2 {
         console.log("total NFT Range is", totalNFTRange);
         console.log("epouch to range is", epouchToRange);
         uint256 amountCollected = s_raffle.getTokenAmountCollectedInEpoch(lastEpouch, address(USDC));
-        assertEq(amountCollected, Fifty_Dollars * 7);
+        uint amountAfterFee = Fifty_Dollars - ((Fifty_Dollars * 10) / 100);
+        assertEq(amountCollected, amountAfterFee * 7);
     }
 
     function testgetUserNftsEachEpoch() public {
@@ -528,7 +529,8 @@ contract V1RaffleTest is Test, Deployer2 {
 
         uint256[] memory NFTRange = s_raffle.getNftToRange(tokenId);
         assertEq(NFTRange[0], 0);
-        assertEq(NFTRange[1], Fifty_Dollars);
+        uint256 amountAfterFee = Fifty_Dollars - ((Fifty_Dollars * 10) / 100);
+        assertEq(NFTRange[1], amountAfterFee);
     }
 
     function testGetMinimumNftsToBeMintedEachEpoch() public view {
