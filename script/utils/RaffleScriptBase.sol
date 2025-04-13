@@ -11,6 +11,7 @@ abstract contract RaffleScriptBase {
     BubbleV1Types.PriceFeedConfig[] public s_priceFeedConfigs;
     address public s_entropyContract;
     address public s_entropyProvider;
+    BubbleV1Types.Fraction public s_fee;
     BubbleV1Types.Fraction[3] public s_winningPortions;
     uint256 public s_minimumNftsToBeMintedEachEpoch;
     string public s_uri;
@@ -38,6 +39,8 @@ abstract contract RaffleScriptBase {
 
         s_entropyContract = 0x36825bf3Fbdf5a29E2d5148bfe7Dcf7B5639e320;
         s_entropyProvider = 0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344;
+
+        s_fee = BubbleV1Types.Fraction({ numerator: 10, denominator: 100 });
 
         BubbleV1Types.Fraction[3] memory winningPortions = [
             BubbleV1Types.Fraction({ numerator: 45, denominator: 100 }), // Tier 1, 45% to 1 winner

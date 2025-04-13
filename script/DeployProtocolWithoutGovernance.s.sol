@@ -41,6 +41,7 @@ contract DeployProtocolWithoutGovernance is
             s_pythPriceFeedContract,
             s_entropyContract,
             s_entropyProvider,
+            s_fee,
             s_minimumNftsToBeMintedEachEpoch,
             s_winningPortions,
             s_uri
