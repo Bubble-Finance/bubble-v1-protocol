@@ -50,6 +50,8 @@ interface IBubbleV1Raffle {
 
     function getPyth() external view returns (address);
 
+    function getFee() external view returns (BubbleV1Types.Fraction memory);
+
     function getEntropyContract() external view returns (address);
 
     function getEntropyProvider() external view returns (address);

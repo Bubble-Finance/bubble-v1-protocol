@@ -583,6 +583,12 @@ contract BubbleV1Raffle is ERC721, Ownable, IEntropyConsumer, IBubbleV1Raffle {
         return i_pyth;
     }
 
+    /// @notice Gets the fee charged on each raffle entry.
+    /// @return The fraction struct with numerator and denominator fields.
+    function getFee() external view returns (BubbleV1Types.Fraction memory) {
+        return s_fee;
+    }
+
     /// @notice Gets the Pyth entropy contract address.
     /// @return The Pyth entropy contract address.
     function getEntropyContract() external view returns (address) {
