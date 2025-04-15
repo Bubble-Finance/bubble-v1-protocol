@@ -1,4 +1,4 @@
-## [LOW-01] Pyth installation error
+## [LOW-1] Pyth installation error
 
 ### Status : Pending
 
