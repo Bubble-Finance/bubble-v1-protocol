@@ -54,6 +54,11 @@ contract BubbleV1Factory is Ownable, IBubbleV1Factory {
     /// @dev Tracking all deployed pools in an array for utility purposes.
     address[] private s_allPools;
 
+    ///
+    uint256 public constant TIMELOCK_DURATION = 2 days;
+    mapping(bytes32 => uint256) public pendingChanges;
+    ///
+
     //////////////
     /// Events ///
     //////////////
@@ -164,9 +169,7 @@ contract BubbleV1Factory is Ownable, IBubbleV1Factory {
     /// @notice Allows the protocol team to change the address where the protocol's cut of
     /// the swap fee is directed to.
     /// @param _protocolTeamMultisig The new address to direct the protocol's cut of the swap fee to.
-    function setProtocolTeamMultisig(
-        address _protocolTeamMultisig
-    )
+    function setProtocolTeamMultisig(address _protocolTeamMultisig)
         external
         onlyProtocolTeamMultisig
     {
@@ -180,9 +183,7 @@ contract BubbleV1Factory is Ownable, IBubbleV1Factory {
     /// @notice Allows the protocol team to set the new protocol's cut of the swap fee. The protocol fee is always
     /// a fraction that is deducted from the swap fee.
     /// @param _protocolFee The new protocol fee.
-    function setProtocolFee(
-        BubbleV1Types.Fraction memory _protocolFee
-    )
+    function setProtocolFee(BubbleV1Types.Fraction memory _protocolFee)
         external
         onlyProtocolTeamMultisig
     {
@@ -294,9 +295,7 @@ contract BubbleV1Factory is Ownable, IBubbleV1Factory {
     /// @notice Gets the fee struct for the specified tier.
     /// @param _feeTier The fee tier to get the fee for. Allowed values are 1 to 5.
     /// @return The pool fee struct with numerator and denominator fields.
-    function getFeeForTier(
-        uint256 _feeTier
-    )
+    function getFeeForTier(uint256 _feeTier)
         external
         view
         returns (BubbleV1Types.Fraction memory)
