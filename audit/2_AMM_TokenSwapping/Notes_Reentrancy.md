@@ -21,3 +21,5 @@ if (_swapParams.amountAOut > 0) {
 
 3. Effect
    updateReservesAndTWAP(balanceA, balanceB, reserveA, reserveB);
+
+looks like the `globalLock` is protecting from reentrancy but, anyway, the function does not following the CEI pattern and also does not implemented the OZ Saveguard.
