@@ -1,4 +1,4 @@
-## [H-01] Existing Pools unaffected by token blacklisting
+## [HIGH-01] Existing Pools unaffected by token blacklisting
 
 ### Status
 
