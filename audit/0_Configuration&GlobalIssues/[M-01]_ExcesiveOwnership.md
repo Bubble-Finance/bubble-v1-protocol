@@ -1,4 +1,8 @@
-## [MEDIUM-01] Critical parameter changes (fees, blacklists) are immediate.
+## [MEDIUM-01] \*\* AFFECTS ACROSS THE PROTOCOL -> REVIEW
+
+** EXCESIVE OWNERSHIP PRIVILEGES **
+
+Critical parameter changes (fees, blacklists) are immediate.
 
 ### Status : Pending
 

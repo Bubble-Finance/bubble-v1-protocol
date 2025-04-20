@@ -1,5 +1,7 @@
 ## [LOW-03] getAllPools Function Susceptible to Block Gas Limit Denial of Service (DoS).
 
+** Review Poc and recommendations in audit2 **
+
 ### Status : Pending
 
 ### Severity: Low (2)
