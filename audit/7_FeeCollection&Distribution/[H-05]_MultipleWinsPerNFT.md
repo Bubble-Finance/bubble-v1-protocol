@@ -1,4 +1,4 @@
-## [HIGH-05] Multiple Wins Per NFT Per Tier Due to Incorrect Prize Calculation
+## [HIGH-05] Multiple wins per NFT per tier Due to incorrect prize calculation
 
 ### Status
 

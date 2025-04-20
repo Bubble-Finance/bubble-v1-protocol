@@ -1,4 +1,4 @@
-## [HIGH-04] Single Point of Failure via Sole Reliance on Pyth Network Oracles
+## [HIGH-04] Single point of failure via sole reliance on Pyth Network Oracles
 
 ### Status
 
